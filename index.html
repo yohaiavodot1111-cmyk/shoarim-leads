@@ -319,7 +319,7 @@ function loadData() {
       document.getElementById('loadingWrap').style.display = 'none';
       document.getElementById('statusText').textContent = 'מסונכרן ✓ ' + allData.length + ' רשומות';
       document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
-      countdown = 30;
+      countdown = 10;
     })
     .catch(function(e) {
       document.getElementById('loadingWrap').innerHTML =
@@ -750,13 +750,13 @@ document.getElementById('branchFilter').addEventListener('change', applyFilters)
 document.getElementById('districtFilter').addEventListener('change', applyFilters);
 
 loadData();
-var refreshInterval = setInterval(loadData, 30 * 1000);
+var refreshInterval = setInterval(loadData, 10 * 1000);
 
 // countdown timer
-var countdown = 30;
+var countdown = 10;
 setInterval(function() {
   countdown--;
-  if (countdown <= 0) countdown = 30;
+  if (countdown <= 0) countdown = 10;
   var el = document.getElementById('nextRefresh');
   if (el) el.textContent = 'רענון בעוד ' + countdown + ' שניות';
 }, 1000);
