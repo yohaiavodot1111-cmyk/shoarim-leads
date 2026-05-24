@@ -617,6 +617,31 @@ function buildViewBody(r) {
   (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:8px 12px;border-radius:4px;font-size:12px;color:#92400e;margin-top:8px;">✏️ ליד זה עודכן ידנית — השינויים שמורים בגיליון "עריכות"</div>' : '');
 }
 
+var BRANCH_DISTRICT_MAP = {
+  'אשקלון':          'דרום',
+  'נהריה':           'צפון',
+  'אילת':            'דרום',
+  'קריית גת':        'דרום',
+  'דימונה':          'דרום',
+  'אשדוד':           'דרום',
+  'בית שמש':         'מרכז',
+  'גבעת רם':         'מרכז',
+  'מעלה אדומים':     'מרכז',
+  'הולץ':            'מרכז',
+  'פתח תקווה':       'מרכז',
+  'בת ים':           'מרכז',
+  'ראשון לציון':     'מרכז',
+  'כפר סבא':         'מרכז',
+  'ראש העין':        'מרכז',
+  'חצור הגלילית':    'צפון',
+  'מעלות תרשיחא':   'צפון',
+  'חדרה':            'מרכז',
+  'ביסט בש':         'ביסט בש',
+  'ביסהת':           'ביסהת',
+};
+
+var BRANCHES = Object.keys(BRANCH_DISTRICT_MAP);
+
 var STATUS_OPTIONS = [
   'חדש',
   'קשר ראשוני אין מענה 1','קשר ראשוני אין מענה 2','קשר ראשוני אין מענה 3',
@@ -647,7 +672,12 @@ function buildEditForm(r) {
   ]) +
   sectionEdit('הורה 1', [eInput('parentName','שם הורה',r.parentName), eInput('parentPhone','טלפון הורה',r.parentPhone)]) +
   sectionEdit('הורה 2', [eInput('parent2Name','שם הורה',r.parent2Name), eInput('parent2Phone','טלפון הורה',r.parent2Phone)]) +
-  sectionEdit('שיוך', [eInput('branch','שלוחה',r.branch), eInput('district','מחוז',r.district)]) +
+  '<div class="modal-section"><div class="section-title">שיוך</div><div class="modal-grid">' +
+    '<div class="modal-field"><label>שלוחה</label><select id="edit_branch" onchange="onBranchChange(this)" style="width:100%;padding:7px 10px;border:1px solid var(--border);background:#f8faff;font-family:Assistant,sans-serif;font-size:13px;border-radius:3px;direction:rtl;"><option value="">— בחר שלוחה —</option>' +
+      BRANCHES.map(function(b){ return '<option'+(b===r.branch?' selected':'')+'>'+b+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="modal-field"><label>מחוז</label><input id="edit_district" value="'+(r.district||'').replace(/"/g,'&quot;')+'" readonly style="background:#f0f4fa;cursor:default;border:1px solid var(--border);padding:7px 10px;width:100%;border-radius:3px;font-family:Assistant,sans-serif;font-size:13px;"/></div>' +
+  '</div></div>' +
   '<div class="modal-section"><div class="section-title">סטטוס ומעקב</div>' +
     '<div style="margin-bottom:10px"><label style="font-size:10px;font-weight:700;color:var(--light);letter-spacing:0.05em;text-transform:uppercase;display:block;margin-bottom:4px;">סטטוס</label>' +
       '<select id="edit_status" onchange="onStatusChange(this)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);background:#f8faff;font-family:Assistant,sans-serif;font-size:14px;border-radius:4px;direction:rtl;">' +
@@ -665,6 +695,12 @@ function buildEditForm(r) {
   '</div>' +
   '<div id="saveMsg" class="save-msg" style="display:none"></div>' +
   '</form>';
+}
+
+function onBranchChange(sel) {
+  var district = BRANCH_DISTRICT_MAP[sel.value] || '';
+  var distEl = document.getElementById('edit_district');
+  if (distEl) distEl.value = district;
 }
 
 function onStatusChange(sel) {
