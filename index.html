@@ -45,7 +45,7 @@ body{font-family:'Assistant',sans-serif;background:var(--bg);color:var(--text);d
 .user-badge{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);padding:5px 12px;color:rgba(255,255,255,0.7);font-size:12px;font-weight:600;}
 .btn-logout{background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);padding:5px 12px;font-family:'Assistant',sans-serif;font-size:12px;cursor:pointer;}
 .btn-logout:hover{border-color:rgba(255,255,255,0.4);color:#fff;}
-.new-leads-badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:3px 8px;border-radius:1px;cursor:default;}
+.new-leads-badge{background:rgba(240,180,41,0.15);border:1px solid rgba(240,180,41,0.4);color:var(--gold);font-size:12px;font-weight:700;padding:4px 12px;cursor:pointer;max-width:500px;}
 
 /* ═══ TABS & TOOLBAR ═══ */
 .tabs{background:#fff;border-bottom:1px solid var(--border);display:flex;padding:0 32px;box-shadow:0 1px 4px rgba(13,34,87,0.04);}
@@ -463,6 +463,16 @@ document.getElementById('loginPass').addEventListener('keydown', function(e){ if
 // DATA
 // ══════════════════════════════════════════
 function loadData() {
+  // אבטחה: נקה נתונים ישנים לפני טעינה
+  allData = []; filtered = [];
+  document.getElementById('loadingWrap').style.display = '';
+  document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('cardsWrap').style.display = 'none';
+  document.getElementById('groupedWrap').style.display = 'none';
+  document.getElementById('statsWrap').style.display = 'none';
+  document.getElementById('emptyWrap').style.display = 'none';
+
   var btn = document.querySelector('[onclick="loadData()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
   document.getElementById('statusText').textContent = 'מתחבר...';
@@ -472,7 +482,7 @@ function loadData() {
     .then(function(d){
       if (!d.success) throw new Error(d.error||'שגיאה');
 
-      // סנן לפי הרשאות
+      // סנן לפי הרשאות — תמיד מחדש
       var rows = d.rows || [];
       if (currentUser.role === 'branch') {
         rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
@@ -480,7 +490,7 @@ function loadData() {
         rows = rows.filter(function(r){ return r.district === currentUser.district; });
       }
 
-      // מיין לפי תאריך — חדש ראשון
+      // מיין: האחרון שנרשם ראשון
       rows.sort(function(a,b){
         var da = parseDate(a.timestamp), db = parseDate(b.timestamp);
         if (!da && !db) return 0;
@@ -490,19 +500,25 @@ function loadData() {
 
       allData = rows;
 
-      // לידים חדשים מאז כניסה אחרונה
+      // לידים חדשים מאז כניסה אחרונה — עם הודעה מפורטת
+      var badge = document.getElementById('newLeadsBadge');
       if (lastLoginTime) {
         var newCount = allData.filter(function(r){
           var ts = parseDate(r.timestamp);
           return ts && ts > lastLoginTime;
         }).length;
-        var badge = document.getElementById('newLeadsBadge');
         if (newCount > 0) {
-          badge.textContent = newCount + ' חדשים';
+          var lastStr = lastLoginTime.toLocaleDateString('he-IL', {weekday:'long'}) +
+                        ' בשעה ' + lastLoginTime.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
+          badge.textContent = 'מאז כניסתך האחרונה (' + lastStr + ') נרשמו ' + newCount + ' לידים חדשים';
           badge.style.display = '';
+          badge.title = 'לחץ לסגירה';
+          badge.onclick = function(){ badge.style.display='none'; };
         } else {
           badge.style.display = 'none';
         }
+      } else {
+        badge.style.display = 'none';
       }
 
       applyFilters();
@@ -737,17 +753,38 @@ function computeStatsData(data) {
     return {name:stage.name, count:n, color:stage.color};
   });
 
-  // Insights
+  // Insights — מסקנות חכמות
   var insights=[];
   var convRate=pctOf(signed+learning,total);
   var invalidRate=pctOf(invalid,total);
-  if(invalidRate>10) insights.push({t:'warn',msg:'שיעור לא תקינים: <strong>'+invalidRate+'%</strong> — בדוק איכות ההרשמות.'});
+
+  if(invalidRate>10) insights.push({t:'warn',msg:'שיעור לא תקינים: <strong>'+invalidRate+'%</strong> ('+invalid+') — בדוק איכות ההרשמות.'});
   if(convRate>0)     insights.push({t:'ok',  msg:'שיעור המרה לחתימה/לימודים: <strong>'+convRate+'%</strong>'+(convRate>15?' — מצוין!':' — יש מקום לשיפור.')});
   if(newL>total*0.5) insights.push({t:'warn',msg:'<strong>'+pctOf(newL,total)+'%</strong> מהלידים עדיין "חדש" — מומלץ ליצור קשר.'});
-  var topBr=sortedEntries(byBranch,1)[0];
-  if(topBr) insights.push({t:'info',msg:'שלוחה מובילה: <strong>'+topBr[0]+'</strong> — '+topBr[1]+' לידים.'});
-  var topSrc=sortedEntries(bySource,1)[0];
-  if(topSrc&&topSrc[0]!=='לא ידוע') insights.push({t:'info',msg:'מקור גיוס מוביל: <strong>'+topSrc[0]+'</strong> — '+topSrc[1]+' לידים.'});
+
+  // שלוחה מובילה — עם טיפול בשוויון
+  var branchEntries = sortedEntries(byBranch,1);
+  if(branchEntries.length){
+    var maxBranchVal = branchEntries[0][1];
+    var topBranches = sortedEntries(byBranch).filter(function(e){return e[1]===maxBranchVal;});
+    if(topBranches.length===1){
+      insights.push({t:'info',msg:'שלוחה מובילה: <strong>'+topBranches[0][0]+'</strong> — '+maxBranchVal+' לידים.'});
+    } else {
+      insights.push({t:'info',msg:'שלוחות מובילות בשוויון ('+maxBranchVal+' לידים כ"א): <strong>'+topBranches.map(function(e){return e[0];}).join(', ')+'</strong>'});
+    }
+  }
+
+  // מקור גיוס מוביל — עם טיפול בשוויון
+  var srcEntries = sortedEntries(bySource).filter(function(e){return e[0]!=='לא ידוע';});
+  if(srcEntries.length){
+    var maxSrcVal = srcEntries[0][1];
+    var topSrcs = srcEntries.filter(function(e){return e[1]===maxSrcVal;});
+    if(topSrcs.length===1){
+      insights.push({t:'info',msg:'מקור גיוס מוביל: <strong>'+topSrcs[0][0]+'</strong> — '+maxSrcVal+' לידים ('+pctOf(maxSrcVal,total)+'%).'});
+    } else {
+      insights.push({t:'info',msg:'מקורות גיוס מובילים בשוויון: <strong>'+topSrcs.map(function(e){return e[0];}).join(', ')+'</strong>'});
+    }
+  }
 
   return {total,grade8,grade9,invalid,male,female,newL,signed,learning,
     convRate,invalidRate,byStatus,byBranch,byDistrict,byCity,bySource,byMotiv,
@@ -818,8 +855,45 @@ function renderStats() {
         '</div>' +
       '</div>' : '') +
 
-    // City table
+    // Source breakdown table — כל מקורות הגיוס
     '<div class="stat-card" style="padding:16px;margin-bottom:16px">' +
+      '<div class="stats-section-title">פירוט מקורות גיוס</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:10px">' +
+      (function(){
+        var ALL_SOURCES=['שיווק נציגי חי"א','דיוור ישיר','עיתון','קמפיין דיגיטל','המלצת חבר','רדיו','שלטי פרסים','קישור בהודעה','לא יודע'];
+        return ALL_SOURCES.map(function(src){
+          var cnt=s.bySource[src]||0;
+          var p=pctOf(cnt,s.total);
+          return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-right:3px solid #2e9cdb">' +
+            '<div style="flex:1;font-size:12px;color:var(--mid)">'+src+'</div>' +
+            '<div style="font-size:16px;font-weight:800;color:#fff;min-width:28px;text-align:left">'+cnt+'</div>' +
+            '<div style="font-size:11px;color:var(--light);min-width:34px">'+p+'%</div>' +
+          '</div>';
+        }).join('');
+      })() +
+      '</div></div>' +
+
+    // ערב פתוח stats
+    (function(){
+      var openDay = data.filter(function(r){
+        return r.status && (r.status.indexOf('יום פתוח')>-1);
+      });
+      var arrived = data.filter(function(r){return r.status==='יום פתוח התייצב';}).length;
+      var expected= data.filter(function(r){return r.status==='יום פתוח צפוי להגיע';}).length;
+      var maybe   = data.filter(function(r){return r.status==='יום פתוח אולי יגיע';}).length;
+      var noShow  = data.filter(function(r){return r.status==='יום פתוח הבריז';}).length;
+      var wontCome= data.filter(function(r){return r.status==='יום פתוח לא יגיע';}).length;
+      if(!openDay.length) return '';
+      return '<div class="stat-card" style="padding:16px;margin-bottom:16px">' +
+        '<div class="stats-section-title">ערב פתוח</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px">' +
+          sKpi('הגיעו',arrived,'','#22c55e') +
+          sKpi('צפויים',expected,'','#2e9cdb') +
+          sKpi('אולי',maybe,'','#f0b429') +
+          sKpi('הבריזו',noShow,'','#ef4444') +
+          sKpi('לא יגיעו',wontCome,'','#6b8ab8') +
+        '</div></div>';
+    })() +
       '<div class="stats-section-title">TOP 20 ערים</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">' +
       sortedEntries(s.byCity,20).map(function(e,i){
