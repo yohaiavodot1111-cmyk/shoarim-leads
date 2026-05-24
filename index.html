@@ -171,6 +171,52 @@ td.phone-cell a:hover{text-decoration:underline;}
     <option value="ח׳">ח׳</option>
     <option value="ט׳">ט׳</option>
   </select>
+  <select class="filter-select" id="statusFilter">
+    <option value="">כל הסטטוסים</option>
+    <option value="חדש">חדש</option>
+    <optgroup label="קשר ראשוני">
+      <option>קשר ראשוני אין מענה 1</option>
+      <option>קשר ראשוני אין מענה 2</option>
+      <option>קשר ראשוני אין מענה 3</option>
+      <option>קשר ראשוני לחזור יותר מאוחר</option>
+      <option>קשר ראשוני פסילה</option>
+    </optgroup>
+    <optgroup label="יום פתוח">
+      <option>יום פתוח צפוי להגיע</option>
+      <option>יום פתוח אולי יגיע</option>
+      <option>יום פתוח לא יגיע</option>
+      <option>יום פתוח התייצב</option>
+      <option>יום פתוח הבריז</option>
+    </optgroup>
+    <optgroup label="יום מיונים">
+      <option>יום מיונים זומן</option>
+      <option>יום מיונים רלוונטי</option>
+      <option>יום מיונים הגיע</option>
+      <option>יום מיונים לא הגיע</option>
+      <option>יום מיונים לא מעוניין</option>
+    </optgroup>
+    <optgroup label="מבחן מיון">
+      <option>מבחן מיון עבר בהצלחה</option>
+      <option>מבחן מיון עבר על תנאי</option>
+      <option>מבחן מיון לא עבר</option>
+    </optgroup>
+    <optgroup label="חתימת חוזה">
+      <option>חתימת חוזה נחתם</option>
+      <option>חתימת חוזה לא נחתם</option>
+      <option>חתימת חוזה לא מעוניין</option>
+    </optgroup>
+    <optgroup label="לימודים">
+      <option>לימודים התחיל</option>
+      <option>לימודים לא התחיל</option>
+      <option>לא תקין</option>
+    </optgroup>
+  </select>
+  <select class="filter-select" id="dateFilter">
+    <option value="">כל הזמנים</option>
+    <option value="1">יום אחרון</option>
+    <option value="7">שבוע אחרון</option>
+    <option value="30">חודש אחרון</option>
+  </select>
   <select class="filter-select" id="branchFilter" style="display:none">
     <option value="">כל השלוחות</option>
   </select>
@@ -268,12 +314,19 @@ function saveEdit() {
 
   var fields = ['name','city','grade','phone','parentName','parentPhone',
                 'parent2Name','parent2Phone','idNumber','motivation',
-                'branch','district','rejectNote','notes'];
+                'branch','district','rejectNote','notes','status'];
   var lead = { originalPhone: r.originalPhone || r.phone };
   fields.forEach(function(f) {
     var el = document.getElementById('edit_' + f);
     lead[f] = el ? el.value.trim() : (r[f] || '');
   });
+
+  // ולידציה: סטטוסים שדורשים הערה
+  if (STATUS_NOTES_REQUIRED.indexOf(lead.status) > -1 && !lead.notes.trim()) {
+    showSaveMsg('❌ סטטוס זה מחייב הזנת הערה', 'err');
+    saveBtn.disabled = false; saveBtn.textContent = '💾 שמור שינויים';
+    return;
+  }
 
   fetch(APPS_SCRIPT_URL, {
     method: 'POST',
@@ -325,15 +378,23 @@ function updateStats() {
 }
 
 function applyFilters() {
-  var q  = document.getElementById('searchInput').value.trim().toLowerCase();
-  var g  = document.getElementById('gradeFilter').value;
-  var br = document.getElementById('branchFilter').value;
-  var di = document.getElementById('districtFilter').value;
+  var q   = document.getElementById('searchInput').value.trim().toLowerCase();
+  var g   = document.getElementById('gradeFilter').value;
+  var st  = document.getElementById('statusFilter').value;
+  var br  = document.getElementById('branchFilter').value;
+  var di  = document.getElementById('districtFilter').value;
+  var days= parseInt(document.getElementById('dateFilter').value) || 0;
+  var now = new Date();
 
   filtered = allData.filter(function(r) {
     if (g  && r.grade    !== g)  return false;
+    if (st && r.status   !== st) return false;
     if (br && r.branch   !== br) return false;
     if (di && r.district !== di) return false;
+    if (days) {
+      var ts = parseDate(r.timestamp);
+      if (!ts || (now - ts) > days * 86400000) return false;
+    }
     if (q) {
       var hay = (r.name+r.city+r.phone+r.branch+r.district+r.parentName).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -347,6 +408,14 @@ function applyFilters() {
   });
 
   render();
+}
+
+function parseDate(ts) {
+  if (!ts) return null;
+  // format: DD.M.YYYY, HH:MM:SS
+  var m = ts.match(/(\d+)\.(\d+)\.(\d+),?\s*(\d+):(\d+)/);
+  if (!m) return null;
+  return new Date(m[3], m[2]-1, m[1], m[4], m[5]);
 }
 
 function sortBy(k) {
@@ -397,9 +466,11 @@ function motivBadge(m) {
 
 function statusBadge(s, note) {
   if (!s) return '—';
-  var cls = s.includes('חדש') ? 'badge-8' : s.includes('רלוונטי') ? 'badge-low' : 'badge-med';
+  var isRed = STATUS_RED && STATUS_RED.indexOf(s) > -1;
+  var cls = isRed ? 'badge-low' : s === 'חדש' ? 'badge-8' : s.includes('עבר בהצלחה') || s.includes('התחיל') || s.includes('נחתם') || s.includes('התייצב') ? 'badge-high' : 'badge-med';
+  var style = isRed ? ' style="background:#fee2e2;color:#b91c1c;"' : '';
   var title = note ? ' title="'+note+'"' : '';
-  return '<span class="badge '+cls+'"'+title+'>'+s+'</span>';
+  return '<span class="badge '+cls+'"'+style+title+'>'+s+'</span>';
 }
 
 function renderTable() {
@@ -523,8 +594,28 @@ function buildViewBody(r) {
   (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:8px 12px;border-radius:4px;font-size:12px;color:#92400e;margin-top:8px;">✏️ ליד זה עודכן ידנית — השינויים שמורים בגיליון "עריכות"</div>' : '');
 }
 
+var STATUS_OPTIONS = [
+  'חדש',
+  'קשר ראשוני אין מענה 1','קשר ראשוני אין מענה 2','קשר ראשוני אין מענה 3',
+  'קשר ראשוני לחזור יותר מאוחר','קשר ראשוני פסילה',
+  'יום פתוח צפוי להגיע','יום פתוח אולי יגיע','יום פתוח לא יגיע',
+  'יום פתוח התייצב','יום פתוח הבריז',
+  'יום מיונים זומן','יום מיונים רלוונטי','יום מיונים הגיע',
+  'יום מיונים לא הגיע','יום מיונים לא מעוניין',
+  'מבחן מיון עבר בהצלחה','מבחן מיון עבר על תנאי','מבחן מיון לא עבר',
+  'חתימת חוזה נחתם','חתימת חוזה לא נחתם','חתימת חוזה לא מעוניין',
+  'לימודים התחיל','לימודים לא התחיל','לא תקין'
+];
+var STATUS_RED = ['קשר ראשוני פסילה','יום פתוח לא יגיע','יום פתוח הבריז',
+  'מבחן מיון לא עבר','לא תקין','יום מיונים לא הגיע','יום מיונים לא מעוניין'];
+var STATUS_NOTES_REQUIRED = ['קשר ראשוני פסילה','לא תקין'];
+
 function buildEditForm(r) {
   var grades = ['ח׳','ט׳'];
+  var statusOpts = STATUS_OPTIONS.map(function(o) {
+    return '<option'+(o===r.status?' selected':'')+'>'+o+'</option>';
+  }).join('');
+
   return '<form onsubmit="return false;">' +
   sectionEdit('פרטי תלמיד/ה', [
     eInput('name','שם מלא',r.name), eInput('city','עיר',r.city),
@@ -534,13 +625,28 @@ function buildEditForm(r) {
   sectionEdit('הורה 1', [eInput('parentName','שם הורה',r.parentName), eInput('parentPhone','טלפון הורה',r.parentPhone)]) +
   sectionEdit('הורה 2', [eInput('parent2Name','שם הורה',r.parent2Name), eInput('parent2Phone','טלפון הורה',r.parent2Phone)]) +
   sectionEdit('שיוך', [eInput('branch','שלוחה',r.branch), eInput('district','מחוז',r.district)]) +
-  sectionEdit('פרטים נוספים', [eInput('rejectNote','סיבת דחייה',r.rejectNote), eInput('notes','הערות',r.notes)]) +
+  '<div class="modal-section"><div class="section-title">סטטוס ומעקב</div>' +
+    '<div style="margin-bottom:10px"><label style="font-size:10px;font-weight:700;color:var(--light);letter-spacing:0.05em;text-transform:uppercase;display:block;margin-bottom:4px;">סטטוס</label>' +
+      '<select id="edit_status" onchange="onStatusChange(this)" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);background:#f8faff;font-family:Assistant,sans-serif;font-size:14px;border-radius:4px;direction:rtl;">' +
+        '<option value="">— בחר סטטוס —</option>'+statusOpts+
+      '</select></div>' +
+    '<div class="modal-grid">' +
+      eInput('rejectNote','סיבת דחייה',r.rejectNote) +
+      '<div class="modal-field"><label>הערות <span id="notesRequired" style="color:var(--red);display:none;font-size:10px;">* חובה לסטטוס זה</span></label>' +
+        '<input id="edit_notes" value="'+(r.notes||'').replace(/"/g,'&quot;')+'"/></div>' +
+    '</div>' +
+  '</div>' +
   '<div class="edit-actions">' +
     '<button class="btn-cancel" onclick="cancelEdit()">ביטול</button>' +
     '<button class="btn-save" id="saveBtn" onclick="saveEdit()">💾 שמור שינויים</button>' +
   '</div>' +
   '<div id="saveMsg" class="save-msg" style="display:none"></div>' +
   '</form>';
+}
+
+function onStatusChange(sel) {
+  var req = document.getElementById('notesRequired');
+  if (req) req.style.display = STATUS_NOTES_REQUIRED.indexOf(sel.value) > -1 ? '' : 'none';
 }
 
 function section(title, fields) {
@@ -579,6 +685,8 @@ document.addEventListener('keydown', function(e) { if (e.key==='Escape') closeMo
 // Event listeners
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('gradeFilter').addEventListener('change', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('dateFilter').addEventListener('change', applyFilters);
 document.getElementById('branchFilter').addEventListener('change', applyFilters);
 document.getElementById('districtFilter').addEventListener('change', applyFilters);
 
