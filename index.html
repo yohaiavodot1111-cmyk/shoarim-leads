@@ -248,30 +248,18 @@ canvas{display:block;width:100% !important;}
     <option value="ח'">ח'</option>
     <option value="ט'">ט'</option>
   </select>
-  <select class="fsel" id="statusFilter">
-    <option value="">כל הסטטוסים</option>
-    <option>חדש</option>
-    <optgroup label="קשר ראשוני">
-      <option>קשר ראשוני אין מענה 1</option><option>קשר ראשוני אין מענה 2</option>
-      <option>קשר ראשוני אין מענה 3</option><option>קשר ראשוני לחזור יותר מאוחר</option>
-      <option>קשר ראשוני פסילה</option>
-    </optgroup>
-    <optgroup label="יום פתוח">
-      <option>יום פתוח צפוי להגיע</option><option>יום פתוח אולי יגיע</option>
-      <option>יום פתוח לא יגיע</option><option>יום פתוח התייצב</option><option>יום פתוח הבריז</option>
-    </optgroup>
-    <optgroup label="יום מיונים">
-      <option>יום מיונים זומן</option><option>יום מיונים רלוונטי</option>
-      <option>יום מיונים הגיע</option><option>יום מיונים לא הגיע</option><option>יום מיונים לא מעוניין</option>
-    </optgroup>
-    <optgroup label="מבחן מיון">
-      <option>מבחן מיון עבר בהצלחה</option><option>מבחן מיון עבר על תנאי</option><option>מבחן מיון לא עבר</option>
-    </optgroup>
-    <optgroup label="חתימת חוזה">
-      <option>חתימת חוזה נחתם</option><option>חתימת חוזה לא נחתם</option><option>חתימת חוזה לא מעוניין</option>
-    </optgroup>
-    <optgroup label="לימודים"><option>לימודים התחיל</option><option>לימודים לא התחיל</option><option>לא תקין</option></optgroup>
-  </select>
+  <div style="position:relative;display:inline-block">
+    <button class="fsel" id="statusFilterBtn" onclick="toggleStatusDropdown()" style="cursor:pointer;min-width:130px;text-align:right">
+      <span id="statusFilterLabel">כל הסטטוסים</span>
+    </button>
+    <div id="statusDropdown" style="display:none;position:absolute;top:100%;right:0;z-index:200;background:#fff;border:1px solid var(--border);box-shadow:0 4px 16px rgba(13,34,87,0.12);min-width:240px;max-height:320px;overflow-y:auto;direction:rtl;">
+      <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:var(--light)">בחר סטטוסים</span>
+        <button onclick="clearStatusFilter()" style="font-size:11px;color:var(--sky);background:none;border:none;cursor:pointer;font-family:Assistant,sans-serif">נקה הכל</button>
+      </div>
+      <div id="statusCheckboxes"></div>
+    </div>
+  </div>
   <select class="fsel" id="dateFilter">
     <option value="">כל הזמנים</option>
     <option value="1">יום אחרון</option><option value="7">שבוע אחרון</option><option value="30">חודש אחרון</option>
@@ -378,7 +366,74 @@ var STATUS_RED    = ['קשר ראשוני פסילה','יום פתוח לא יג
 var STATUS_GREEN  = ['יום פתוח התייצב','מבחן מיון עבר בהצלחה','מבחן מיון עבר על תנאי','חתימת חוזה נחתם','לימודים התחיל'];
 var STATUS_NOTES_REQUIRED = ['קשר ראשוני פסילה','לא תקין'];
 
-var USERS_CACHE = null;
+var selectedStatuses = [];
+
+var STATUS_GROUPS = [
+  {label:'כללי',        items:['חדש']},
+  {label:'קשר ראשוני',  items:['קשר ראשוני אין מענה 1','קשר ראשוני אין מענה 2','קשר ראשוני אין מענה 3','קשר ראשוני לחזור יותר מאוחר','קשר ראשוני פסילה']},
+  {label:'יום פתוח',   items:['יום פתוח צפוי להגיע','יום פתוח אולי יגיע','יום פתוח לא יגיע','יום פתוח התייצב','יום פתוח הבריז']},
+  {label:'יום מיונים', items:['יום מיונים זומן','יום מיונים רלוונטי','יום מיונים הגיע','יום מיונים לא הגיע','יום מיונים לא מעוניין']},
+  {label:'מבחן מיון',  items:['מבחן מיון עבר בהצלחה','מבחן מיון עבר על תנאי','מבחן מיון לא עבר']},
+  {label:'חתימת חוזה', items:['חתימת חוזה נחתם','חתימת חוזה לא נחתם','חתימת חוזה לא מעוניין']},
+  {label:'לימודים',    items:['לימודים התחיל','לימודים לא התחיל','לא תקין']},
+];
+
+function buildStatusCheckboxes() {
+  var html = '';
+  STATUS_GROUPS.forEach(function(group) {
+    html += '<div style="padding:4px 10px 2px;font-size:10px;font-weight:800;color:var(--light);letter-spacing:0.08em;text-transform:uppercase;background:#f8faff;border-bottom:1px solid var(--border)">' + group.label + '</div>';
+    group.items.forEach(function(st) {
+      var checked = selectedStatuses.indexOf(st) > -1 ? 'checked' : '';
+      html += '<label style="display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(0,0,0,0.04)">' +
+        '<input type="checkbox" value="' + st + '" ' + checked + ' onchange="onStatusCheck(this)" style="cursor:pointer;width:14px;height:14px"/>' +
+        '<span>' + st + '</span></label>';
+    });
+  });
+  document.getElementById('statusCheckboxes').innerHTML = html;
+}
+
+function onStatusCheck(cb) {
+  if (cb.checked) {
+    if (selectedStatuses.indexOf(cb.value) === -1) selectedStatuses.push(cb.value);
+  } else {
+    selectedStatuses = selectedStatuses.filter(function(s){ return s !== cb.value; });
+  }
+  updateStatusLabel();
+  applyFilters();
+}
+
+function updateStatusLabel() {
+  var label = document.getElementById('statusFilterLabel');
+  if (selectedStatuses.length === 0) label.textContent = 'כל הסטטוסים';
+  else if (selectedStatuses.length === 1) label.textContent = selectedStatuses[0];
+  else label.textContent = selectedStatuses.length + ' סטטוסים נבחרו';
+}
+
+function clearStatusFilter() {
+  selectedStatuses = [];
+  document.querySelectorAll('#statusCheckboxes input[type=checkbox]').forEach(function(cb){ cb.checked=false; });
+  updateStatusLabel();
+  applyFilters();
+}
+
+function toggleStatusDropdown() {
+  var dd = document.getElementById('statusDropdown');
+  if (dd.style.display === 'none') {
+    buildStatusCheckboxes();
+    dd.style.display = '';
+  } else {
+    dd.style.display = 'none';
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  var btn = document.getElementById('statusFilterBtn');
+  var dd  = document.getElementById('statusDropdown');
+  if (dd && btn && !btn.contains(e.target) && !dd.contains(e.target)) {
+    dd.style.display = 'none';
+  }
+});
 var currentUser = null;
 var allData = [], filtered = [];
 var currentView = 'table', currentTab = 'all';
@@ -535,12 +590,11 @@ function updateStats() {
 function applyFilters() {
   var q    = document.getElementById('searchInput').value.trim().toLowerCase();
   var g    = document.getElementById('gradeFilter').value;
-  var st   = document.getElementById('statusFilter').value;
   var days = parseInt(document.getElementById('dateFilter').value)||0;
   var now  = new Date();
   filtered = allData.filter(function(r){
-    if (g  && r.grade  !== g)  return false;
-    if (st && r.status !== st) return false;
+    if (g && r.grade !== g) return false;
+    if (selectedStatuses.length && selectedStatuses.indexOf(r.status||'חדש') === -1) return false;
     if (days) { var ts=parseDate(r.timestamp); if(!ts||(now-ts)>days*86400000) return false; }
     if (q) { var hay=(r.name+r.city+r.phone+r.branch+r.district+r.parentName).toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
@@ -548,7 +602,7 @@ function applyFilters() {
   render();
 }
 
-['searchInput','gradeFilter','statusFilter','dateFilter'].forEach(function(id){
+['searchInput','gradeFilter','dateFilter'].forEach(function(id){
   document.getElementById(id).addEventListener(id==='searchInput'?'input':'change', applyFilters);
 });
 
