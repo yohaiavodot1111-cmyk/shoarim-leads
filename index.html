@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>מערכת לידים — שוחרות חיל האוויר</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --navy:#0d2257; --blue:#1a4a9f; --sky:#2e9cdb; --teal:#1ab8d4;
+  --gold:#f0b429; --orange:#f47c30; --white:#ffffff;
+  --bg:#f0f5fb; --border:#cfdaee; --text:#0f1a30;
+  --mid:#2e3f60; --light:#6b80a8; --card:#ffffff;
+  --green:#22c55e; --red:#ef4444;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Assistant',sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh;}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#0a1535,#0e2060);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
+.header-left{display:flex;align-items:center;gap:14px;}
+.header-title{font-family:'Secular One',sans-serif;color:var(--white);font-size:17px;}
+.header-stats{display:flex;gap:20px;}
+.hstat{text-align:center;}
+.hstat-num{font-family:'Secular One',sans-serif;font-size:20px;color:var(--gold);line-height:1;}
+.hstat-label{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.05em;}
+
+/* TABS */
+.tabs{background:var(--white);border-bottom:2px solid var(--border);display:flex;gap:0;padding:0 28px;}
+.tab{padding:12px 20px;cursor:pointer;font-size:14px;font-weight:700;color:var(--light);border-bottom:3px solid transparent;margin-bottom:-2px;transition:color 0.15s,border-color 0.15s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab:hover{color:var(--mid);}
+
+/* TOOLBAR */
+.toolbar{background:var(--white);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.search-wrap{position:relative;flex:1;min-width:200px;}
+.search-wrap input{width:100%;padding:8px 14px 8px 34px;border:1.5px solid var(--border);background:#f8faff;font-family:'Assistant',sans-serif;font-size:14px;color:var(--text);outline:none;direction:rtl;border-radius:4px;transition:border-color 0.2s;}
+.search-wrap input:focus{border-color:var(--sky);background:var(--white);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--light);font-size:13px;}
+.filter-select{padding:8px 12px;border:1.5px solid var(--border);background:#f8faff;font-family:'Assistant',sans-serif;font-size:14px;color:var(--text);outline:none;border-radius:4px;cursor:pointer;min-width:130px;}
+.filter-select:focus{border-color:var(--sky);}
+.btn{padding:8px 16px;border:none;border-radius:4px;font-family:'Assistant',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:filter 0.15s;}
+.btn-blue{background:linear-gradient(135deg,var(--blue),var(--sky));color:var(--white);}
+.btn-blue:hover{filter:brightness(1.1);}
+.btn-blue:disabled{opacity:0.6;pointer-events:none;}
+.view-toggle{display:flex;border:1.5px solid var(--border);border-radius:4px;overflow:hidden;}
+.view-btn{padding:7px 12px;background:var(--white);border:none;cursor:pointer;font-size:15px;transition:background 0.15s;}
+.view-btn.active{background:var(--navy);color:var(--white);}
+
+/* STATUS */
+.status-bar{padding:6px 28px;background:#eef5ff;border-bottom:1px solid var(--border);font-size:12px;color:var(--light);display:flex;align-items:center;justify-content:space-between;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-left:6px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;padding:20px 28px;}
+table{width:100%;border-collapse:collapse;background:var(--white);box-shadow:0 2px 12px rgba(13,34,87,0.07);border-radius:4px;overflow:hidden;font-size:13px;}
+thead{background:var(--navy);}
+th{padding:11px 13px;color:rgba(255,255,255,0.75);font-weight:700;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{color:var(--white);}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
+tbody tr:hover{background:#eef5ff;}
+td{padding:10px 13px;color:var(--mid);white-space:nowrap;}
+td.name-cell{font-weight:700;color:var(--navy);}
+td.phone-cell a{color:var(--sky);text-decoration:none;}
+td.phone-cell a:hover{text-decoration:underline;}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+.badge-8{background:#dbeafe;color:#1d4ed8;}
+.badge-9{background:#dcfce7;color:#15803d;}
+.badge-high{background:#fef9c3;color:#a16207;}
+.badge-med{background:#fff7ed;color:#c2410c;}
+.badge-low{background:#f1f5f9;color:#64748b;}
+
+/* CARDS */
+.cards-wrap{padding:20px 28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
+.card{background:var(--white);border:1px solid var(--border);border-top:3px solid var(--sky);border-radius:4px;padding:16px 18px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,34,87,0.1);}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.card-name{font-family:'Secular One',sans-serif;font-size:15px;color:var(--navy);}
+.card-city{font-size:12px;color:var(--light);margin-top:2px;}
+.card-row{display:flex;gap:8px;margin-bottom:5px;font-size:12px;}
+.card-label{color:var(--light);min-width:76px;font-weight:700;}
+.card-val{color:var(--mid);}
+.card-phone-link{color:var(--sky);text-decoration:none;}
+.card-footer{border-top:1px solid var(--border);margin-top:10px;padding-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
+
+/* LOADING / EMPTY */
+.loading-wrap{text-align:center;padding:80px;color:var(--light);}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--sky);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:70px 24px;color:var(--light);}
+.empty-icon{font-size:44px;margin-bottom:14px;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;padding:16px;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--white);max-width:600px;width:100%;max-height:92vh;overflow-y:auto;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,0.3);transform:translateY(16px);transition:transform 0.2s;}
+.overlay.open .modal{transform:translateY(0);}
+.modal-header{background:linear-gradient(135deg,var(--navy),var(--blue));padding:18px 22px;border-bottom:3px solid var(--teal);display:flex;align-items:flex-start;justify-content:space-between;}
+.modal-name{font-family:'Secular One',sans-serif;font-size:20px;color:var(--white);}
+.modal-sub{font-size:12px;color:rgba(255,255,255,0.5);margin-top:3px;}
+.modal-actions{display:flex;gap:8px;align-items:center;}
+.btn-edit{padding:6px 14px;background:rgba(255,255,255,0.15);color:var(--white);border:1px solid rgba(255,255,255,0.3);border-radius:4px;font-family:'Assistant',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:background 0.15s;}
+.btn-edit:hover{background:rgba(255,255,255,0.25);}
+.modal-close{background:none;border:none;color:rgba(255,255,255,0.6);font-size:20px;cursor:pointer;padding:0 4px;}
+.modal-close:hover{color:var(--white);}
+.modal-body{padding:20px 22px;}
+.modal-section{margin-bottom:18px;}
+.section-title{font-size:10px;font-weight:800;letter-spacing:0.14em;color:var(--teal);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal-field label{display:block;font-size:10px;font-weight:700;color:var(--light);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:3px;}
+.modal-field .val{font-size:14px;color:var(--mid);font-weight:600;}
+.modal-field .val a{color:var(--sky);text-decoration:none;}
+.modal-field .val a:hover{text-decoration:underline;}
+
+/* EDIT MODE */
+.modal-field input,
+.modal-field select{width:100%;padding:7px 10px;border:1.5px solid var(--border);background:#f8faff;font-family:'Assistant',sans-serif;font-size:14px;color:var(--text);outline:none;border-radius:4px;direction:rtl;}
+.modal-field input:focus,
+.modal-field select:focus{border-color:var(--sky);background:var(--white);}
+.edit-actions{display:flex;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);}
+.btn-save{flex:1;padding:11px;background:linear-gradient(135deg,var(--blue),var(--sky));color:var(--white);border:none;border-radius:4px;font-family:'Assistant',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:filter 0.15s;}
+.btn-save:hover{filter:brightness(1.1);}
+.btn-save:disabled{opacity:0.6;pointer-events:none;}
+.btn-cancel{padding:11px 20px;background:#f1f5f9;color:var(--mid);border:none;border-radius:4px;font-family:'Assistant',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+.btn-cancel:hover{background:#e2e8f0;}
+.save-msg{text-align:center;padding:8px;font-size:13px;font-weight:700;border-radius:4px;margin-top:10px;}
+.save-msg.ok{background:#dcfce7;color:#15803d;}
+.save-msg.err{background:#fee2e2;color:#b91c1c;}
+
+@media(max-width:700px){
+  .toolbar{padding:10px 16px;}
+  .table-wrap{padding:10px 8px;}
+  .cards-wrap{padding:10px 16px;grid-template-columns:1fr;}
+  .header{padding:0 16px;}
+  .modal-grid{grid-template-columns:1fr;}
+  .tabs{padding:0 16px;}
+  .status-bar{padding:6px 16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-title">🛩️ מערכת לידים — שוחרות</div>
+  </div>
+  <div class="header-stats">
+    <div class="hstat"><div class="hstat-num" id="totalCount">—</div><div class="hstat-label">סה״כ</div></div>
+    <div class="hstat"><div class="hstat-num" id="grade8Count">—</div><div class="hstat-label">כיתה ח׳</div></div>
+    <div class="hstat"><div class="hstat-num" id="grade9Count">—</div><div class="hstat-label">כיתה ט׳</div></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" id="tab-all" onclick="setTab('all')">כל הלידים</div>
+  <div class="tab" id="tab-branch" onclick="setTab('branch')">לפי שלוחה</div>
+  <div class="tab" id="tab-district" onclick="setTab('district')">לפי מחוז</div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="חיפוש לפי שם, עיר, טלפון..."/>
+  </div>
+  <select class="filter-select" id="gradeFilter">
+    <option value="">כל הכיתות</option>
+    <option value="ח׳">ח׳</option>
+    <option value="ט׳">ט׳</option>
+  </select>
+  <select class="filter-select" id="branchFilter" style="display:none">
+    <option value="">כל השלוחות</option>
+  </select>
+  <select class="filter-select" id="districtFilter" style="display:none">
+    <option value="">כל המחוזות</option>
+  </select>
+  <button class="btn btn-blue" id="refreshBtn" onclick="loadData()">↻ רענן</button>
+  <div class="view-toggle">
+    <button class="view-btn active" id="tableBtn" onclick="setView('table')">☰</button>
+    <button class="view-btn" id="cardBtn" onclick="setView('cards')">⊞</button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div><span class="status-dot"></span><span id="statusText">מתחבר...</span></div>
+  <div id="lastUpdate"></div>
+</div>
+
+<!-- CONTENT -->
+<div id="loadingWrap" class="loading-wrap"><div class="spinner"></div><div>טוען נתונים...</div></div>
+<div id="groupedWrap" style="display:none"></div>
+<div id="tableWrap" class="table-wrap" style="display:none">
+  <table>
+    <thead><tr>
+      <th onclick="sortBy('name')">שם מלא</th>
+      <th onclick="sortBy('phone')">טלפון</th>
+      <th onclick="sortBy('city')">עיר</th>
+      <th onclick="sortBy('grade')">כיתה</th>
+      <th onclick="sortBy('branch')">שלוחה</th>
+      <th onclick="sortBy('district')">מחוז</th>
+      <th onclick="sortBy('leadStatus')">סטטוס</th>
+      <th onclick="sortBy('motivation')">מוטיבציה</th>
+      <th onclick="sortBy('timestamp')">תאריך</th>
+    </tr></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+<div id="cardsWrap" class="cards-wrap" style="display:none"></div>
+<div id="emptyWrap" class="empty" style="display:none"><div class="empty-icon">📭</div><h3>לא נמצאו תוצאות</h3></div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-name" id="mName"></div><div class="modal-sub" id="mSub"></div></div>
+      <div class="modal-actions">
+        <button class="btn-edit" onclick="toggleEdit()" id="editBtn">✏️ עריכה</button>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzsd_pAbB0Btcpji82M2rbR9UDBUwuLdZxuVdDhJtXose6QJDwVfaRfIout3WhVEJHx/exec';
+
+var allData = [], filtered = [];
+var currentView = 'table', currentTab = 'all';
+var sortKey = 'timestamp', sortAsc = false;
+var activeIdx = -1, editMode = false;
+
+// ── LOAD ──
+function loadData() {
+  var btn = document.getElementById('refreshBtn');
+  btn.disabled = true; btn.textContent = '⏳ טוען...';
+  document.getElementById('statusText').textContent = 'מתחבר...';
+
+  fetch(APPS_SCRIPT_URL)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.success) throw new Error(d.error || 'שגיאה');
+      allData = d.rows;
+      buildFilters();
+      applyFilters();
+      updateStats();
+      document.getElementById('loadingWrap').style.display = 'none';
+      document.getElementById('statusText').textContent = 'מסונכרן ✓ ' + allData.length + ' רשומות';
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('he-IL');
+    })
+    .catch(function(e) {
+      document.getElementById('loadingWrap').innerHTML =
+        '<div style="color:var(--red);font-size:15px;">⚠️ ' + e.message + '</div>';
+      document.getElementById('statusText').textContent = 'שגיאה';
+    })
+    .finally(function() { btn.disabled = false; btn.textContent = '↻ רענן'; });
+}
+
+// ── SAVE EDIT ──
+function saveEdit() {
+  var r = filtered[activeIdx];
+  if (!r) return;
+  var saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true; saveBtn.textContent = 'שומר...';
+
+  var fields = ['name','city','grade','phone','parentName','parentPhone',
+                'parent2Name','parent2Phone','idNumber','motivation',
+                'branch','district','rejectNote','notes'];
+  var lead = { originalPhone: r.originalPhone || r.phone };
+  fields.forEach(function(f) {
+    var el = document.getElementById('edit_' + f);
+    lead[f] = el ? el.value.trim() : (r[f] || '');
+  });
+
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'saveEdit', lead: lead })
+  })
+  .then(function() {
+    // no-cors = opaque response, assume success
+    fields.forEach(function(f) { r[f] = lead[f]; });
+    r.hasEdit = true;
+    var orig = allData.find(function(x) { return x.originalPhone === r.originalPhone; });
+    if (orig) { fields.forEach(function(f) { orig[f] = lead[f]; }); orig.hasEdit = true; }
+    showSaveMsg('✅ נשמר בגיליון "עריכות"', 'ok');
+    editMode = false;
+    renderModal(activeIdx);
+    document.getElementById('editBtn').textContent = '✏️ עריכה';
+    updateStats(); applyFilters();
+  })
+  .catch(function(e) { showSaveMsg('❌ ' + e.message, 'err'); })
+  .finally(function() { saveBtn.disabled = false; saveBtn.textContent = '💾 שמור שינויים'; });
+}
+
+function showSaveMsg(msg, type) {
+  var el = document.getElementById('saveMsg');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'save-msg ' + type;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+// ── FILTERS & STATS ──
+function buildFilters() {
+  var branches  = [...new Set(allData.map(function(r){return r.branch;}).filter(Boolean))].sort();
+  var districts = [...new Set(allData.map(function(r){return r.district;}).filter(Boolean))].sort();
+  var bf = document.getElementById('branchFilter');
+  bf.innerHTML = '<option value="">כל השלוחות</option>';
+  branches.forEach(function(b) { bf.innerHTML += '<option>' + b + '</option>'; });
+  var df = document.getElementById('districtFilter');
+  df.innerHTML = '<option value="">כל המחוזות</option>';
+  districts.forEach(function(d) { df.innerHTML += '<option>' + d + '</option>'; });
+}
+
+function updateStats() {
+  document.getElementById('totalCount').textContent  = allData.length;
+  document.getElementById('grade8Count').textContent = allData.filter(function(r){return r.grade==='ח׳';}).length;
+  document.getElementById('grade9Count').textContent = allData.filter(function(r){return r.grade==='ט׳';}).length;
+}
+
+function applyFilters() {
+  var q  = document.getElementById('searchInput').value.trim().toLowerCase();
+  var g  = document.getElementById('gradeFilter').value;
+  var br = document.getElementById('branchFilter').value;
+  var di = document.getElementById('districtFilter').value;
+
+  filtered = allData.filter(function(r) {
+    if (g  && r.grade    !== g)  return false;
+    if (br && r.branch   !== br) return false;
+    if (di && r.district !== di) return false;
+    if (q) {
+      var hay = (r.name+r.city+r.phone+r.branch+r.district+r.parentName).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  filtered.sort(function(a,b) {
+    var av = a[sortKey]||'', bv = b[sortKey]||'';
+    return sortAsc ? av.localeCompare(bv,'he') : bv.localeCompare(av,'he');
+  });
+
+  render();
+}
+
+function sortBy(k) {
+  sortKey = k === sortKey ? sortKey : k;
+  if (k === sortKey) sortAsc = !sortAsc; else sortAsc = true;
+  sortKey = k;
+  applyFilters();
+}
+
+// ── TABS ──
+function setTab(tab) {
+  currentTab = tab;
+  ['all','branch','district'].forEach(function(t) {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+  document.getElementById('branchFilter').style.display  = tab === 'branch'   ? '' : 'none';
+  document.getElementById('districtFilter').style.display = tab === 'district' ? '' : 'none';
+  if (tab !== 'branch')   document.getElementById('branchFilter').value   = '';
+  if (tab !== 'district') document.getElementById('districtFilter').value = '';
+  applyFilters();
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('tableBtn').classList.toggle('active', v==='table');
+  document.getElementById('cardBtn').classList.toggle('active',  v==='cards');
+  render();
+}
+
+// ── RENDER ──
+function render() {
+  if (currentTab === 'branch' || currentTab === 'district') {
+    renderGrouped();
+  } else {
+    document.getElementById('groupedWrap').style.display = 'none';
+    if (currentView === 'table') renderTable();
+    else renderCards();
+  }
+  document.getElementById('emptyWrap').style.display = filtered.length ? 'none' : '';
+}
+
+function gradeBadge(g) { if(!g) return ''; return '<span class="badge '+(g==='ח׳'?'badge-8':'badge-9')+'">'+g+'</span>'; }
+function motivBadge(m) {
+  if(!m) return '';
+  var cls = m.includes('גבוה') ? 'badge-high' : m.includes('בינוני') ? 'badge-med' : 'badge-low';
+  return '<span class="badge '+cls+'">'+m+'</span>';
+}
+
+function statusBadge(s, note) {
+  if (!s) return '—';
+  var cls = s.includes('חדש') ? 'badge-8' : s.includes('רלוונטי') ? 'badge-low' : 'badge-med';
+  var title = note ? ' title="'+note+'"' : '';
+  return '<span class="badge '+cls+'"'+title+'>'+s+'</span>';
+}
+
+function renderTable() {
+  document.getElementById('tableWrap').style.display  = filtered.length ? '' : 'none';
+  document.getElementById('cardsWrap').style.display  = 'none';
+  document.getElementById('groupedWrap').style.display = 'none';
+  if (!filtered.length) return;
+  var html = '';
+  filtered.forEach(function(r, i) {
+    html += '<tr onclick="openModal('+i+')">' +
+      '<td class="name-cell">'+(r.name||'—')+(r.hasEdit?' <span style="color:var(--gold);font-size:10px;">✏️</span>':'')+'</td>' +
+      '<td class="phone-cell"><a href="tel:'+r.phone+'" onclick="event.stopPropagation()">'+(r.phone||'—')+'</a></td>' +
+      '<td>'+(r.city||'—')+'</td>' +
+      '<td>'+gradeBadge(r.grade)+'</td>' +
+      '<td>'+(r.branch||'—')+'</td>' +
+      '<td>'+(r.district||'—')+'</td>' +
+      '<td>'+statusBadge(r.leadStatus, r.rejectNote)+'</td>' +
+      '<td>'+motivBadge(r.motivation)+'</td>' +
+      '<td style="color:var(--light);font-size:11px">'+(r.timestamp||'—')+'</td>' +
+    '</tr>';
+  });
+  document.getElementById('tableBody').innerHTML = html;
+}
+
+function renderCards() {
+  document.getElementById('tableWrap').style.display  = 'none';
+  document.getElementById('cardsWrap').style.display  = filtered.length ? '' : 'none';
+  document.getElementById('groupedWrap').style.display = 'none';
+  if (!filtered.length) return;
+  var html = '';
+  filtered.forEach(function(r, i) {
+    html += '<div class="card" onclick="openModal('+i+')">' +
+      '<div class="card-header"><div><div class="card-name">'+(r.name||'—')+'</div><div class="card-city">📍 '+(r.city||'—')+'</div></div>'+gradeBadge(r.grade)+'</div>' +
+      '<div class="card-row"><span class="card-label">📞</span><a class="card-phone-link" href="tel:'+r.phone+'" onclick="event.stopPropagation()">'+(r.phone||'—')+'</a></div>' +
+      '<div class="card-row"><span class="card-label">🏫 שלוחה</span><span class="card-val">'+(r.branch||'—')+'</span></div>' +
+      '<div class="card-footer">'+motivBadge(r.motivation)+'</div>' +
+    '</div>';
+  });
+  document.getElementById('cardsWrap').innerHTML = html;
+}
+
+function renderGrouped() {
+  document.getElementById('tableWrap').style.display  = 'none';
+  document.getElementById('cardsWrap').style.display  = 'none';
+  document.getElementById('groupedWrap').style.display = '';
+
+  var key = currentTab === 'branch' ? 'branch' : 'district';
+  var groups = {};
+  filtered.forEach(function(r, i) {
+    var k = r[key] || 'לא משויך';
+    if (!groups[k]) groups[k] = [];
+    groups[k].push({ r: r, i: i });
+  });
+
+  var html = '<div style="padding:20px 28px;">';
+  Object.keys(groups).sort().forEach(function(gk) {
+    var items = groups[gk];
+    html += '<div style="margin-bottom:28px;">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+        '<div style="font-family:\'Secular One\',sans-serif;font-size:17px;color:var(--navy);">' + gk + '</div>' +
+        '<span class="badge badge-8" style="background:#e0f2fe;color:#0369a1;">' + items.length + ' לידים</span>' +
+      '</div>' +
+      '<table style="width:100%;border-collapse:collapse;background:var(--white);box-shadow:0 2px 8px rgba(13,34,87,0.06);border-radius:4px;overflow:hidden;font-size:13px;">' +
+      '<thead><tr style="background:var(--navy);">' +
+        '<th style="padding:9px 12px;color:rgba(255,255,255,0.75);font-size:11px;text-align:right;letter-spacing:0.05em;">שם</th>' +
+        '<th style="padding:9px 12px;color:rgba(255,255,255,0.75);font-size:11px;text-align:right;">טלפון</th>' +
+        '<th style="padding:9px 12px;color:rgba(255,255,255,0.75);font-size:11px;text-align:right;">עיר</th>' +
+        '<th style="padding:9px 12px;color:rgba(255,255,255,0.75);font-size:11px;text-align:right;">כיתה</th>' +
+        (key==='branch' ? '<th style="padding:9px 12px;color:rgba(255,255,255,0.75);font-size:11px;text-align:right;">מחוז</th>' :
+                          '<th style="padding:9px 12px;color:rgba(255,255,255,0.75);font-size:11px;text-align:right;">שלוחה</th>') +
+      '</tr></thead><tbody>';
+    items.forEach(function(item) {
+      html += '<tr style="border-bottom:1px solid var(--border);cursor:pointer;" onclick="openModal('+item.i+')"' +
+        ' onmouseover="this.style.background=\'#eef5ff\'" onmouseout="this.style.background=\'\'">' +
+        '<td style="padding:9px 12px;font-weight:700;color:var(--navy);">'+(item.r.name||'—')+'</td>' +
+        '<td style="padding:9px 12px;"><a href="tel:'+item.r.phone+'" onclick="event.stopPropagation()" style="color:var(--sky);text-decoration:none;">'+(item.r.phone||'—')+'</a></td>' +
+        '<td style="padding:9px 12px;color:var(--mid);">'+(item.r.city||'—')+'</td>' +
+        '<td style="padding:9px 12px;">'+gradeBadge(item.r.grade)+'</td>' +
+        '<td style="padding:9px 12px;color:var(--mid);">'+(key==='branch'?(item.r.district||'—'):(item.r.branch||'—'))+'</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+  html += '</div>';
+  document.getElementById('groupedWrap').innerHTML = html;
+}
+
+// ── MODAL ──
+function openModal(i) {
+  activeIdx = i; editMode = false;
+  document.getElementById('editBtn').textContent = '✏️ עריכה';
+  renderModal(i);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function renderModal(i) {
+  var r = filtered[i];
+  document.getElementById('mName').textContent = r.name || '—';
+  document.getElementById('mSub').textContent  = (r.city||'') + (r.grade?' · כיתה '+r.grade:'') + (r.branch?' · '+r.branch:'');
+
+  if (editMode) {
+    document.getElementById('modalBody').innerHTML = buildEditForm(r);
+  } else {
+    document.getElementById('modalBody').innerHTML = buildViewBody(r);
+  }
+}
+
+function buildViewBody(r) {
+  return section('פרטי תלמיד/ה', [
+    fld('שם מלא', r.name), fld('עיר מגורים', r.city),
+    fld('טלפון', r.phone, true), fld('כיתה', r.grade),
+    fld('תעודת זהות', r.idNumber), fld('מוטיבציה', r.motivation)
+  ]) +
+  section('הורה 1', [fld('שם', r.parentName), fld('טלפון', r.parentPhone, true)]) +
+  (r.parent2Name||r.parent2Phone ? section('הורה 2', [fld('שם', r.parent2Name), fld('טלפון', r.parent2Phone, true)]) : '') +
+  section('שיוך ממערכת', [
+    fld('שלוחה', r.branch), fld('מחוז', r.district),
+    fld('סטטוס ליד', r.leadStatus), fld('סיבת דחייה', r.rejectNote),
+    fld('הערות', r.notes), fld('תאריך', r.timestamp)
+  ]) +
+  (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:8px 12px;border-radius:4px;font-size:12px;color:#92400e;margin-top:8px;">✏️ ליד זה עודכן ידנית — השינויים שמורים בגיליון "עריכות"</div>' : '');
+}
+
+function buildEditForm(r) {
+  var grades = ['ח׳','ט׳'];
+  return '<form onsubmit="return false;">' +
+  sectionEdit('פרטי תלמיד/ה', [
+    eInput('name','שם מלא',r.name), eInput('city','עיר',r.city),
+    eInput('phone','טלפון',r.phone), eSelect('grade','כיתה',r.grade,grades),
+    eInput('idNumber','ת.ז.',r.idNumber), eInput('motivation','מוטיבציה',r.motivation)
+  ]) +
+  sectionEdit('הורה 1', [eInput('parentName','שם הורה',r.parentName), eInput('parentPhone','טלפון הורה',r.parentPhone)]) +
+  sectionEdit('הורה 2', [eInput('parent2Name','שם הורה',r.parent2Name), eInput('parent2Phone','טלפון הורה',r.parent2Phone)]) +
+  sectionEdit('שיוך', [eInput('branch','שלוחה',r.branch), eInput('district','מחוז',r.district)]) +
+  sectionEdit('פרטים נוספים', [eInput('rejectNote','סיבת דחייה',r.rejectNote), eInput('notes','הערות',r.notes)]) +
+  '<div class="edit-actions">' +
+    '<button class="btn-cancel" onclick="cancelEdit()">ביטול</button>' +
+    '<button class="btn-save" id="saveBtn" onclick="saveEdit()">💾 שמור שינויים</button>' +
+  '</div>' +
+  '<div id="saveMsg" class="save-msg" style="display:none"></div>' +
+  '</form>';
+}
+
+function section(title, fields) {
+  return '<div class="modal-section"><div class="section-title">'+title+'</div><div class="modal-grid">'+fields.join('')+'</div></div>';
+}
+function sectionEdit(title, fields) {
+  return '<div class="modal-section"><div class="section-title">'+title+'</div><div class="modal-grid">'+fields.join('')+'</div></div>';
+}
+function fld(label, val, isPhone) {
+  var v = val || '<span style="color:var(--border)">—</span>';
+  if (isPhone && val) v = '<a href="tel:'+val+'">'+val+'</a>';
+  return '<div class="modal-field"><label>'+label+'</label><div class="val">'+v+'</div></div>';
+}
+function eInput(id, label, val) {
+  return '<div class="modal-field"><label>'+label+'</label><input id="edit_'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'"/></div>';
+}
+function eSelect(id, label, val, opts) {
+  var os = opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+o+'</option>';}).join('');
+  return '<div class="modal-field"><label>'+label+'</label><select id="edit_'+id+'"><option value="">—</option>'+os+'</select></div>';
+}
+
+function toggleEdit() {
+  editMode = !editMode;
+  document.getElementById('editBtn').textContent = editMode ? '👁️ צפייה' : '✏️ עריכה';
+  renderModal(activeIdx);
+}
+function cancelEdit() {
+  editMode = false;
+  document.getElementById('editBtn').textContent = '✏️ עריכה';
+  renderModal(activeIdx);
+}
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function closeOverlay(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+document.addEventListener('keydown', function(e) { if (e.key==='Escape') closeModal(); });
+
+// Event listeners
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('gradeFilter').addEventListener('change', applyFilters);
+document.getElementById('branchFilter').addEventListener('change', applyFilters);
+document.getElementById('districtFilter').addEventListener('change', applyFilters);
+
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
