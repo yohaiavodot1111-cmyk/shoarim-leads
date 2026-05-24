@@ -681,67 +681,336 @@ function renderGrouped() {
 // ══════════════════════════════════════════
 // STATS
 // ══════════════════════════════════════════
-function renderStats() {
-  var data = allData; // stats always on all filtered data
+// ── Analytics helpers ──
+function sortedEntries(obj, n) {
+  return Object.entries(obj).sort(function(a,b){return b[1]-a[1];}).slice(0,n||999);
+}
+function pctOf(a,b){ return b?Math.round(a/b*100):0; }
+
+var FUNNEL_STAGES_DEF = [
+  {name:'סה״כ נרשמו',  statuses:null, color:'#2e9cdb'},
+  {name:'קשר ראשוני',  statuses:['קשר ראשוני אין מענה 1','קשר ראשוני אין מענה 2','קשר ראשוני אין מענה 3','קשר ראשוני לחזור יותר מאוחר','קשר ראשוני פסילה'], color:'#8b5cf6'},
+  {name:'יום פתוח',    statuses:['יום פתוח צפוי להגיע','יום פתוח אולי יגיע','יום פתוח לא יגיע','יום פתוח התייצב','יום פתוח הבריז'], color:'#f0b429'},
+  {name:'יום מיונים',  statuses:['יום מיונים זומן','יום מיונים רלוונטי','יום מיונים הגיע','יום מיונים לא הגיע','יום מיונים לא מעוניין'], color:'#f47c30'},
+  {name:'מבחן מיון',   statuses:['מבחן מיון עבר בהצלחה','מבחן מיון עבר על תנאי','מבחן מיון לא עבר'], color:'#ec4899'},
+  {name:'חתימת חוזה',  statuses:['חתימת חוזה נחתם','חתימת חוזה לא נחתם','חתימת חוזה לא מעוניין'], color:'#0fd4c4'},
+  {name:'לימודים',     statuses:['לימודים התחיל','לימודים לא התחיל'], color:'#22c55e'},
+];
+
+function computeStatsData(data) {
   var total   = data.length;
-  var grade8  = data.filter(function(r){ return r.grade==='ח׳'; }).length;
-  var grade9  = data.filter(function(r){ return r.grade==='ט׳'; }).length;
-  var invalid = data.filter(function(r){ return r.status==='לא תקין'; }).length;
-  var male    = data.filter(function(r){ return r.gender==='זכר'; }).length;
-  var female  = data.filter(function(r){ return r.gender==='נקבה'; }).length;
+  var grade8  = data.filter(function(r){return r.grade==='ח׳';}).length;
+  var grade9  = data.filter(function(r){return r.grade==='ט׳';}).length;
+  var invalid = data.filter(function(r){return r.status==='לא תקין';}).length;
+  var male    = data.filter(function(r){return r.gender==='זכר';}).length;
+  var female  = data.filter(function(r){return r.gender==='נקבה';}).length;
+  var newL    = data.filter(function(r){return !r.status||r.status==='חדש';}).length;
+  var signed  = data.filter(function(r){return r.status==='חתימת חוזה נחתם';}).length;
+  var learning= data.filter(function(r){return r.status==='לימודים התחיל';}).length;
 
-  // ספירה לפי סטטוס
-  var statusCount = {};
-  data.forEach(function(r){ var s=r.status||'חדש'; statusCount[s]=(statusCount[s]||0)+1; });
+  function countBy(fn){ var m={}; data.forEach(function(r){var k=fn(r)||'לא ידוע'; m[k]=(m[k]||0)+1;}); return m; }
+  var byStatus  = countBy(function(r){return r.status||'חדש';});
+  var byBranch  = countBy(function(r){return r.branch;});
+  var byDistrict= countBy(function(r){return r.district;});
+  var byCity    = countBy(function(r){return r.city;});
+  var bySource  = countBy(function(r){return r.source;});
+  var byMotiv   = countBy(function(r){return r.motivation;});
 
-  // ספירה לפי עיר
-  var cityCount = {};
-  data.forEach(function(r){ if(r.city) cityCount[r.city]=(cityCount[r.city]||0)+1; });
-
-  // ספירה לפי מקור
-  var sourceCount = {};
-  data.forEach(function(r){ if(r.source) sourceCount[r.source]=(sourceCount[r.source]||0)+1; });
-
-  // ספירה לפי שלוחה (לאדמין ומחוז)
-  var branchCount = {};
-  data.forEach(function(r){ if(r.branch) branchCount[r.branch]=(branchCount[r.branch]||0)+1; });
-
-  var maxCity   = Math.max.apply(null, Object.values(cityCount).concat([1]));
-  var maxStatus = Math.max.apply(null, Object.values(statusCount).concat([1]));
-  var maxSource = Math.max.apply(null, Object.values(sourceCount).concat([1]));
-  var maxBranch = Math.max.apply(null, Object.values(branchCount).concat([1]));
-
-  function barList(obj, max) {
-    return Object.keys(obj).sort(function(a,b){ return obj[b]-obj[a]; }).map(function(k){
-      var pct = Math.round(obj[k]/max*100);
-      return '<div class="bar-item"><div class="bar-label">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div><div class="bar-count">'+obj[k]+'</div></div>';
-    }).join('');
+  // Monthly (last 6)
+  var now=new Date();
+  var months=['','ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  var monthlyLabels=[], monthlyVals=[];
+  for(var mi=5;mi>=0;mi--){
+    var dm=new Date(now.getFullYear(),now.getMonth()-mi,1);
+    monthlyLabels.push(months[dm.getMonth()+1]);
+    var cnt=data.filter(function(r){
+      var ts=parseDate(r.timestamp);
+      return ts && ts.getFullYear()===dm.getFullYear() && ts.getMonth()===dm.getMonth();
+    }).length;
+    monthlyVals.push(cnt);
   }
 
-  var html =
-    '<div class="stats-grid">' +
-      statCard('סה״כ לידים', total, '') +
-      statCard('כיתה ח׳', grade8, Math.round(grade8/total*100||0)+'%') +
-      statCard('כיתה ט׳', grade9, Math.round(grade9/total*100||0)+'%') +
-      statCard('לא תקינים', invalid, '') +
-      statCard('זכר', male, '') +
-      statCard('נקבה', female, '') +
-    '</div>';
+  // Funnel
+  var funnelData = FUNNEL_STAGES_DEF.map(function(stage){
+    var n = stage.statuses===null ? total :
+      data.filter(function(r){return stage.statuses.indexOf(r.status||'חדש')>-1;}).length;
+    return {name:stage.name, count:n, color:stage.color};
+  });
 
-  html += '<div class="stats-section-title">פילוח לפי סטטוס</div><div class="bar-list">'+barList(statusCount, maxStatus)+'</div>';
-  html += '<div class="stats-section-title">פילוח לפי עיר</div><div class="bar-list">'+barList(cityCount, maxCity)+'</div>';
-  if (Object.keys(sourceCount).length) {
-    html += '<div class="stats-section-title">פילוח לפי מקור גיוס</div><div class="bar-list">'+barList(sourceCount, maxSource)+'</div>';
-  }
-  if ((currentUser.role==='admin'||currentUser.role==='district') && Object.keys(branchCount).length) {
-    html += '<div class="stats-section-title">פילוח לפי שלוחה</div><div class="bar-list">'+barList(branchCount, maxBranch)+'</div>';
-  }
+  // Insights
+  var insights=[];
+  var convRate=pctOf(signed+learning,total);
+  var invalidRate=pctOf(invalid,total);
+  if(invalidRate>10) insights.push({t:'warn',msg:'שיעור לא תקינים: <strong>'+invalidRate+'%</strong> — בדוק איכות ההרשמות.'});
+  if(convRate>0)     insights.push({t:'ok',  msg:'שיעור המרה לחתימה/לימודים: <strong>'+convRate+'%</strong>'+(convRate>15?' — מצוין!':' — יש מקום לשיפור.')});
+  if(newL>total*0.5) insights.push({t:'warn',msg:'<strong>'+pctOf(newL,total)+'%</strong> מהלידים עדיין "חדש" — מומלץ ליצור קשר.'});
+  var topBr=sortedEntries(byBranch,1)[0];
+  if(topBr) insights.push({t:'info',msg:'שלוחה מובילה: <strong>'+topBr[0]+'</strong> — '+topBr[1]+' לידים.'});
+  var topSrc=sortedEntries(bySource,1)[0];
+  if(topSrc&&topSrc[0]!=='לא ידוע') insights.push({t:'info',msg:'מקור גיוס מוביל: <strong>'+topSrc[0]+'</strong> — '+topSrc[1]+' לידים.'});
 
-  document.getElementById('statsWrap').innerHTML = html;
+  return {total,grade8,grade9,invalid,male,female,newL,signed,learning,
+    convRate,invalidRate,byStatus,byBranch,byDistrict,byCity,bySource,byMotiv,
+    monthlyLabels,monthlyVals,funnelData,insights};
 }
 
-function statCard(label, val, sub) {
-  return '<div class="stat-card"><div class="stat-label">'+label+'</div><div class="stat-value">'+val+'</div>'+(sub?'<div class="stat-sub">'+sub+'</div>':'')+'</div>';
+function renderStats() {
+  var data = allData;
+  var s = computeStatsData(data);
+
+  var insColors={warn:'#f0b429',ok:'#22c55e',info:'#2e9cdb'};
+  var insIcons ={warn:'⚠️',ok:'✅',info:'💡'};
+
+  var html =
+    // KPI
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px">' +
+      sKpi('סה״כ לידים',s.total,'','#2e9cdb') +
+      sKpi('חדשים',s.newL,pctOf(s.newL,s.total)+'%','#f0b429') +
+      sKpi('חתמו/לומדים',s.signed+s.learning,s.convRate+'%','#22c55e') +
+      sKpi('לא תקינים',s.invalid,s.invalidRate+'%','#ef4444') +
+      sKpi('כיתה ח׳',s.grade8,pctOf(s.grade8,s.total)+'%','#8b5cf6') +
+      sKpi('כיתה ט׳',s.grade9,pctOf(s.grade9,s.total)+'%','#0fd4c4') +
+    '</div>' +
+
+    // Insights
+    (s.insights.length ?
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:20px">' +
+      s.insights.map(function(ins){
+        return '<div style="display:flex;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-right:3px solid '+insColors[ins.t]+'">' +
+          '<span>'+insIcons[ins.t]+'</span>' +
+          '<span style="font-size:12px;line-height:1.5;color:var(--text)">'+ins.msg+'</span></div>';
+      }).join('')+'</div>' : '') +
+
+    // Funnel + Monthly
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">' +
+      '<div class="stat-card" style="padding:16px">' +
+        '<div class="stats-section-title">משפך המרה</div>' +
+        '<div id="funnelViz" style="margin-top:8px"></div>' +
+      '</div>' +
+      '<div class="stat-card" style="padding:16px">' +
+        '<div class="stats-section-title">מגמה חודשית (6 חודשים)</div>' +
+        '<canvas id="statsMonthly" style="width:100%;height:180px;display:block"></canvas>' +
+      '</div>' +
+    '</div>' +
+
+    // Status + Source
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">' +
+      '<div class="stat-card" style="padding:16px">' +
+        '<div class="stats-section-title">פילוח סטטוסים</div>' +
+        '<canvas id="statsStatus" style="width:100%;height:200px;display:block"></canvas>' +
+      '</div>' +
+      '<div class="stat-card" style="padding:16px">' +
+        '<div class="stats-section-title">מקורות גיוס</div>' +
+        '<canvas id="statsSource" style="width:100%;height:200px;display:block"></canvas>' +
+      '</div>' +
+    '</div>' +
+
+    // Branch + Motiv (admin/district only)
+    (currentUser.role!=='branch' ?
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">' +
+        '<div class="stat-card" style="padding:16px">' +
+          '<div class="stats-section-title">לידים לפי שלוחה</div>' +
+          '<canvas id="statsBranch" style="width:100%;height:200px;display:block"></canvas>' +
+        '</div>' +
+        '<div class="stat-card" style="padding:16px">' +
+          '<div class="stats-section-title">מוטיבציה 1-10</div>' +
+          '<canvas id="statsMotiv" style="width:100%;height:200px;display:block"></canvas>' +
+        '</div>' +
+      '</div>' : '') +
+
+    // City table
+    '<div class="stat-card" style="padding:16px;margin-bottom:16px">' +
+      '<div class="stats-section-title">TOP 20 ערים</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">' +
+      sortedEntries(s.byCity,20).map(function(e,i){
+        var p=pctOf(e[1],s.total);
+        return '<div style="display:flex;align-items:center;gap:8px;font-size:12px">' +
+          '<span style="color:var(--sky);font-weight:800;min-width:18px">'+(i+1)+'</span>' +
+          '<span style="flex:1;color:var(--mid)">'+e[0]+'</span>' +
+          '<span style="color:#fff;font-weight:700">'+e[1]+'</span>' +
+          '<div style="width:50px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px">' +
+            '<div style="height:100%;width:'+p+'%;background:var(--sky);border-radius:2px"></div>' +
+          '</div>' +
+        '</div>';
+      }).join('') +
+      '</div></div>';
+
+  document.getElementById('statsWrap').innerHTML = html;
+
+  // Draw charts after DOM ready
+  setTimeout(function(){
+    drawFunnel(s.funnelData, s.total);
+    drawLineC('statsMonthly', s.monthlyLabels, s.monthlyVals, '#2e9cdb');
+    drawDonutC('statsStatus', sortedEntries(s.byStatus), ['#2e9cdb','#8b5cf6','#f0b429','#f47c30','#ec4899','#0fd4c4','#22c55e','#ef4444','#6b8ab8','#f0b429']);
+    drawDonutC('statsSource',  sortedEntries(s.bySource),  ['#0fd4c4','#2e9cdb','#8b5cf6','#f0b429','#f47c30','#ec4899','#22c55e','#ef4444','#6b8ab8']);
+    if(currentUser.role!=='branch'){
+      drawBarC('statsBranch', sortedEntries(s.byBranch));
+      var motivLabels=['1','2','3','4','5','6','7','8','9','10'];
+      var motivVals=motivLabels.map(function(l){return s.byMotiv[l]||0;});
+      var motivColors=motivLabels.map(function(l){var n=parseInt(l);return n<=3?'#ef4444':n<=6?'#f0b429':'#22c55e';});
+      drawBarC('statsMotiv', motivLabels.map(function(l,i){return [l,motivVals[i]];}), motivColors);
+    }
+  }, 80);
+}
+
+function sKpi(label, val, sub, color){
+  return '<div class="stat-card" style="border-top:2px solid '+color+';padding:14px 16px">' +
+    '<div class="stat-label">'+label+'</div>' +
+    '<div class="stat-value" style="font-size:26px;color:'+color+'">'+val+'</div>' +
+    (sub?'<div class="stat-sub">'+sub+'</div>':'') + '</div>';
+}
+
+function drawFunnel(stages, total){
+  var el=document.getElementById('funnelViz');
+  if(!el) return;
+  var html='';
+  stages.forEach(function(stage){
+    var w=total>0?Math.max(8,Math.round(stage.count/total*100)):0;
+    var p=total>0?pctOf(stage.count,total):0;
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+      '<div style="font-size:10px;color:var(--light);min-width:90px;text-align:right;font-weight:600">'+stage.name+'</div>' +
+      '<div style="flex:1;height:22px;background:rgba(255,255,255,0.04);position:relative">' +
+        '<div style="height:100%;width:'+w+'%;background:'+stage.color+';opacity:0.85;display:flex;align-items:center;padding:0 8px;transition:width 0.7s">' +
+          '<span style="font-size:11px;font-weight:700;color:#fff;white-space:nowrap">'+stage.count+'</span>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--light);min-width:32px;text-align:left">'+p+'%</div>' +
+    '</div>';
+  });
+  el.innerHTML=html;
+}
+
+// ── Canvas chart helpers ──
+var CFONT='12px Assistant,sans-serif';
+var CFONTSM='10px Assistant,sans-serif';
+
+function setupCanvas(id){
+  var c=document.getElementById(id);
+  if(!c) return null;
+  var dpr=window.devicePixelRatio||1;
+  var W=c.offsetWidth||300, H=c.offsetHeight||200;
+  c.width=W*dpr; c.height=H*dpr;
+  var ctx=c.getContext('2d'); ctx.scale(dpr,dpr);
+  return {ctx:ctx,W:W,H:H};
+}
+
+function drawLineC(id,labels,vals,color){
+  var cv=setupCanvas(id); if(!cv) return;
+  var ctx=cv.ctx,W=cv.W,H=cv.H;
+  var pad={t:16,r:8,b:30,l:32};
+  var gW=W-pad.l-pad.r, gH=H-pad.t-pad.b;
+  var maxV=Math.max.apply(null,vals.concat([1]));
+  var step=gW/((labels.length-1)||1);
+
+  // Grid
+  for(var i=0;i<=4;i++){
+    var y=pad.t+gH*(1-i/4);
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+gW,y); ctx.stroke();
+    ctx.fillStyle='rgba(107,138,184,0.7)'; ctx.font=CFONTSM; ctx.textAlign='right';
+    ctx.fillText(Math.round(maxV*i/4),pad.l-4,y+4);
+  }
+
+  // Gradient fill
+  var grad=ctx.createLinearGradient(0,pad.t,0,pad.t+gH);
+  grad.addColorStop(0,color+'44'); grad.addColorStop(1,color+'00');
+  ctx.beginPath();
+  vals.forEach(function(v,i){
+    var x=pad.l+i*step, y=pad.t+gH*(1-v/maxV);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(pad.l+(vals.length-1)*step,pad.t+gH);
+  ctx.lineTo(pad.l,pad.t+gH); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+
+  // Line
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round';
+  vals.forEach(function(v,i){
+    var x=pad.l+i*step, y=pad.t+gH*(1-v/maxV);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Dots + labels
+  vals.forEach(function(v,i){
+    var x=pad.l+i*step, y=pad.t+gH*(1-v/maxV);
+    ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    if(v>0){ctx.fillStyle='#fff';ctx.font=CFONTSM;ctx.textAlign='center';ctx.fillText(v,x,y-7);}
+    ctx.fillStyle='rgba(107,138,184,0.75)'; ctx.font=CFONTSM; ctx.textAlign='center';
+    ctx.fillText(labels[i],x,pad.t+gH+16);
+  });
+}
+
+function drawBarC(id,entries,colors){
+  var cv=setupCanvas(id); if(!cv) return;
+  var ctx=cv.ctx,W=cv.W,H=cv.H;
+  var labels=entries.map(function(e){return Array.isArray(e)?e[0]:e;});
+  var vals=entries.map(function(e){return Array.isArray(e)?e[1]:e;});
+  var pad={t:12,r:6,b:44,l:30};
+  var gW=W-pad.l-pad.r, gH=H-pad.t-pad.b;
+  var maxV=Math.max.apply(null,vals.concat([1]));
+  var gap=gW/labels.length;
+  var bW=Math.max(6,gap*0.65);
+
+  for(var i=0;i<=4;i++){
+    var y=pad.t+gH*(1-i/4);
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+gW,y); ctx.stroke();
+    ctx.fillStyle='rgba(107,138,184,0.7)'; ctx.font=CFONTSM; ctx.textAlign='right';
+    ctx.fillText(Math.round(maxV*i/4),pad.l-3,y+4);
+  }
+
+  vals.forEach(function(v,i){
+    var x=pad.l+i*gap+(gap-bW)/2;
+    var bH=gH*(v/maxV);
+    var y=pad.t+gH-bH;
+    var c=colors?colors[i%colors.length]:'#2e9cdb';
+    ctx.fillStyle=c+'aa'; ctx.fillRect(x,y,bW,bH);
+    ctx.fillStyle=c; ctx.fillRect(x,y,bW,2);
+    if(v>0){ctx.fillStyle='#fff';ctx.font=CFONTSM;ctx.textAlign='center';ctx.fillText(v,x+bW/2,y-4);}
+    ctx.fillStyle='rgba(107,138,184,0.8)'; ctx.font=CFONTSM; ctx.textAlign='center';
+    ctx.save(); ctx.translate(x+bW/2,pad.t+gH+8); ctx.rotate(-0.4);
+    var lbl=labels[i]; if(lbl&&lbl.length>7) lbl=lbl.substr(0,6)+'…';
+    ctx.fillText(lbl||'',0,0); ctx.restore();
+  });
+}
+
+function drawDonutC(id,entries,colors){
+  var cv=setupCanvas(id); if(!cv) return;
+  var ctx=cv.ctx,W=cv.W,H=cv.H;
+  var total=entries.reduce(function(a,e){return a+(Array.isArray(e)?e[1]:0);},0)||1;
+  var cx=W*0.33, cy=H/2, R=Math.min(cx,cy)*0.8, r=R*0.5;
+  var ang=-Math.PI/2;
+
+  entries.forEach(function(e,i){
+    var v=Array.isArray(e)?e[1]:0;
+    var a=(v/total)*Math.PI*2;
+    var c=colors[i%colors.length];
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,ang,ang+a); ctx.closePath();
+    ctx.fillStyle=c+'bb'; ctx.fill();
+    ctx.strokeStyle='#0d1f38'; ctx.lineWidth=1.5; ctx.stroke();
+    ang+=a;
+  });
+
+  // Hole
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle='#0d1f38'; ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 16px Secular One,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(total,cx,cy+5);
+  ctx.fillStyle='rgba(107,138,184,0.7)'; ctx.font=CFONTSM; ctx.fillText('סה״כ',cx,cy+17);
+
+  // Legend
+  var lx=W*0.55, ly=8, lh=Math.min(18,(H-16)/entries.length);
+  entries.slice(0,Math.floor((H-16)/lh)).forEach(function(e,i){
+    var c=colors[i%colors.length];
+    var y=ly+i*lh;
+    ctx.fillStyle=c; ctx.fillRect(lx,y+1,8,8);
+    ctx.fillStyle='rgba(200,220,255,0.8)'; ctx.font=CFONTSM; ctx.textAlign='left';
+    var lbl=Array.isArray(e)?e[0]:''; if(lbl.length>16) lbl=lbl.substr(0,15)+'…';
+    ctx.fillText(lbl+' ('+e[1]+')',lx+12,y+9);
+  });
 }
 
 // ══════════════════════════════════════════
