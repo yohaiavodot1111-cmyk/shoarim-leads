@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>מערכת לידים - שוחרות חיל האוויר</title>
+<title>מערכת לידים — שוחרות חיל האוויר</title>
 <link rel="icon" href="IAF_New_Logo_2018.png" type="image/png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -335,7 +335,7 @@ function saveEdit() {
   var fields = ['name','city','grade','phone','parentName','parentPhone',
                 'parent2Name','parent2Phone','idNumber','motivation',
                 'branch','district','rejectNote','notes','status'];
-  var lead = { originalPhone: r.originalPhone || r.phone };
+  var lead = { originalPhone: r.originalPhone || r.phone, uuid: r.uuid || r.originalPhone || r.phone };
   fields.forEach(function(f) {
     var el = document.getElementById('edit_' + f);
     lead[f] = el ? el.value.trim() : (r[f] || '');
@@ -358,7 +358,7 @@ function saveEdit() {
     // no-cors = opaque response, assume success
     fields.forEach(function(f) { r[f] = lead[f]; });
     r.hasEdit = true;
-    var orig = allData.find(function(x) { return x.originalPhone === r.originalPhone; });
+    var orig = allData.find(function(x) { return x.uuid === r.uuid; });
     if (orig) { fields.forEach(function(f) { orig[f] = lead[f]; }); orig.hasEdit = true; }
     showSaveMsg('✅ נשמר בגיליון "עריכות"', 'ok');
     editMode = false;
