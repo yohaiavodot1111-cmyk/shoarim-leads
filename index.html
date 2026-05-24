@@ -18,13 +18,16 @@
 body{font-family:'Assistant',sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh;}
 
 /* HEADER */
-.header{background:linear-gradient(135deg,#0a1535,#0e2060);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
-.header-left{display:flex;align-items:center;gap:14px;}
-.header-title{font-family:'Secular One',sans-serif;color:var(--white);font-size:17px;}
-.header-stats{display:flex;gap:20px;}
-.hstat{text-align:center;}
-.hstat-num{font-family:'Secular One',sans-serif;font-size:20px;color:var(--gold);line-height:1;}
-.hstat-label{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.05em;}
+.header{background:linear-gradient(135deg,#0a1535 0%,#0e2060 100%);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:68px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.3);border-bottom:2px solid var(--teal);}
+.header-left{display:flex;align-items:center;gap:16px;}
+.header-logo{height:44px;width:auto;object-fit:contain;}
+.header-title{font-family:'Secular One',sans-serif;color:var(--white);font-size:18px;letter-spacing:0.01em;}
+.header-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+.header-stats{display:flex;gap:0;}
+.hstat{text-align:center;padding:0 24px;border-right:1px solid rgba(255,255,255,0.1);}
+.hstat:first-child{border-right:none;}
+.hstat-num{font-family:'Secular One',sans-serif;font-size:22px;color:var(--gold);line-height:1;}
+.hstat-label{font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:0.06em;text-transform:uppercase;margin-top:2px;}
 
 /* TABS */
 .tabs{background:var(--white);border-bottom:2px solid var(--border);display:flex;gap:0;padding:0 28px;}
@@ -55,17 +58,18 @@ body{font-family:'Assistant',sans-serif;background:var(--bg);color:var(--text);d
 
 /* TABLE */
 .table-wrap{overflow-x:auto;padding:20px 28px;}
-table{width:100%;border-collapse:collapse;background:var(--white);box-shadow:0 2px 12px rgba(13,34,87,0.07);border-radius:4px;overflow:hidden;font-size:13px;}
-thead{background:var(--navy);}
-th{padding:11px 13px;color:rgba(255,255,255,0.75);font-weight:700;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;}
+table{width:100%;border-collapse:collapse;background:var(--white);box-shadow:0 4px 20px rgba(13,34,87,0.1);border-radius:6px;overflow:hidden;font-size:13px;}
+thead{background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);}
+th{padding:13px 16px;color:rgba(255,255,255,0.8);font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;text-align:center;}
 th:hover{color:var(--white);}
 tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
 tbody tr:hover{background:#eef5ff;}
-td{padding:10px 13px;color:var(--mid);white-space:nowrap;}
-td.name-cell{font-weight:700;color:var(--navy);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:11px 16px;color:var(--mid);white-space:nowrap;text-align:center;}
+td.name-cell{font-weight:700;color:var(--navy);text-align:right;}
 td.phone-cell a{color:var(--sky);text-decoration:none;}
 td.phone-cell a:hover{text-decoration:underline;}
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;}
 .badge-8{background:#dbeafe;color:#1d4ed8;}
 .badge-9{background:#dcfce7;color:#15803d;}
 .badge-high{background:#fef9c3;color:#a16207;}
@@ -144,7 +148,11 @@ td.phone-cell a:hover{text-decoration:underline;}
 
 <div class="header">
   <div class="header-left">
-    <div class="header-title">🛩️ מערכת לידים — שוחרות</div>
+    <img class="header-logo" src="IAF_New_Logo_2018.png" alt="חיל האוויר"/>
+    <div>
+      <div class="header-title">מערכת לידים — שוחרות</div>
+      <div class="header-sub">ניהול ומעקב לידים</div>
+    </div>
   </div>
   <div class="header-stats">
     <div class="hstat"><div class="hstat-num" id="totalCount">—</div><div class="hstat-label">סה״כ</div></div>
@@ -388,8 +396,7 @@ function applyFilters() {
 
   filtered = allData.filter(function(r) {
     if (g  && r.grade    !== g)  return false;
-    if (st && r.status   !== st) return false;
-    if (br && r.branch   !== br) return false;
+    if (st && r.status   !== st) return false;    if (br && r.branch   !== br) return false;
     if (di && r.district !== di) return false;
     if (days) {
       var ts = parseDate(r.timestamp);
@@ -487,7 +494,7 @@ function renderTable() {
       '<td>'+gradeBadge(r.grade)+'</td>' +
       '<td>'+(r.branch||'—')+'</td>' +
       '<td>'+(r.district||'—')+'</td>' +
-      '<td>'+statusBadge(r.leadStatus, r.rejectNote)+'</td>' +
+      '<td>'+statusBadge(r.status, r.rejectNote)+'</td>' +
       '<td>'+motivBadge(r.motivation)+'</td>' +
       '<td style="color:var(--light);font-size:11px">'+(r.timestamp||'—')+'</td>' +
     '</tr>';
@@ -588,7 +595,7 @@ function buildViewBody(r) {
   (r.parent2Name||r.parent2Phone ? section('הורה 2', [fld('שם', r.parent2Name), fld('טלפון', r.parent2Phone, true)]) : '') +
   section('שיוך ממערכת', [
     fld('שלוחה', r.branch), fld('מחוז', r.district),
-    fld('סטטוס ליד', r.leadStatus), fld('סיבת דחייה', r.rejectNote),
+    fld('סטטוס', r.status), fld('סיבת דחייה', r.rejectNote),
     fld('הערות', r.notes), fld('תאריך', r.timestamp)
   ]) +
   (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:8px 12px;border-radius:4px;font-size:12px;color:#92400e;margin-top:8px;">✏️ ליד זה עודכן ידנית — השינויים שמורים בגיליון "עריכות"</div>' : '');
@@ -620,7 +627,7 @@ function buildEditForm(r) {
   sectionEdit('פרטי תלמיד/ה', [
     eInput('name','שם מלא',r.name), eInput('city','עיר',r.city),
     eInput('phone','טלפון',r.phone), eSelect('grade','כיתה',r.grade,grades),
-    eInput('idNumber','ת.ז.',r.idNumber), eInput('motivation','מוטיבציה',r.motivation)
+    eInput('idNumber','ת.ז.',r.idNumber), eSelect('motivation','מוטיבציה',r.motivation,['1','2','3','4','5','6','7','8','9','10'])
   ]) +
   sectionEdit('הורה 1', [eInput('parentName','שם הורה',r.parentName), eInput('parentPhone','טלפון הורה',r.parentPhone)]) +
   sectionEdit('הורה 2', [eInput('parent2Name','שם הורה',r.parent2Name), eInput('parent2Phone','טלפון הורה',r.parent2Phone)]) +
