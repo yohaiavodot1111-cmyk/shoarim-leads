@@ -749,14 +749,14 @@ function renderStats() {
       '<div class="stat-card"><div class="stats-section-title">משפך המרה</div>' +
         '<div id="funnelViz"></div></div>' +
       '<div class="stat-card"><div class="stats-section-title">מגמה חודשית</div>' +
-        '<canvas id="statsMonthly" height="180"></canvas></div>' +
+        '<canvas id="statsMonthly" height="140"></canvas></div>' +
     '</div>' +
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
       '<div class="stat-card"><div class="stats-section-title">פילוח סטטוסים</div>' +
-        '<canvas id="statsStatus" height="200"></canvas></div>' +
+        '<canvas id="statsStatus" height="150"></canvas></div>' +
       '<div class="stat-card"><div class="stats-section-title">מקורות גיוס</div>' +
-        '<canvas id="statsSource" height="200"></canvas></div>' +
+        '<canvas id="statsSource" height="150"></canvas></div>' +
     '</div>' +
 
     '<div class="stat-card" style="margin-bottom:14px"><div class="stats-section-title">פירוט מקורות גיוס</div>' +
@@ -773,9 +773,9 @@ function renderStats() {
     (currentUser.role!=='branch' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">לידים לפי שלוחה</div>' +
-          '<canvas id="statsBranch" height="200"></canvas></div>' +
+          '<canvas id="statsBranch" height="150"></canvas></div>' +
         '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div>' +
-          '<canvas id="statsMotiv" height="200"></canvas></div>' +
+          '<canvas id="statsMotiv" height="150"></canvas></div>' +
       '</div>' : '') +
 
     // ערב פתוח
@@ -989,7 +989,7 @@ function buildEditForm(r) {
     ef('phone','טלפון',r.phone) + esel('grade','כיתה',r.grade,["ח'","ט'"]) +
     esel('gender','מין',r.gender,['זכר','נקבה']) + ef('school','מוסד לימודי',r.school) +
     ef('idNumber','ת.ז.',r.idNumber) + esel('motivation','מוטיבציה',r.motivation,['1','2','3','4','5','6','7','8','9','10']) +
-    ef('source','מקור גיוס',r.source) +
+    esel('source','מקור גיוס',r.source,['שיווק נציגי חי"א','דיוור ישיר','עיתון','קמפיין דיגיטל','המלצת חבר','רדיו','שלטי פרסים','קישור בהודעה','לא יודע']) +
     ef('parentName','הורה 1 שם',r.parentName) + ef('parentPhone','הורה 1 טלפון',r.parentPhone) + ef('parentEmail','הורה 1 מייל',r.parentEmail) +
     ef('parent2Name','הורה 2 שם',r.parent2Name) + ef('parent2Phone','הורה 2 טלפון',r.parent2Phone) + ef('parent2Email','הורה 2 מייל',r.parent2Email) +
     '<div class="mfield full-col"><label>שלוחה</label><select id="edit_branch" onchange="onBranchChange(this)"><option value="">-</option>' + bopts + '</select></div>' +
