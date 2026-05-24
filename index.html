@@ -252,7 +252,10 @@ td.phone-cell a:hover{text-decoration:underline;}
 
 <div class="status-bar">
   <div><span class="status-dot"></span><span id="statusText">מתחבר...</span></div>
-  <div id="lastUpdate"></div>
+  <div style="display:flex;gap:16px;align-items:center;">
+    <span id="nextRefresh" style="color:var(--light);font-size:11px;"></span>
+    <span id="lastUpdate"></span>
+  </div>
 </div>
 
 <!-- CONTENT -->
@@ -315,7 +318,8 @@ function loadData() {
       updateStats();
       document.getElementById('loadingWrap').style.display = 'none';
       document.getElementById('statusText').textContent = 'מסונכרן ✓ ' + allData.length + ' רשומות';
-      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('he-IL');
+      document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
+      countdown = 30;
     })
     .catch(function(e) {
       document.getElementById('loadingWrap').innerHTML =
@@ -710,7 +714,16 @@ document.getElementById('branchFilter').addEventListener('change', applyFilters)
 document.getElementById('districtFilter').addEventListener('change', applyFilters);
 
 loadData();
-setInterval(loadData, 5 * 60 * 1000);
+var refreshInterval = setInterval(loadData, 30 * 1000);
+
+// countdown timer
+var countdown = 30;
+setInterval(function() {
+  countdown--;
+  if (countdown <= 0) countdown = 30;
+  var el = document.getElementById('nextRefresh');
+  if (el) el.textContent = 'רענון בעוד ' + countdown + ' שניות';
+}, 1000);
 </script>
 </body>
 </html>
