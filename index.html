@@ -32,14 +32,14 @@
   --shadow-lg:0 20px 48px rgba(16,24,40,.18);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{overflow-x:hidden;background:var(--bg);}
+html{overflow-x:hidden;background:var(--bg);height:100%;}
 body{
-  overflow-x:hidden;
+  overflow-x:hidden;overflow-y:auto;
   font-family:'Heebo','Segoe UI',Arial,sans-serif;
   background:var(--bg);
   color:var(--text);
   direction:rtl;
-  min-height:100vh;
+  min-height:100%;
   font-size:13.5px;
   font-weight:400;
   line-height:1.45;
@@ -234,7 +234,7 @@ td .phone-link:hover{text-decoration:underline;}
 .card-val{color:var(--mid);font-weight:400;}
 
 /* STATS */
-.stats-wrap{padding:12px 0 24px;max-width:1440px;margin:0 auto;}
+.stats-wrap{padding:12px 0 60px;max-width:1440px;margin:0 auto;}
 .stat-card{
   background:#fff;border:1px solid var(--border);border-top:3px solid var(--gold);
   padding:14px;border-radius:8px;box-shadow:var(--shadow-sm);
@@ -1331,12 +1331,13 @@ function openModal(i) {
 
 function closeModal() {
   document.getElementById('overlay').classList.remove('open');
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.width = '';
-  document.body.style.overflow = '';
+  document.body.style.position  = '';
+  document.body.style.top       = '';
+  document.body.style.width     = '';
+  document.body.style.overflow  = '';
+  document.body.style.overflowY = '';
   document.body.classList.remove('modal-open');
-  window.scrollTo(0, _scrollY);
+  if (typeof _scrollY !== 'undefined') window.scrollTo(0, _scrollY);
 }
 
 function renderModal() {
@@ -1441,12 +1442,13 @@ function openAddModal() {
 }
 function closeAddModal() {
   document.getElementById('addOverlay').classList.remove('open');
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.width = '';
-  document.body.style.overflow = '';
+  document.body.style.position  = '';
+  document.body.style.top       = '';
+  document.body.style.width     = '';
+  document.body.style.overflow  = '';
+  document.body.style.overflowY = '';
   document.body.classList.remove('modal-open');
-  window.scrollTo(0, _scrollY);
+  if (typeof _scrollY !== 'undefined') window.scrollTo(0, _scrollY);
 }
 
 function submitAddLead() {
@@ -1569,7 +1571,6 @@ function exportExcel() {
   }
 }
 
-function closeModal()    { document.getElementById('overlay').classList.remove('open'); }
 function closeOverlay(e) { if(e.target===document.getElementById('overlay')) closeModal(); }
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
 </script>
