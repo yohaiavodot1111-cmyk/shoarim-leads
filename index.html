@@ -567,8 +567,7 @@ function loadData() {
         return db-da;
       });
       allData = rows;
-
-      var badge = document.getElementById('newLeadsBadge');
+      detectDuplicates();
       if (lastLoginTime) {
         var newCount = allData.filter(function(r){ var ts=parseDate(r.timestamp); return ts && ts > lastLoginTime; }).length;
         if (newCount > 0) {
@@ -633,7 +632,92 @@ function setView(v) {
   render();
 }
 
-// ── BADGES ──
+// ── זיהוי כפילויות ──
+function normalizePhone(p) { return (p||'').replace(/\D/g,'').replace(/^0/,''); }
+function normalizeName(n)  { return (n||'').replace(/\s+/,' ').trim().toLowerCase(); }
+
+function detectDuplicates() {
+  // מפת טלפון → רשימת לידים
+  var phoneMap = {}, nameMap = {};
+  allData.forEach(function(r, i) {
+    var ph = normalizePhone(r.phone);
+    if (ph && ph.length >= 8) {
+      if (!phoneMap[ph]) phoneMap[ph] = [];
+      phoneMap[ph].push(i);
+    }
+    var nm = normalizeName(r.name);
+    var city = (r.city||'').trim().toLowerCase();
+    if (nm && city) {
+      var key = nm + '|' + city;
+      if (!nameMap[key]) nameMap[key] = [];
+      nameMap[key].push(i);
+    }
+  });
+
+  // סמן כפילויות
+  allData.forEach(function(r) { r._duplicates = []; });
+
+  Object.values(phoneMap).forEach(function(indices) {
+    if (indices.length < 2) return;
+    indices.forEach(function(i) {
+      indices.forEach(function(j) {
+        if (i !== j && allData[i]._duplicates.indexOf(j) === -1) {
+          allData[i]._duplicates.push(j);
+        }
+      });
+    });
+  });
+
+  Object.values(nameMap).forEach(function(indices) {
+    if (indices.length < 2) return;
+    indices.forEach(function(i) {
+      indices.forEach(function(j) {
+        if (i !== j && allData[i]._duplicates.indexOf(j) === -1) {
+          allData[i]._duplicates.push(j);
+        }
+      });
+    });
+  });
+}
+// ── כפילויות ──
+function dupBadge(r, i) {
+  if (!r._duplicates || !r._duplicates.length) return '';
+  return '<span onclick="event.stopPropagation();showDupPopup('+i+')" style="display:inline-block;margin-right:4px;background:#fee2e2;color:#991b1b;font-size:10px;font-weight:800;padding:1px 5px;cursor:pointer;vertical-align:middle">כפול</span>';
+}
+
+function showDupPopup(i) {
+  var r = filtered[i];
+  if (!r||!r._duplicates||!r._duplicates.length) return;
+  var dups = r._duplicates.map(function(di){return allData[di];}).filter(Boolean);
+  var html = '<div style="padding:16px 18px"><div style="font-size:11px;font-weight:800;color:var(--red);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px">לידים כפולים שזוהו</div>';
+  dups.forEach(function(d){
+    var statusColor = STATUS_RED.indexOf(d.status||'חדש')>-1?'#991b1b':'var(--mid)';
+    html += '<div style="background:#f8faff;border:1px solid var(--border);border-right:3px solid var(--red);padding:10px 12px;margin-bottom:8px">' +
+      '<div style="font-weight:700;color:var(--navy);margin-bottom:6px">' + (d.name||'-') + '</div>' +
+      '<div style="font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:4px;color:var(--mid)">' +
+        '<span>טלפון: ' + (d.phone||'-') + '</span>' +
+        '<span>עיר: ' + (d.city||'-') + '</span>' +
+        '<span>תאריך: ' + (d.timestamp||'-') + '</span>' +
+        '<span style="color:'+statusColor+';font-weight:700">סטטוס: ' + (d.status||'חדש') + '</span>' +
+        (d.rejectNote?'<span style="grid-column:1/-1;color:#991b1b">סיבת דחייה: '+d.rejectNote+'</span>':'') +
+        (d.notes?'<span style="grid-column:1/-1">הערות: '+d.notes+'</span>':'') +
+      '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('mName').textContent = 'כפילויות: ' + (r.name||'-');
+  document.getElementById('mSub').textContent = '';
+  document.getElementById('editBtn').style.display = 'none';
+  document.getElementById('delBtn').style.display = 'none';
+  document.getElementById('modalBody').innerHTML = html;
+  _scrollY = window.scrollY;
+  document.body.style.top = '-' + _scrollY + 'px';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('modalBox').scrollTop = 0;
+}
+
 function gradeBadge(g) {
   if (!g) return '-';
   return '<span class="badge ' + (g==="ח'"?'badge-8':'badge-9') + '">' + g + '</span>';
@@ -668,7 +752,7 @@ function renderTable() {
   var html = '';
   filtered.forEach(function(r, i) {
     html += '<tr onclick="openModal(' + i + ')">' +
-      '<td>' + (r.name||'-') + (r.hasEdit?' <small style="color:var(--gold)">(עודכן)</small>':'') + '</td>' +
+      '<td>' + (r.name||'-') + dupBadge(r, i) + (r.hasEdit?' <small style="color:var(--gold)">(עודכן)</small>':'') + '</td>' +
       '<td><a class="phone-link" href="tel:' + r.phone + '" onclick="event.stopPropagation()">' + (r.phone||'-') + '</a></td>' +
       '<td>' + (r.city||'-') + '</td>' +
       '<td>' + gradeBadge(r.grade) + '</td>' +
@@ -686,7 +770,7 @@ function renderCards() {
   var html = '';
   filtered.forEach(function(r, i) {
     html += '<div class="card" onclick="openModal(' + i + ')">' +
-      '<div class="card-name">' + (r.name||'-') + '</div>' +
+      '<div class="card-name">' + (r.name||'-') + dupBadge(r, i) + '</div>' +
       '<div class="card-row"><span class="card-label">טלפון</span><a class="phone-link" href="tel:' + r.phone + '" onclick="event.stopPropagation()">' + (r.phone||'-') + '</a></div>' +
       '<div class="card-row"><span class="card-label">עיר</span><span class="card-val">' + (r.city||'-') + '</span></div>' +
       '<div class="card-row"><span class="card-label">שלוחה</span><span class="card-val">' + (r.branch||'-') + '</span></div>' +
@@ -1022,6 +1106,7 @@ var _scrollY = 0;
 
 function openModal(i) {
   activeIdx=i; editMode=false;
+  document.getElementById('editBtn').style.display = '';
   document.getElementById('editBtn').textContent='עריכה';
   var r=filtered[i];
   document.getElementById('mName').textContent=r.name||'-';
@@ -1082,8 +1167,8 @@ function buildEditForm(r) {
     '<div class="mfield full-col"><label>שלוחה</label><select id="edit_branch" onchange="onBranchChange(this)"><option value="">-</option>' + bopts + '</select></div>' +
     '<div class="mfield"><label>מחוז</label><input id="edit_district" value="' + (r.district||'') + '" readonly style="background:#f0f4fa;"/></div>' +
     '<div class="mfield full-col"><label>סטטוס</label><select id="edit_status" onchange="onStatusChange(this)"><option value="">-</option>' + sopts + '</select></div>' +
-    ef('rejectNote','סיבת דחייה',r.rejectNote) +
-    '<div class="mfield full-col"><label>הערות <span id="notesReq" style="color:var(--red);display:none">* חובה לסטטוס זה</span></label><input id="edit_notes" value="' + (r.notes||'').replace(/"/g,'&quot;') + '"/></div>' +
+    '<div class="mfield"><label>סיבת דחייה <span id="notesReq" style="color:var(--red);display:none">* חובה</span></label><input id="edit_rejectNote" value="' + (r.rejectNote||'').replace(/"/g,'&quot;') + '"/></div>' +
+    '<div class="mfield full-col"><label>הערות</label><input id="edit_notes" value="' + (r.notes||'').replace(/"/g,'&quot;') + '"/></div>' +
   '</div>' +
   '<div class="edit-actions"><button class="btn-cancel" onclick="cancelEdit()">ביטול</button><button class="btn-save" id="saveBtn" onclick="saveEdit()">שמור</button></div>' +
   '<div id="saveMsg" class="save-msg" style="display:none"></div>';
@@ -1118,8 +1203,8 @@ function saveEdit() {
   var lead={originalPhone:r.originalPhone||r.phone, uuid:r.uuid||r.originalPhone||r.phone};
   EDIT_FIELDS.forEach(function(f){ var el=document.getElementById('edit_'+f); lead[f]=el?el.value.trim():(r[f]||''); });
   lead.status = lead.status||'חדש';
-  if (STATUS_NOTES_REQUIRED.indexOf(lead.status)>-1 && !lead.notes.trim()) {
-    var sm=document.getElementById('saveMsg'); sm.textContent='סטטוס זה מחייב הערה'; sm.className='save-msg err'; sm.style.display='';
+  if (STATUS_NOTES_REQUIRED.indexOf(lead.status)>-1 && !lead.rejectNote.trim()) {
+    var sm=document.getElementById('saveMsg'); sm.textContent='סטטוס זה מחייב סיבת דחייה'; sm.className='save-msg err'; sm.style.display='';
     saveBtn.disabled=false; saveBtn.textContent='שמור'; return;
   }
   fetch(APPS_SCRIPT_URL, {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveEdit',lead:lead})})
