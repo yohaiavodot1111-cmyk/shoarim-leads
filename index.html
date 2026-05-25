@@ -13,7 +13,8 @@
   --text:#0f1a30;--mid:#2e3f60;--light:#6b80a8;--green:#22c55e;--red:#dc2626;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{overflow-x:hidden;}
+html{overflow-x:hidden;}
+body{overflow-x:hidden;}
 body{font-family:'Assistant',sans-serif;background:var(--bg);color:var(--text);direction:rtl;min-height:100vh;}
 
 /* LOGIN */
@@ -721,6 +722,7 @@ function showDupPopup(i) {
   document.body.style.position = 'fixed';
   document.body.style.width = '100%';
   document.body.style.overflow = 'hidden';
+  document.body.classList.add('modal-open');
   document.getElementById('overlay').classList.add('open');
   document.getElementById('modalBox').scrollTop = 0;
 }
@@ -1136,8 +1138,8 @@ function closeModal() {
   document.body.style.top = '';
   document.body.style.width = '';
   document.body.style.overflow = '';
-  window.scrollTo(0, _scrollY);
   document.body.classList.remove('modal-open');
+  window.scrollTo(0, _scrollY);
 }
 
 function renderModal() {
@@ -1246,6 +1248,7 @@ function closeAddModal() {
   document.body.style.top = '';
   document.body.style.width = '';
   document.body.style.overflow = '';
+  document.body.classList.remove('modal-open');
   window.scrollTo(0, _scrollY);
 }
 
