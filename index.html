@@ -1085,10 +1085,35 @@ function renderStats() {
     insights.push({t:'info',msg:'מקור גיוס מוביל: ' + topSrcs.map(function(e){return e[0];}).join(', ') + ' - ' + maxSrcV + ' לידים.'});
   }
 
+  // נתונים נוספים
+  var byGrade  = countBy(function(r){return normalizeGrade(r.grade)||'לא צוין';});
+  var byGender = countBy(function(r){return r.gender||'לא צוין';});
+  var byDistrict=countBy(function(r){return r.district||'לא ידוע';});
+
+  // ממוצע מוטיבציה
+  var motivSum=0, motivCount=0;
+  data.forEach(function(r){ var m=parseInt(r.motivation); if(m>=1&&m<=10){motivSum+=m;motivCount++;} });
+  var avgMotiv = motivCount>0 ? (motivSum/motivCount).toFixed(1) : '-';
+
+  // שיעור הגעה לערב פתוח
+  var openDayTotal=data.filter(function(r){return r.status&&r.status.indexOf('יום פתוח')>-1;}).length;
+  var openDayArrived=data.filter(function(r){return r.status==='יום פתוח התייצב';}).length;
+  var openDayRate = openDayTotal>0 ? pctOf(openDayArrived,openDayTotal) : '-';
+
+  // שיעור מעבר מיון
+  var testTotal=data.filter(function(r){return r.status&&r.status.indexOf('מבחן מיון')>-1;}).length;
+  var testPassed=data.filter(function(r){return r.status==='מבחן מיון עבר בהצלחה'||r.status==='מבחן מיון עבר על תנאי';}).length;
+  var testRate = testTotal>0 ? pctOf(testPassed,testTotal) : '-';
+
+  // כיתה ח לפי שלוחה
+  var grade8ByBranch={};
+  data.forEach(function(r){ if(normalizeGrade(r.grade)==='ח'&&r.branch){ grade8ByBranch[r.branch]=(grade8ByBranch[r.branch]||0)+1; } });
+
   var insColors={warn:'#f0b429',ok:'#22c55e',info:'#2e9cdb'};
 
   var html =
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px">' +
+    // KPI ראשי
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">' +
       sKpi('סה"כ לידים',total,'','#2e9cdb') +
       sKpi('חדשים',newL,pctOf(newL,total)+'%','#f0b429') +
       sKpi('חתמו/לומדים',signed+learning,convRate+'%','#22c55e') +
@@ -1097,72 +1122,111 @@ function renderStats() {
       sKpi("כיתה ט'",grade9,pctOf(grade9,total)+'%','#0fd4c4') +
     '</div>' +
 
+    // KPI משני
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">' +
+      sKpi('ממוצע מוטיבציה',avgMotiv,'מ-10','#b68a2c') +
+      sKpi('הגעה לערב פתוח',openDayRate==='-'?'-':openDayRate+'%',openDayTotal+' לידים בשלב','#1f4e79') +
+      sKpi('מעבר מבחן מיון',testRate==='-'?'-':testRate+'%',testTotal+' נבחנו','#067647') +
+      sKpi('זכר',byGender['זכר']||0,pctOf(byGender['זכר']||0,total)+'%','#2563eb') +
+      sKpi('נקבה',byGender['נקבה']||0,pctOf(byGender['נקבה']||0,total)+'%','#ec4899') +
+      sKpi('ללא פרטים',byGender['לא צוין']||0,'','#98a2b3') +
+    '</div>' +
+
+    // תובנות
     (insights.length ?
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:16px">' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:14px">' +
       insights.map(function(ins){
         return '<div style="padding:10px 12px;background:#fff;border:1px solid var(--border);border-right:3px solid ' + insColors[ins.t] + ';font-size:12px;line-height:1.5">' + ins.msg + '</div>';
       }).join('') + '</div>' : '') +
 
+    // שורה 1: משפך + מגמה חודשית
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
-      '<div class="stat-card"><div class="stats-section-title">משפך המרה</div>' +
-        '<div id="funnelViz"></div></div>' +
-      '<div class="stat-card"><div class="stats-section-title">מגמה חודשית</div>' +
-        '<canvas id="statsMonthly" height="140"></canvas></div>' +
+      '<div class="stat-card"><div class="stats-section-title">משפך המרה</div><div id="funnelViz"></div></div>' +
+      '<div class="stat-card"><div class="stats-section-title">מגמה חודשית (6 חודשים)</div><canvas id="statsMonthly" height="140"></canvas></div>' +
     '</div>' +
 
+    // שורה 2: סטטוסים + מקורות
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
-      '<div class="stat-card"><div class="stats-section-title">פילוח סטטוסים</div>' +
-        '<canvas id="statsStatus" height="150"></canvas></div>' +
-      '<div class="stat-card"><div class="stats-section-title">מקורות גיוס</div>' +
-        '<canvas id="statsSource" height="150"></canvas></div>' +
+      '<div class="stat-card"><div class="stats-section-title">פילוח סטטוסים</div><canvas id="statsStatus" height="160"></canvas></div>' +
+      '<div class="stat-card"><div class="stats-section-title">מקורות גיוס</div><canvas id="statsSource" height="160"></canvas></div>' +
     '</div>' +
 
+    // שורה 3: פירוט מקורות
     '<div class="stat-card" style="margin-bottom:14px"><div class="stats-section-title">פירוט מקורות גיוס</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;margin-top:8px">' +
       ['שיווק נציגי חי"א','דיוור ישיר','עיתון','קמפיין דיגיטל','המלצת חבר','רדיו','שלטי פרסום','קישור בהודעה','לא יודע'].map(function(src){
-        var cnt=bySource[src]||0, p=pctOf(cnt,total);
-        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8faff;border-right:2px solid var(--sky);font-size:12px">' +
-          '<span style="flex:1;color:var(--mid)">' + src + '</span>' +
-          '<span style="font-weight:700;color:var(--navy);min-width:24px">' + cnt + '</span>' +
-          '<span style="color:var(--light);min-width:32px">' + p + '%</span></div>';
+        var cnt=bySource[src]||0, p=pctOf(cnt,total), bar=Math.round(p);
+        return '<div style="padding:7px 10px;background:#f8faff;border-right:2px solid var(--royal);font-size:12px">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:4px">' +
+            '<span style="color:var(--mid)">' + src + '</span>' +
+            '<span style="font-weight:700;color:var(--navy)">' + cnt + ' <span style="color:var(--light);font-weight:400">(' + p + '%)</span></span>' +
+          '</div>' +
+          '<div style="height:4px;background:#e4e7ec"><div style="height:100%;width:'+bar+'%;background:var(--royal)"></div></div>' +
+        '</div>';
       }).join('') +
     '</div></div>' +
 
+    // שורה 4: שלוחה + מוטיבציה (לא שלוחה בלבד)
     (currentUser.role!=='branch' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
-        '<div class="stat-card"><div class="stats-section-title">לידים לפי שלוחה</div>' +
-          '<canvas id="statsBranch" height="150"></canvas></div>' +
-        '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div>' +
-          '<canvas id="statsMotiv" height="150"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">לידים לפי שלוחה</div><canvas id="statsBranch" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
+      '</div>' : '') +
+
+    // שורה 5: לשלוחה — גם מוטיבציה ומגמה
+    (currentUser.role==='branch' ?
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
+        '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח מין</div><canvas id="statsGender" height="160"></canvas></div>' +
+      '</div>' : '') +
+
+    // שורה 6: מחוז — שלוחות לפי מחוז + כיתה ח׳ לפי שלוחה
+    (currentUser.role==='district' ?
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
+        '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח מין</div><canvas id="statsGender" height="160"></canvas></div>' +
+      '</div>' : '') +
+
+    // שורה 7: אדמין — מחוזות + כיתה ח לפי שלוחה
+    (currentUser.role==='admin' ?
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
+        '<div class="stat-card"><div class="stats-section-title">לידים לפי מחוז</div><canvas id="statsDistrict" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח מין</div><canvas id="statsGender" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">כיתה לפי מחוז</div>' +
+          '<canvas id="statsDistrictGrade" height="160"></canvas></div>' +
       '</div>' : '') +
 
     // ערב פתוח
     (function(){
-      var arr=data.filter(function(r){return r.status&&r.status.indexOf('יום פתוח')>-1;});
-      if(!arr.length) return '';
-      var arrived=data.filter(function(r){return r.status==='יום פתוח התייצב';}).length;
+      if(!openDayTotal) return '';
       var expected=data.filter(function(r){return r.status==='יום פתוח צפוי להגיע';}).length;
       var maybe=data.filter(function(r){return r.status==='יום פתוח אולי יגיע';}).length;
       var noShow=data.filter(function(r){return r.status==='יום פתוח הבריז';}).length;
       var wontCome=data.filter(function(r){return r.status==='יום פתוח לא יגיע';}).length;
       return '<div class="stat-card" style="margin-bottom:14px"><div class="stats-section-title">ערב פתוח</div>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px">' +
-          sKpi('הגיעו',arrived,'','#22c55e') + sKpi('צפויים',expected,'','#2e9cdb') +
-          sKpi('אולי',maybe,'','#f0b429') + sKpi('הבריזו',noShow,'','#ef4444') +
+          sKpi('הגיעו',openDayArrived,pctOf(openDayArrived,openDayTotal)+'%','#22c55e') +
+          sKpi('צפויים',expected,'','#2e9cdb') +
+          sKpi('אולי',maybe,'','#f0b429') +
+          sKpi('הבריזו',noShow,'','#ef4444') +
           sKpi('לא יגיעו',wontCome,'','#6b8ab8') +
         '</div></div>';
     })() +
 
-    '<div class="stat-card"><div class="stats-section-title">TOP 20 ערים</div>' +
+    // TOP ערים
+    '<div class="stat-card" style="margin-bottom:14px"><div class="stats-section-title">TOP 20 ערים</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:8px">' +
       sortedEntries(byCity,20).map(function(e,i){
         var p=pctOf(e[1],total);
         return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0">' +
-          '<span style="color:var(--sky);font-weight:800;min-width:20px;text-align:center">' + (i+1) + '</span>' +
+          '<span style="color:var(--royal);font-weight:800;min-width:20px;text-align:center">' + (i+1) + '</span>' +
           '<span style="flex:1;color:var(--mid)">' + e[0] + '</span>' +
-          '<span style="font-weight:700;color:var(--navy)">' + e[1] + '</span>' +
+          '<span style="font-weight:700;color:var(--text)">' + e[1] + '</span>' +
           '<div style="width:40px;height:4px;background:var(--border)">' +
-            '<div style="height:100%;width:' + p + '%;background:var(--sky)"></div></div>' +
+            '<div style="height:100%;width:' + p + '%;background:var(--royal)"></div></div>' +
         '</div>';
       }).join('') +
     '</div></div>';
@@ -1171,17 +1235,86 @@ function renderStats() {
 
   setTimeout(function(){
     drawFunnel(funnelData, total);
-    drawLineC('statsMonthly', monthlyLabels, monthlyVals, '#2e9cdb');
-    drawDonutC('statsStatus', sortedEntries(byStatus), ['#2e9cdb','#8b5cf6','#f0b429','#f47c30','#ec4899','#0fd4c4','#22c55e','#ef4444','#6b8ab8']);
-    drawDonutC('statsSource',  sortedEntries(bySource).filter(function(e){return e[1]>0;}), ['#0fd4c4','#2e9cdb','#8b5cf6','#f0b429','#f47c30','#ec4899','#22c55e','#ef4444','#6b8ab8']);
-    if (currentUser.role!=='branch') {
-      drawBarC('statsBranch', sortedEntries(byBranch));
-      var motivLabels=['1','2','3','4','5','6','7','8','9','10'];
-      var motivVals=motivLabels.map(function(l){return byMotiv[l]||0;});
-      var motivColors=motivLabels.map(function(l){var n=parseInt(l);return n<=3?'#ef4444':n<=6?'#f0b429':'#22c55e';});
+    drawLineC('statsMonthly', monthlyLabels, monthlyVals, '#1f4e79');
+    drawDonutC('statsStatus', sortedEntries(byStatus,10), ['#1f4e79','#8b5cf6','#f0b429','#f47c30','#ec4899','#0fd4c4','#22c55e','#ef4444','#6b8ab8','#98a2b3']);
+    drawDonutC('statsSource',  sortedEntries(bySource).filter(function(e){return e[1]>0;}), ['#0fd4c4','#1f4e79','#8b5cf6','#f0b429','#f47c30','#ec4899','#22c55e','#ef4444','#6b8ab8']);
+
+    // מוטיבציה — לכולם
+    var motivLabels=['1','2','3','4','5','6','7','8','9','10'];
+    var motivVals=motivLabels.map(function(l){return byMotiv[l]||0;});
+    var motivColors=motivLabels.map(function(l){var n=parseInt(l);return n<=3?'#ef4444':n<=6?'#f0b429':'#22c55e';});
+    if(document.getElementById('statsMotiv'))
       drawBarC('statsMotiv', motivLabels.map(function(l,i){return [l,motivVals[i]];}), motivColors);
+
+    // מין
+    if(document.getElementById('statsGender'))
+      drawDonutC('statsGender', sortedEntries(byGender).filter(function(e){return e[1]>0;}), ['#1f4e79','#ec4899','#98a2b3']);
+
+    if(currentUser.role!=='branch') {
+      if(document.getElementById('statsBranch'))
+        drawBarC('statsBranch', sortedEntries(byBranch));
+
+      if(document.getElementById('statsGrade8Branch')) {
+        var g8e=sortedEntries(grade8ByBranch);
+        drawBarC('statsGrade8Branch', g8e, ['#8b5cf6']);
+      }
+    }
+
+    if(currentUser.role==='admin') {
+      if(document.getElementById('statsDistrict'))
+        drawBarC('statsDistrict', sortedEntries(byDistrict), ['#1f4e79','#f0b429','#22c55e','#f47c30']);
+
+      // כיתה לפי מחוז — stacked simulation: grouped bars
+      if(document.getElementById('statsDistrictGrade')) {
+        var districts=Object.keys(byDistrict).sort();
+        var g8d=[], g9d=[];
+        districts.forEach(function(d){
+          g8d.push(data.filter(function(r){return r.district===d&&normalizeGrade(r.grade)==='ח';}).length);
+          g9d.push(data.filter(function(r){return r.district===d&&normalizeGrade(r.grade)==='ט';}).length);
+        });
+        // Draw two bar sets
+        drawGroupedBarC('statsDistrictGrade', districts,
+          [{label:"ח'",vals:g8d,color:'#8b5cf6'},{label:"ט'",vals:g9d,color:'#0fd4c4'}]);
+      }
     }
   }, 60);
+}
+
+function drawGroupedBarC(id, labels, groups) {
+  var cv=setupCanvas(id); if(!cv) return;
+  var ctx=cv.ctx, W=cv.W, H=cv.H;
+  var pad={t:12,r:8,b:42,l:28};
+  var gW=W-pad.l-pad.r, gH=H-pad.t-pad.b;
+  var allVals=[]; groups.forEach(function(g){allVals=allVals.concat(g.vals);});
+  var maxV=Math.max.apply(null,allVals.concat([1]));
+  var groupW=gW/labels.length, bW=Math.max(4,(groupW-8)/groups.length);
+  for(var i=0;i<=4;i++){
+    var y=pad.t+gH*(1-i/4);
+    ctx.strokeStyle='rgba(0,0,0,0.06)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+gW,y); ctx.stroke();
+    ctx.fillStyle='rgba(107,138,184,0.8)'; ctx.font=CFONT; ctx.textAlign='right';
+    ctx.fillText(Math.round(maxV*i/4),pad.l-3,y+4);
+  }
+  labels.forEach(function(lbl,li){
+    groups.forEach(function(g,gi){
+      var v=g.vals[li]||0;
+      var x=pad.l+li*groupW+gi*(bW+2)+4;
+      var bH=Math.max(2,gH*(v/maxV)), y=pad.t+gH-bH;
+      ctx.fillStyle=g.color+'99'; ctx.fillRect(x,y,bW,bH);
+      ctx.fillStyle=g.color; ctx.fillRect(x,y,bW,2);
+      if(v>0){ctx.fillStyle='#333';ctx.font=CFONT;ctx.textAlign='center';ctx.fillText(v,x+bW/2,y-4);}
+    });
+    ctx.fillStyle='rgba(107,138,184,0.9)'; ctx.font=CFONT; ctx.textAlign='center';
+    ctx.save(); ctx.translate(pad.l+li*groupW+groupW/2,pad.t+gH+8); ctx.rotate(-0.3);
+    var l=String(lbl); if(l.length>6) l=l.substr(0,5)+'..';
+    ctx.fillText(l,0,0); ctx.restore();
+  });
+  // legend
+  groups.forEach(function(g,gi){
+    ctx.fillStyle=g.color; ctx.fillRect(W-55+gi*26,4,10,10);
+    ctx.fillStyle='#333'; ctx.font=CFONT; ctx.textAlign='left';
+    ctx.fillText(g.label,W-43+gi*26,13);
+  });
 }
 
 function sKpi(label, val, sub, color) {
@@ -1207,7 +1340,26 @@ function drawFunnel(stages, total) {
   el.innerHTML = html;
 }
 
-var CFONT = '11px Assistant,sans-serif';
+var CFONT = '11px Heebo,Arial,sans-serif';
+
+// ── TOOLTIP ──
+var _tooltip = null;
+function getTooltip() {
+  if (!_tooltip) {
+    _tooltip = document.createElement('div');
+    _tooltip.style.cssText = 'position:fixed;background:#0b1f3a;color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:600;pointer-events:none;z-index:9999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.25);direction:rtl;white-space:nowrap;border:1px solid #415877;';
+    document.body.appendChild(_tooltip);
+  }
+  return _tooltip;
+}
+function showTip(e, text) {
+  var t = getTooltip();
+  t.textContent = text;
+  t.style.display = 'block';
+  t.style.left = (e.clientX + 14) + 'px';
+  t.style.top  = (e.clientY - 32) + 'px';
+}
+function hideTip() { var t=getTooltip(); t.style.display='none'; }
 
 function setupCanvas(id) {
   var c=document.getElementById(id); if(!c) return null;
@@ -1218,11 +1370,11 @@ function setupCanvas(id) {
   return {ctx:ctx,W:W,H:H};
 }
 
-function drawLineC(id,labels,vals,color) {
+function drawLineC(id, labels, vals, color) {
   var cv=setupCanvas(id); if(!cv) return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H;
+  var ctx=cv.ctx, W=cv.W, H=cv.H;
   var pad={t:16,r:8,b:28,l:30};
-  var gW=W-pad.l-pad.r,gH=H-pad.t-pad.b;
+  var gW=W-pad.l-pad.r, gH=H-pad.t-pad.b;
   var maxV=Math.max.apply(null,vals.concat([1]));
   var step=gW/((labels.length-1)||1);
   for(var i=0;i<=4;i++){
@@ -1241,22 +1393,34 @@ function drawLineC(id,labels,vals,color) {
   ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2; ctx.lineJoin='round';
   vals.forEach(function(v,i){ var x=pad.l+i*step,y=pad.t+gH*(1-v/maxV); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
   ctx.stroke();
+  var points=[];
   vals.forEach(function(v,i){
     var x=pad.l+i*step,y=pad.t+gH*(1-v/maxV);
     ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
     if(v>0){ctx.fillStyle='#333';ctx.font=CFONT;ctx.textAlign='center';ctx.fillText(v,x,y-7);}
     ctx.fillStyle='rgba(107,138,184,0.8)'; ctx.font=CFONT; ctx.textAlign='center';
     ctx.fillText(labels[i],x,pad.t+gH+14);
+    points.push({x:x,y:y,label:labels[i],val:v});
   });
+  var c2=document.getElementById(id);
+  c2.onmousemove=function(e){
+    var rect=c2.getBoundingClientRect();
+    var mx=(e.clientX-rect.left)*(c2.width/rect.width)/(window.devicePixelRatio||1);
+    var my=(e.clientY-rect.top)*(c2.height/rect.height)/(window.devicePixelRatio||1);
+    var closest=null, minD=30;
+    points.forEach(function(p){ var d=Math.sqrt((p.x-mx)*(p.x-mx)+(p.y-my)*(p.y-my)); if(d<minD){minD=d;closest=p;} });
+    if(closest) showTip(e, closest.label+': '+closest.val+' לידים'); else hideTip();
+  };
+  c2.onmouseleave=hideTip;
 }
 
-function drawBarC(id,entries,colors) {
+function drawBarC(id, entries, colors) {
   var cv=setupCanvas(id); if(!cv) return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H;
-  var labels=entries.map(function(e){return Array.isArray(e)?e[0]:e;});
-  var vals=entries.map(function(e){return Array.isArray(e)?e[1]:e;});
+  var ctx=cv.ctx, W=cv.W, H=cv.H;
+  var labels=entries.map(function(e){return Array.isArray(e)?e[0]:String(e);});
+  var vals=entries.map(function(e){return Array.isArray(e)?e[1]:0;});
   var pad={t:12,r:6,b:42,l:28};
-  var gW=W-pad.l-pad.r,gH=H-pad.t-pad.b;
+  var gW=W-pad.l-pad.r, gH=H-pad.t-pad.b;
   var maxV=Math.max.apply(null,vals.concat([1]));
   var gap=gW/labels.length, bW=Math.max(5,gap*0.65);
   for(var i=0;i<=4;i++){
@@ -1266,46 +1430,80 @@ function drawBarC(id,entries,colors) {
     ctx.fillStyle='rgba(107,138,184,0.8)'; ctx.font=CFONT; ctx.textAlign='right';
     ctx.fillText(Math.round(maxV*i/4),pad.l-3,y+4);
   }
+  var bars=[];
   vals.forEach(function(v,i){
-    var x=pad.l+i*gap+(gap-bW)/2, bH=gH*(v/maxV), y=pad.t+gH-bH;
-    var c=colors?colors[i%colors.length]:'#2e9cdb';
+    var x=pad.l+i*gap+(gap-bW)/2, bH=Math.max(2,gH*(v/maxV)), y=pad.t+gH-bH;
+    var c=colors?colors[i%colors.length]:'#1f4e79';
     ctx.fillStyle=c+'99'; ctx.fillRect(x,y,bW,bH);
     ctx.fillStyle=c; ctx.fillRect(x,y,bW,2);
     if(v>0){ctx.fillStyle='#333';ctx.font=CFONT;ctx.textAlign='center';ctx.fillText(v,x+bW/2,y-4);}
     ctx.fillStyle='rgba(107,138,184,0.9)'; ctx.font=CFONT; ctx.textAlign='center';
     ctx.save(); ctx.translate(x+bW/2,pad.t+gH+8); ctx.rotate(-0.4);
-    var lbl=labels[i]?String(labels[i]):''; if(lbl.length>7) lbl=lbl.substr(0,6)+'...';
+    var lbl=labels[i]?String(labels[i]):''; if(lbl.length>7) lbl=lbl.substr(0,6)+'..';
     ctx.fillText(lbl,0,0); ctx.restore();
+    bars.push({x:x,y:y,w:bW,h:bH,label:labels[i],val:v});
   });
+  var c2=document.getElementById(id);
+  c2.onmousemove=function(e){
+    var rect=c2.getBoundingClientRect();
+    var mx=(e.clientX-rect.left)*(c2.width/rect.width)/(window.devicePixelRatio||1);
+    var my=(e.clientY-rect.top)*(c2.height/rect.height)/(window.devicePixelRatio||1);
+    var hit=null;
+    bars.forEach(function(b){ if(mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h) hit=b; });
+    if(hit) showTip(e, hit.label+': '+hit.val+' לידים'); else hideTip();
+  };
+  c2.onmouseleave=hideTip;
 }
 
-function drawDonutC(id,entries,colors) {
+function drawDonutC(id, entries, colors) {
   var cv=setupCanvas(id); if(!cv) return;
-  var ctx=cv.ctx,W=cv.W,H=cv.H;
+  var ctx=cv.ctx, W=cv.W, H=cv.H;
   var total=entries.reduce(function(a,e){return a+(Array.isArray(e)?e[1]:0);},0)||1;
-  var cx=W*0.33, cy=H/2, R=Math.min(cx,cy)*0.82, r=R*0.5;
+  var cx=W*0.3, cy=H/2, R=Math.min(cx,cy)*0.82, r=R*0.5;
   var ang=-Math.PI/2;
+  var slices=[];
   entries.forEach(function(e,i){
     var v=Array.isArray(e)?e[1]:0, a=(v/total)*Math.PI*2;
     var c=colors[i%colors.length];
     ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,ang,ang+a); ctx.closePath();
-    ctx.fillStyle=c+'bb'; ctx.fill();
-    ctx.strokeStyle='#f0f4fa'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle=c+'cc'; ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    slices.push({startAng:ang,endAng:ang+a,label:Array.isArray(e)?e[0]:'',val:v,pct:Math.round(v/total*100)});
     ang+=a;
   });
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
-  ctx.fillStyle='#333'; ctx.font='bold 14px Secular One,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#101828'; ctx.font='bold 13px Heebo,Arial,sans-serif'; ctx.textAlign='center';
   ctx.fillText(total,cx,cy+5);
-  ctx.fillStyle='rgba(107,138,184,0.8)'; ctx.font=CFONT; ctx.fillText('סה"כ',cx,cy+16);
-  var lx=W*0.54,ly=8,lh=Math.min(17,(H-16)/(entries.length||1));
+  ctx.fillStyle='rgba(107,138,184,0.8)'; ctx.font=CFONT; ctx.fillText('סה"כ',cx,cy+17);
+  var lx=W*0.52, ly=8, lh=Math.min(16,(H-16)/(entries.length||1));
   entries.slice(0,Math.floor((H-16)/lh)).forEach(function(e,i){
-    var c=colors[i%colors.length],y=ly+i*lh;
-    ctx.fillStyle=c; ctx.fillRect(lx,y+1,8,8);
-    ctx.fillStyle='rgba(50,60,80,0.9)'; ctx.font=CFONT; ctx.textAlign='left';
-    var lbl=Array.isArray(e)?e[0]:''; if(lbl.length>16) lbl=lbl.substr(0,15)+'...';
-    ctx.fillText(lbl+' ('+e[1]+')',lx+12,y+9);
+    var c=colors[i%colors.length], y=ly+i*lh;
+    ctx.fillStyle=c; ctx.fillRect(lx,y,8,8);
+    ctx.fillStyle='rgba(30,40,60,0.9)'; ctx.font=CFONT; ctx.textAlign='left';
+    var lbl=Array.isArray(e)?e[0]:''; if(lbl.length>14) lbl=lbl.substr(0,13)+'..';
+    ctx.fillText(lbl+' ('+e[1]+')',lx+12,y+8);
   });
+  var c2=document.getElementById(id);
+  c2.onmousemove=function(e){
+    var rect=c2.getBoundingClientRect();
+    var mx=(e.clientX-rect.left)*(c2.width/rect.width)/(window.devicePixelRatio||1);
+    var my=(e.clientY-rect.top)*(c2.height/rect.height)/(window.devicePixelRatio||1);
+    var dx=mx-cx, dy=my-cy, dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist>=r && dist<=R){
+      var angle=Math.atan2(dy,dx);
+      var norm=angle<-Math.PI/2?angle+Math.PI*2:angle;
+      var hit=null;
+      slices.forEach(function(s){
+        var sa=s.startAng<-Math.PI/2?s.startAng+Math.PI*2:s.startAng;
+        var ea=s.endAng<-Math.PI/2?s.endAng+Math.PI*2:s.endAng;
+        if(norm>=sa&&norm<=ea) hit=s;
+      });
+      if(hit) showTip(e, hit.label+': '+hit.val+' ('+hit.pct+'%)'); else hideTip();
+    } else hideTip();
+  };
+  c2.onmouseleave=hideTip;
 }
+
 
 // ── MODAL ──
 var _scrollY = 0;
@@ -1389,7 +1587,12 @@ function fv(label, val, isPhone) {
 }
 function ef(id, label, val) { return '<div class="mfield"><label>' + label + '</label><input id="edit_' + id + '" value="' + (val||'').replace(/"/g,'&quot;') + '"/></div>'; }
 function esel(id, label, val, opts) {
-  var os = opts.map(function(o){ return '<option' + (o===val?' selected':'') + '>' + o + '</option>'; }).join('');
+  var normVal = val || '';
+  var os = opts.map(function(o){
+    // נורמליזציה להשוואת כיתות (מטפל בגרש עברי ׳ וב-apostrophe ')
+    var selected = o === normVal || o.replace(/[׳']/g,'') === normVal.replace(/[׳']/g,'');
+    return '<option' + (selected ? ' selected' : '') + '>' + o + '</option>';
+  }).join('');
   return '<div class="mfield"><label>' + label + '</label><select id="edit_' + id + '"><option value="">-</option>' + os + '</select></div>';
 }
 
