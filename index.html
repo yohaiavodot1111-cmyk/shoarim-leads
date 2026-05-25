@@ -511,7 +511,7 @@ function doLogin() {
 
     currentUser = Object.assign({}, user, {username: u});
     lastLoginTime = localStorage.getItem('lastLogin_' + u) ? new Date(localStorage.getItem('lastLogin_' + u)) : null;
-    localStorage.setItem('lastLogin_' + u, new Date().toISOString());
+    // הזמן החדש יישמר רק אחרי טעינת הנתונים
 
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -577,6 +577,8 @@ function loadData() {
           badge.style.display = ''; badge.onclick = function(){ badge.style.display='none'; };
         } else { badge.style.display='none'; }
       } else { badge.style.display='none'; }
+      // שמור את זמן הכניסה הנוכחית רק עכשיו, אחרי שהשתמשנו בקודמת
+      localStorage.setItem('lastLogin_' + currentUser.username, new Date().toISOString());
 
       applyFilters(); updateStats();
       document.getElementById('loadingWrap').style.display = 'none';
@@ -596,8 +598,8 @@ function parseDate(ts) {
 
 function updateStats() {
   document.getElementById('totalCount').textContent  = allData.length;
-  document.getElementById('grade8Count').textContent = allData.filter(function(r){return r.grade==="ח'";}).length;
-  document.getElementById('grade9Count').textContent = allData.filter(function(r){return r.grade==="ט'";}).length;
+  document.getElementById('grade8Count').textContent = allData.filter(function(r){return normalizeGrade(r.grade)==="ח";}).length;
+  document.getElementById('grade9Count').textContent = allData.filter(function(r){return normalizeGrade(r.grade)==="ט";}).length;
 }
 
 // ── FILTERS ──
@@ -633,7 +635,11 @@ function setView(v) {
   render();
 }
 
-// ── זיהוי כפילויות ──
+// נורמליזציה של כיתה — מטפל בגרש עברי ׳ וב-apostrophe '
+function normalizeGrade(g) {
+  if (!g) return '';
+  return g.replace(/[׳']/g, '').trim(); // מחזיר 'ח' או 'ט'
+}
 function normalizePhone(p) { return (p||'').replace(/\D/g,'').replace(/^0/,''); }
 function normalizeName(n)  { return (n||'').replace(/\s+/,' ').trim().toLowerCase(); }
 
@@ -828,8 +834,8 @@ var FUNNEL_STAGES_DEF = [
 function renderStats() {
   var data = allData;
   var total   = data.length;
-  var grade8  = data.filter(function(r){return r.grade==="ח'";}).length;
-  var grade9  = data.filter(function(r){return r.grade==="ט'";}).length;
+  var grade8  = data.filter(function(r){return normalizeGrade(r.grade)==="ח";}).length;
+  var grade9  = data.filter(function(r){return normalizeGrade(r.grade)==="ט";}).length;
   var invalid = data.filter(function(r){return r.status==='לא תקין';}).length;
   var newL    = data.filter(function(r){return !r.status||r.status==='חדש';}).length;
   var signed  = data.filter(function(r){return r.status==='חתימת חוזה נחתם';}).length;
