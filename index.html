@@ -568,6 +568,7 @@ function loadData() {
       });
       allData = rows;
       detectDuplicates();
+      var badge = document.getElementById('newLeadsBadge');
       if (lastLoginTime) {
         var newCount = allData.filter(function(r){ var ts=parseDate(r.timestamp); return ts && ts > lastLoginTime; }).length;
         if (newCount > 0) {
