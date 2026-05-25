@@ -536,17 +536,57 @@ function doLogin() {
 }
 
 function doLogout() {
-  currentUser = null; allData = []; filtered = [];
+  // אפס את כל המשתנים
+  currentUser = null;
+  allData = [];
+  filtered = [];
+  lastLoginTime = null;
+  selectedStatuses = [];
+  activeIdx = -1;
+  editMode = false;
+
+  // אפס DOM
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').style.display = 'none';
+  document.getElementById('tableBody').innerHTML = '';
+  document.getElementById('statusText').textContent = 'מתחבר...';
+  document.getElementById('lastUpdate').textContent = '';
+  document.getElementById('newLeadsBadge').style.display = 'none';
+  document.getElementById('totalCount').textContent = '-';
+  document.getElementById('grade8Count').textContent = '-';
+  document.getElementById('grade9Count').textContent = '-';
+  document.getElementById('loadingWrap').style.display = '';
+  document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
+  ['tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){
+    document.getElementById(id).style.display = 'none';
+  });
+
+  // אפס טאבים
+  setTab('all');
+  document.getElementById('tab-branch').style.display = 'none';
+  document.getElementById('tab-district').style.display = 'none';
+  document.getElementById('addBtn').style.display = 'none';
+
+  // שחרר נעילת גוף אם היה מודאל פתוח
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  document.body.style.overflow = '';
+  document.body.classList.remove('modal-open');
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('addOverlay').classList.remove('open');
 }
 
 document.getElementById('loginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 
 // ── DATA ──
+var _loadToken = 0;
+
 function loadData() {
+  var myToken = ++_loadToken; // כל טעינה מקבלת token ייחודי
   allData = []; filtered = [];
   ['tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){ document.getElementById(id).style.display='none'; });
   document.getElementById('loadingWrap').style.display = '';
@@ -558,6 +598,8 @@ function loadData() {
   fetch(APPS_SCRIPT_URL)
     .then(function(r){ return r.json(); })
     .then(function(d){
+      // אם המשתמש התנתק בינתיים — התעלם מהתשובה
+      if (myToken !== _loadToken || !currentUser) return;
       if (!d.success) throw new Error(d.error||'שגיאה');
       var rows = d.rows || [];
       if (currentUser.role === 'branch')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
