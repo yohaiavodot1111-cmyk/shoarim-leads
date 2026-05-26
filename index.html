@@ -1118,7 +1118,7 @@ function renderStats() {
 
   var html =
     // KPI ראשי
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">' +
+    '<div style="display:grid;grid-template-columns:repeat(6,minmax(0,160px));gap:10px;margin-bottom:14px;justify-content:center">' +
       sKpi('סה"כ לידים',total,'','#2e9cdb') +
       sKpi('חדשים',newL,pctOf(newL,total)+'%','#f0b429') +
       sKpi('חתמו/לומדים',signed+learning,convRate+'%','#22c55e') +
@@ -1128,7 +1128,7 @@ function renderStats() {
     '</div>' +
 
     // KPI משני
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">' +
+    '<div style="display:grid;grid-template-columns:repeat(6,minmax(0,160px));gap:10px;margin-bottom:14px;justify-content:center">' +
       sKpi('ממוצע מוטיבציה',avgMotiv,'מ-10','#b68a2c') +
       sKpi('הגעה לערב פתוח',openDayRate==='-'?'-':openDayRate+'%',openDayTotal+' לידים בשלב','#1f4e79') +
       sKpi('מעבר מבחן מיון',testRate==='-'?'-':testRate+'%',testTotal+' נבחנו','#067647') +
