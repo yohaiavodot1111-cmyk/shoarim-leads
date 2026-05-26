@@ -1105,9 +1105,14 @@ function renderStats() {
   var testPassed=data.filter(function(r){return r.status==='מבחן מיון עבר בהצלחה'||r.status==='מבחן מיון עבר על תנאי';}).length;
   var testRate = testTotal>0 ? pctOf(testPassed,testTotal) : '-';
 
-  // כיתה ח לפי שלוחה
-  var grade8ByBranch={};
-  data.forEach(function(r){ if(normalizeGrade(r.grade)==='ח'&&r.branch){ grade8ByBranch[r.branch]=(grade8ByBranch[r.branch]||0)+1; } });
+  // כיתה ח + ט לפי שלוחה
+  var grade8ByBranch={}, grade9ByBranch={};
+  data.forEach(function(r){
+    if(r.branch){
+      if(normalizeGrade(r.grade)==='ח') grade8ByBranch[r.branch]=(grade8ByBranch[r.branch]||0)+1;
+      if(normalizeGrade(r.grade)==='ט') grade9ByBranch[r.branch]=(grade9ByBranch[r.branch]||0)+1;
+    }
+  });
 
   var insColors={warn:'#f0b429',ok:'#22c55e',info:'#2e9cdb'};
 
@@ -1173,18 +1178,26 @@ function renderStats() {
         '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
       '</div>' : '') +
 
-    // שורה 5: לשלוחה — גם מוטיבציה ומגמה
+    // שורה 5: לשלוחה — מוטיבציה + מגדר + כיתות לפי שלוחה
     (currentUser.role==='branch' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
-        '<div class="stat-card"><div class="stats-section-title">פילוח מין</div><canvas id="statsGender" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח מגדר</div><canvas id="statsGender" height="160"></canvas></div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
+        '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">כיתה ט׳ לפי שלוחה</div><canvas id="statsGrade9Branch" height="160"></canvas></div>' +
       '</div>' : '') +
 
-    // שורה 6: מחוז — שלוחות לפי מחוז + כיתה ח׳ לפי שלוחה
+    // שורה 6: מחוז — כיתה ח + ט לפי שלוחה + מגדר
     (currentUser.role==='district' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
-        '<div class="stat-card"><div class="stats-section-title">פילוח מין</div><canvas id="statsGender" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">כיתה ט׳ לפי שלוחה</div><canvas id="statsGrade9Branch" height="160"></canvas></div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח מגדר</div><canvas id="statsGender" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">לידים לפי שלוחה</div><canvas id="statsBranch" height="160"></canvas></div>' +
       '</div>' : '') +
 
     // שורה 7: אדמין — מחוזות + כיתה ח לפי שלוחה
@@ -1194,7 +1207,7 @@ function renderStats() {
         '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
-        '<div class="stat-card"><div class="stats-section-title">פילוח מין</div><canvas id="statsGender" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח מגדר</div><canvas id="statsGender" height="160"></canvas></div>' +
         '<div class="stat-card"><div class="stats-section-title">כיתה לפי מחוז</div>' +
           '<canvas id="statsDistrictGrade" height="160"></canvas></div>' +
       '</div>' : '') +
@@ -1257,6 +1270,10 @@ function renderStats() {
       if(document.getElementById('statsGrade8Branch')) {
         var g8e=sortedEntries(grade8ByBranch);
         drawBarC('statsGrade8Branch', g8e, ['#8b5cf6']);
+      }
+      if(document.getElementById('statsGrade9Branch')) {
+        var g9e=sortedEntries(grade9ByBranch);
+        drawBarC('statsGrade9Branch', g9e, ['#0fd4c4']);
       }
     }
 
@@ -1619,10 +1636,19 @@ function saveEdit() {
   }
   fetch(APPS_SCRIPT_URL, {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveEdit',lead:lead})})
   .then(function(){
+    // עדכן מיידית בכל מקום בנתונים המקומיים
     EDIT_FIELDS.forEach(function(f){r[f]=lead[f];}); r.hasEdit=true;
-    var orig=allData.find(function(x){return x.uuid===r.uuid;}); if(orig){EDIT_FIELDS.forEach(function(f){orig[f]=lead[f];});orig.hasEdit=true;}
+    var orig=allData.find(function(x){return x.uuid===r.uuid;});
+    if(orig){EDIT_FIELDS.forEach(function(f){orig[f]=lead[f];});orig.hasEdit=true;}
+    filtered[activeIdx]=r;
+
+    // עדכן כותרת מודאל
+    document.getElementById('mName').textContent=r.name||'-';
+    document.getElementById('mSub').textContent=(r.city||'')+(r.grade?' - כיתה '+r.grade:'')+(r.branch?' - '+r.branch:'');
+
     var sm=document.getElementById('saveMsg'); sm.textContent='נשמר'; sm.className='save-msg ok'; sm.style.display='';
-    editMode=false; document.getElementById('editBtn').textContent='עריכה'; renderModal(); updateStats(); applyFilters();
+    editMode=false; document.getElementById('editBtn').textContent='עריכה';
+    renderModal(); updateStats(); applyFilters();
   })
   .catch(function(e){ var sm=document.getElementById('saveMsg'); sm.textContent='שגיאה: '+e.message; sm.className='save-msg err'; sm.style.display=''; })
   .finally(function(){saveBtn.disabled=false; saveBtn.textContent='שמור';});
