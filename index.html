@@ -1178,15 +1178,15 @@ function renderStats() {
         '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
       '</div>' : '') +
 
-    // שורה 5: לשלוחה — מוטיבציה + מגדר + כיתות לפי שלוחה
+    // שורה 5: לשלוחה — מוטיבציה + מגדר + כיתות (עוגה, לא לפי שלוחה)
     (currentUser.role==='branch' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
         '<div class="stat-card"><div class="stats-section-title">פילוח מגדר</div><canvas id="statsGender" height="160"></canvas></div>' +
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
-        '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
-        '<div class="stat-card"><div class="stats-section-title">כיתה ט׳ לפי שלוחה</div><canvas id="statsGrade9Branch" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח כיתות</div><canvas id="statsGradePie" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">סטטוסים מובילים</div><canvas id="statsTopStatus" height="160"></canvas></div>' +
       '</div>' : '') +
 
     // שורה 6: מחוז — כיתה ח + ט לפי שלוחה + מגדר
@@ -1252,16 +1252,20 @@ function renderStats() {
     drawDonutC('statsStatus', sortedEntries(byStatus,10), ['#1f4e79','#8b5cf6','#f0b429','#f47c30','#ec4899','#0fd4c4','#22c55e','#ef4444','#6b8ab8','#98a2b3']);
     drawDonutC('statsSource',  sortedEntries(bySource).filter(function(e){return e[1]>0;}), ['#0fd4c4','#1f4e79','#8b5cf6','#f0b429','#f47c30','#ec4899','#22c55e','#ef4444','#6b8ab8']);
 
-    // מוטיבציה — לכולם
+    // מוטיבציה + מגדר — לכולם
     var motivLabels=['1','2','3','4','5','6','7','8','9','10'];
     var motivVals=motivLabels.map(function(l){return byMotiv[l]||0;});
     var motivColors=motivLabels.map(function(l){var n=parseInt(l);return n<=3?'#ef4444':n<=6?'#f0b429':'#22c55e';});
     if(document.getElementById('statsMotiv'))
       drawBarC('statsMotiv', motivLabels.map(function(l,i){return [l,motivVals[i]];}), motivColors);
-
-    // מין
     if(document.getElementById('statsGender'))
       drawDonutC('statsGender', sortedEntries(byGender).filter(function(e){return e[1]>0;}), ['#1f4e79','#ec4899','#98a2b3']);
+
+    // פילוח כיתות (עוגה) + סטטוסים מובילים — לשלוחה בלבד
+    if(document.getElementById('statsGradePie'))
+      drawDonutC('statsGradePie', sortedEntries(byGrade).filter(function(e){return e[1]>0;}), ['#8b5cf6','#0fd4c4','#98a2b3']);
+    if(document.getElementById('statsTopStatus'))
+      drawBarC('statsTopStatus', sortedEntries(byStatus,8));
 
     if(currentUser.role!=='branch') {
       if(document.getElementById('statsBranch'))
