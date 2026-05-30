@@ -646,8 +646,15 @@ function loadUsers(cb) {
     .then(function(d){
       if (d.success && d.users && d.users.length) {
         var updated = {};
-        d.users.forEach(function(u){ updated[u.username]=u; });
-        USERS_CACHE = updated;
+        d.users.forEach(function(u){
+          // תמיכה בשדות pass ו-password
+          updated[u.username] = Object.assign({}, u, {
+            pass: u.pass || u.password || ''
+          });
+        });
+        // עדכן רק אם הנתונים תקינים — לפחות משתמש אחד עם pass
+        var valid = Object.values(updated).some(function(u){ return u.pass; });
+        if (valid) USERS_CACHE = updated;
       }
     }).catch(function(){});
 }
@@ -663,7 +670,8 @@ function doLogin() {
   loadUsers(function() {
     btn.disabled = false;
     var user = USERS_CACHE && USERS_CACHE[u];
-    if (!user || user.pass !== p) { errEl.style.display = 'block'; return; }
+    var storedPass = user && (user.pass || user.password || '');
+    if (!user || storedPass !== p) { errEl.style.display = 'block'; return; }
 
     currentUser = Object.assign({}, user, {username: u});
     lastLoginTime = localStorage.getItem('lastLogin_' + u) ? new Date(localStorage.getItem('lastLogin_' + u)) : null;
@@ -753,7 +761,7 @@ function loadData() {
   fetch(APPS_SCRIPT_URL)
     .then(function(r){ return r.json(); })
     .then(function(d){
-      // אם המשתמש התנתק בינתיים — התעלם מהתשובה
+      // אם המשתמש התנתק בינתיים - התעלם מהתשובה
       if (myToken !== _loadToken || !currentUser) return;
       if (!d.success) throw new Error(d.error||'שגיאה');
       var rows = d.rows || [];
@@ -833,7 +841,7 @@ function setView(v) {
   render();
 }
 
-// נורמליזציה של כיתה — מטפל בגרש עברי ׳ וב-apostrophe '
+// נורמליזציה של כיתה - מטפל בגרש עברי ׳ וב-apostrophe '
 function normalizeGrade(g) {
   if (!g) return '';
   return g.replace(/[׳']/g, '').trim(); // מחזיר 'ח' או 'ט'
@@ -1178,7 +1186,7 @@ function renderStats() {
         '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
       '</div>' : '') +
 
-    // שורה 5: לשלוחה — מוטיבציה + מגדר + כיתות (עוגה, לא לפי שלוחה)
+    // שורה 5: לשלוחה - מוטיבציה + מגדר + כיתות (עוגה, לא לפי שלוחה)
     (currentUser.role==='branch' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">מוטיבציה 1-10</div><canvas id="statsMotiv" height="160"></canvas></div>' +
@@ -1189,7 +1197,7 @@ function renderStats() {
         '<div class="stat-card"><div class="stats-section-title">סטטוסים מובילים</div><canvas id="statsTopStatus" height="160"></canvas></div>' +
       '</div>' : '') +
 
-    // שורה 6: מחוז — כיתה ח + ט לפי שלוחה + מגדר
+    // שורה 6: מחוז - כיתה ח + ט לפי שלוחה + מגדר
     (currentUser.role==='district' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
@@ -1200,7 +1208,7 @@ function renderStats() {
         '<div class="stat-card"><div class="stats-section-title">לידים לפי שלוחה</div><canvas id="statsBranch" height="160"></canvas></div>' +
       '</div>' : '') +
 
-    // שורה 7: אדמין — מחוזות + כיתה ח לפי שלוחה
+    // שורה 7: אדמין - מחוזות + כיתה ח לפי שלוחה
     (currentUser.role==='admin' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">לידים לפי מחוז</div><canvas id="statsDistrict" height="160"></canvas></div>' +
@@ -1252,7 +1260,7 @@ function renderStats() {
     drawDonutC('statsStatus', sortedEntries(byStatus,10), ['#1f4e79','#8b5cf6','#f0b429','#f47c30','#ec4899','#0fd4c4','#22c55e','#ef4444','#6b8ab8','#98a2b3']);
     drawDonutC('statsSource',  sortedEntries(bySource).filter(function(e){return e[1]>0;}), ['#0fd4c4','#1f4e79','#8b5cf6','#f0b429','#f47c30','#ec4899','#22c55e','#ef4444','#6b8ab8']);
 
-    // מוטיבציה + מגדר — לכולם
+    // מוטיבציה + מגדר - לכולם
     var motivLabels=['1','2','3','4','5','6','7','8','9','10'];
     var motivVals=motivLabels.map(function(l){return byMotiv[l]||0;});
     var motivColors=motivLabels.map(function(l){var n=parseInt(l);return n<=3?'#ef4444':n<=6?'#f0b429':'#22c55e';});
@@ -1261,7 +1269,7 @@ function renderStats() {
     if(document.getElementById('statsGender'))
       drawDonutC('statsGender', sortedEntries(byGender).filter(function(e){return e[1]>0;}), ['#1f4e79','#ec4899','#98a2b3']);
 
-    // פילוח כיתות (עוגה) + סטטוסים מובילים — לשלוחה בלבד
+    // פילוח כיתות (עוגה) + סטטוסים מובילים - לשלוחה בלבד
     if(document.getElementById('statsGradePie'))
       drawDonutC('statsGradePie', sortedEntries(byGrade).filter(function(e){return e[1]>0;}), ['#8b5cf6','#0fd4c4','#98a2b3']);
     if(document.getElementById('statsTopStatus'))
@@ -1285,7 +1293,7 @@ function renderStats() {
       if(document.getElementById('statsDistrict'))
         drawBarC('statsDistrict', sortedEntries(byDistrict), ['#1f4e79','#f0b429','#22c55e','#f47c30']);
 
-      // כיתה לפי מחוז — stacked simulation: grouped bars
+      // כיתה לפי מחוז - stacked simulation: grouped bars
       if(document.getElementById('statsDistrictGrade')) {
         var districts=Object.keys(byDistrict).sort();
         var g8d=[], g9d=[];
