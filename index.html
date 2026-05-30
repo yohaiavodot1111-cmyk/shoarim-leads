@@ -535,6 +535,9 @@ var selectedStatuses = [];
 var USERS_CACHE = null;
 var _prefetchedRows = null;   // נתונים שנטענו ברקע לפני התחברות
 var _pollingInterval = null;  // polling אוטומטי
+var SINCE_DATE = new Date(2026, 4, 1); // 01.05.26 — תאריך התחלת טעינה
+var PAGE_SIZE  = 500;                  // שורות מקסימום לתצוגה בכל פעם
+var _page      = 0;                    // דף נוכחי
 
 var STATUS_GROUPS = [
   {label:'כללי',        items:['חדש']},
@@ -760,7 +763,8 @@ function startPolling() {
   _pollingInterval = setInterval(function() {
     if (!currentUser) { stopPolling(); return; }
     // טעינה שקטה ברקע — ללא spinner, ללא reset של allData
-    fetch(APPS_SCRIPT_URL)
+    var sinceStr = SINCE_DATE.toISOString().split('T')[0];
+    fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!currentUser || !d.success || !d.rows) return;
@@ -794,7 +798,8 @@ var _prefetchStarted = false;
 function startPrefetch() {
   if (_prefetchStarted) return;
   _prefetchStarted = true;
-  fetch(APPS_SCRIPT_URL)
+  var sinceStr = SINCE_DATE.toISOString().split('T')[0];
+  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
     .then(function(r){ return r.json(); })
     .then(function(d){
       // שמור רק אם אין משתמש מחובר (לפני login) — אחרי login loadData ינהל הכל
@@ -817,7 +822,8 @@ function loadData() {
     _processRows(_prefetchedRows, myToken, btn);
     _prefetchedRows = null; // נקה אחרי שימוש
     // עדיין תעשה fetch ברקע כדי לוודא עדכניות
-    fetch(APPS_SCRIPT_URL)
+    var sinceStr2 = SINCE_DATE.toISOString().split('T')[0];
+    fetch(APPS_SCRIPT_URL + '?since=' + sinceStr2)
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (myToken !== _loadToken || !currentUser) return;
@@ -832,7 +838,8 @@ function loadData() {
   document.getElementById('loadingWrap').style.display = '';
   document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
 
-  fetch(APPS_SCRIPT_URL)
+  var sinceStr = SINCE_DATE.toISOString().split('T')[0];
+  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (myToken !== _loadToken || !currentUser) return;
@@ -900,6 +907,7 @@ function applyFilters() {
   var g    = document.getElementById('gradeFilter').value;
   var days = parseInt(document.getElementById('dateFilter').value)||0;
   var now  = new Date();
+  _page = 0;
   filtered = allData.filter(function(r){
     if (g && r.grade !== g) return false;
     if (selectedStatuses.length && selectedStatuses.indexOf(r.status||'חדש') === -1) return false;
@@ -1049,8 +1057,16 @@ function renderTable() {
   document.getElementById('tableHead').innerHTML = cols.map(function(c,i){
     return '<th style="' + (i===0?'text-align:right;':'') + '">' + c + '</th>';
   }).join('');
+
+  var start  = _page * PAGE_SIZE;
+  var end    = Math.min(start + PAGE_SIZE, filtered.length);
+  var page   = filtered.slice(start, end);
+  var total  = filtered.length;
+  var pages  = Math.ceil(total / PAGE_SIZE);
+
   var html = '';
-  filtered.forEach(function(r, i) {
+  page.forEach(function(r, pi) {
+    var i = start + pi; // אינדקס ב-filtered
     html += '<tr onclick="openModal(' + i + ')">' +
       '<td>' + (r.name||'-') + dupBadge(r, i) + (r.hasEdit?' <small style="color:var(--gold)">(עודכן)</small>':'') + '</td>' +
       '<td><a class="phone-link" href="tel:' + r.phone + '" onclick="event.stopPropagation()">' + (r.phone||'-') + '</a></td>' +
@@ -1063,7 +1079,26 @@ function renderTable() {
       '<td style="color:var(--light);font-size:11px">' + (r.timestamp||'-') + '</td>' +
     '</tr>';
   });
+
+  // Pagination bar
+  if (pages > 1) {
+    html += '<tr><td colspan="9" style="padding:10px;text-align:center;background:#f8faff;border-top:2px solid var(--border)">' +
+      '<div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px">' +
+        '<button onclick="goPage(' + (_page-1) + ')" ' + (_page===0?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page===0?'opacity:.4':'') + '">→ הקודם</button>' +
+        '<span style="color:var(--light)">עמוד <b>' + (_page+1) + '</b> מתוך <b>' + pages + '</b> | סה"כ <b>' + total + '</b> רשומות</span>' +
+        '<button onclick="goPage(' + (_page+1) + ')" ' + (_page>=pages-1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page>=pages-1?'opacity:.4':'') + '">הבא ←</button>' +
+      '</div></td></tr>';
+  }
+
   document.getElementById('tableBody').innerHTML = html;
+}
+
+function goPage(p) {
+  var pages = Math.ceil(filtered.length / PAGE_SIZE);
+  if (p < 0 || p >= pages) return;
+  _page = p;
+  renderTable();
+  document.getElementById('tableWrap').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function renderCards() {
