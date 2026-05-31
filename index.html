@@ -456,68 +456,58 @@ canvas{display:block;width:100%!important;}
 </div><!-- /app -->
 
 <!-- TELEGRAM SENDER SCREEN -->
+<!-- TELEGRAM SENDER SCREEN -->
 <div id="telegramScreen" style="display:none;min-height:100vh;background:linear-gradient(145deg,#071529 0%,#0b1f3a 58%,#102a4c 100%);align-items:center;justify-content:center;padding:20px;position:fixed;inset:0;z-index:998;overflow-y:auto">
-  <div style="background:#fff;border-radius:10px;box-shadow:0 22px 54px rgba(0,0,0,.26);width:100%;max-width:540px;overflow:hidden;border:1px solid #d0d7e2;margin:auto">
+  <div style="background:#fff;border-radius:10px;box-shadow:0 22px 54px rgba(0,0,0,.26);width:100%;max-width:560px;overflow:hidden;border:1px solid #d0d7e2;margin:auto">
     <div style="background:linear-gradient(135deg,#071a3d 0%,#0d2257 100%);padding:20px 28px 18px;border-bottom:3px solid #1ab8d4;text-align:center">
       <img style="height:44px;margin-bottom:10px" src="IAF_New_Logo_2018.png" alt=""/>
       <div style="font-family:Heebo,sans-serif;font-size:19px;font-weight:700;color:#fff">שליחת הודעת טלגרם</div>
       <div style="font-size:11px;color:#b9c4d3;margin-top:3px">שוחרות חיל האוויר</div>
     </div>
     <div style="padding:22px 24px">
-
-      <!-- נמענים -->
-      <div style="margin-bottom:14px">
-        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:6px">נמענים</label>
-        <select id="tgs_recipient" style="width:100%;height:44px;border:1.5px solid #d0d7e4;border-radius:8px;padding:0 12px;font-family:Heebo,sans-serif;font-size:14px;direction:rtl;outline:none;background:#fff">
-          <option value="all">כולם</option>
-          <option value="districts_only">מפקדי מחוז בלבד</option>
-          <option value="branches_only">מפקדי שלוחות בלבד</option>
-          <optgroup label="שלוחות לפי מחוז">
-            <option value="district_דרום">מחוז דרום - כל השלוחות</option>
-            <option value="district_מרכז">מחוז מרכז - כל השלוחות</option>
-            <option value="district_צפון">מחוז צפון - כל השלוחות</option>
-          </optgroup>
-          <option value="admin">גף בלבד</option>
-          <optgroup label="שלוחה ספציפית" id="tgs_branch_opts"></optgroup>
-        </select>
-      </div>
-
-      <!-- תבניות -->
-      <div style="margin-bottom:14px">
-        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:6px">תבניות מוכנות</label>
-        <div style="display:flex;flex-wrap:wrap;gap:7px">
-          <button onclick="useTgSenderTemplate(0)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✅ בדיקת תקינות</button>
-          <button onclick="useTgSenderTemplate(1)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">⚠️ לידים לא מטופלים</button>
-          <button onclick="useTgSenderTemplate(2)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">🎉 חג שמח</button>
-          <button onclick="useTgSenderTemplate(3)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✡️ שבת שלום</button>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:8px">שלב 1 - בחר נמענים</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="selectTgRecipient('all')"       id="tgr_all"       style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">🌐 כולם</button>
+          <button onclick="selectTgRecipient('branches')"  id="tgr_branches"  style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">🏫 מפקדי שלוחות</button>
+          <button onclick="selectTgRecipient('admin')"     id="tgr_admin"     style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">✈️ מפקד גף</button>
+          <button onclick="selectTgRecipient('districts')" id="tgr_districts" style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">🗺️ מפקדי מחוזות</button>
+        </div>
+        <div id="tgs_branch_select_wrap" style="display:none;margin-top:10px">
+          <select id="tgs_branch_select" onchange="hidePreview()" style="width:100%;height:42px;border:1.5px solid #1a4a9f;border-radius:8px;padding:0 12px;font-family:Heebo,sans-serif;font-size:14px;direction:rtl;outline:none;background:#fff">
+            <option value="all_branches">כל השלוחות</option>
+          </select>
         </div>
       </div>
-
-      <!-- כפתור סטטיסטיקה -->
-      <div style="margin-bottom:14px">
-        <button onclick="addDailyStat()" style="width:100%;height:40px;border:1.5px solid #1a4a9f;background:#f0f5ff;border-radius:8px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#1a4a9f;cursor:pointer">📊 הוסף סטטיסטיקה יומית נכון לרגע זה</button>
-        <div id="tgs_stat_loading" style="display:none;font-size:11px;color:#98a2b3;text-align:center;margin-top:5px">טוען נתונים...</div>
+      <div id="tgs_content_wrap" style="display:none;border-top:1px solid #eef1f5;padding-top:16px">
+        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:10px">שלב 2 - בנה את ההודעה</label>
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:600;color:#667085;margin-bottom:7px">תבניות מוכנות</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <button onclick="useTgSenderTemplate(0)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✅ בדיקת תקינות</button>
+            <button onclick="useTgSenderTemplate(1)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">⚠️ לידים לא מטופלים</button>
+            <button onclick="useTgSenderTemplate(2)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">🎉 חג שמח</button>
+            <button onclick="useTgSenderTemplate(3)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✡️ שבת שלום</button>
+          </div>
+        </div>
+        <div id="tgs_stat_btn_wrap" style="display:none;margin-bottom:12px">
+          <button onclick="addDailyStat()" style="width:100%;height:40px;border:1.5px solid #1a4a9f;background:#f0f5ff;border-radius:8px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#1a4a9f;cursor:pointer">📊 הוסף סטטיסטיקה יומית נכון לרגע זה</button>
+          <div id="tgs_stat_loading" style="display:none;font-size:11px;color:#98a2b3;text-align:center;margin-top:4px">טוען נתונים...</div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:600;color:#667085;margin-bottom:7px">הודעה חופשית (אופציונלי)</div>
+          <textarea id="tgs_text" style="width:100%;height:110px;border:1.5px solid #d0d7e4;border-radius:8px;padding:12px;font-family:Heebo,sans-serif;font-size:13px;resize:vertical;direction:rtl;outline:none;line-height:1.7" placeholder="הוסף טקסט חופשי..."></textarea>
+        </div>
+        <div id="tgs_preview_wrap" style="display:none;margin-bottom:14px;background:#f8faff;border:1px solid #d0d7e4;border-radius:8px;padding:12px">
+          <div style="font-size:11px;font-weight:700;color:#667085;margin-bottom:8px">תצוגה מקדימה</div>
+          <div id="tgs_preview" style="font-size:13px;color:#344054;white-space:pre-wrap;line-height:1.7;direction:rtl"></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="previewTgSender()" style="flex:1;height:44px;border:1.5px solid #d0d7e4;background:#fff;border-radius:8px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054;cursor:pointer">👁 תצוגה מקדימה</button>
+          <button onclick="sendTgSender()" style="flex:2;height:44px;background:linear-gradient(135deg,#0d2257 0%,#1a4a9f 100%);color:#fff;border:none;border-radius:8px;font-family:Heebo,sans-serif;font-size:14px;font-weight:700;cursor:pointer">📨 שלח הודעה</button>
+        </div>
+        <div id="tgs_msg" style="display:none;margin-top:10px;padding:10px 14px;border-radius:6px;font-size:13px;text-align:center"></div>
       </div>
-
-      <!-- הודעה -->
-      <div style="margin-bottom:14px">
-        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:6px">הודעה</label>
-        <textarea id="tgs_text" style="width:100%;height:140px;border:1.5px solid #d0d7e4;border-radius:8px;padding:12px;font-family:Heebo,sans-serif;font-size:13px;resize:vertical;direction:rtl;outline:none;line-height:1.7" placeholder="כתוב כאן את ההודעה..."></textarea>
-      </div>
-
-      <!-- תצוגה מקדימה -->
-      <div id="tgs_preview_wrap" style="display:none;margin-bottom:14px;background:#f8faff;border:1px solid #d0d7e4;border-radius:8px;padding:12px">
-        <div style="font-size:11px;font-weight:700;color:#667085;margin-bottom:8px;letter-spacing:0.05em">תצוגה מקדימה</div>
-        <div id="tgs_preview" style="font-size:13px;color:#344054;white-space:pre-wrap;line-height:1.7;direction:rtl"></div>
-      </div>
-
-      <!-- כפתורים -->
-      <div style="display:flex;gap:10px">
-        <button onclick="previewTgSender()" style="flex:1;height:44px;border:1.5px solid #d0d7e4;background:#fff;border-radius:8px;font-family:Heebo,sans-serif;font-size:14px;font-weight:600;color:#344054;cursor:pointer">👁 תצוגה מקדימה</button>
-        <button onclick="sendTgSender()" style="flex:2;height:44px;background:linear-gradient(135deg,#0d2257 0%,#1a4a9f 100%);color:#fff;border:none;border-radius:8px;font-family:Heebo,sans-serif;font-size:14px;font-weight:700;cursor:pointer">📨 שלח הודעה</button>
-      </div>
-      <div id="tgs_msg" style="display:none;margin-top:10px;padding:10px 14px;border-radius:6px;font-size:13px;text-align:center"></div>
-
       <div style="margin-top:14px;text-align:center">
         <button onclick="doLogout()" style="background:none;border:none;color:#98a2b3;font-size:12px;cursor:pointer;font-family:Heebo,sans-serif">יציאה</button>
       </div>
@@ -2143,28 +2133,39 @@ var TG_SENDER_TEMPLATES = [
   '🎉 חג שמח!\nתזכורת להשתיק את הבוט עד צאת החג.',
   '✡️ שבת שלום!\nתזכורת להשתיק את הבוט עד צאת השבת.',
 ];
-
-// מיפוי שלוחה → מחוז לסטטיסטיקה
-var TG_DIST_BRANCHES = {
-  'דרום':  ['אשקלון','אילת','קריית גת','דימונה','אשדוד'],
-  'מרכז':  ['בית שמש','גבעת רם','מעלה אדומים','הולץ','פתח תקווה','בת ים','ראשון לציון','כפר סבא','ראש העין','חדרה'],
-  'צפון':  ['נהריה','חצור הגלילית','מעלות תרשיחא'],
-};
+var _tgRecipient = null;
 
 function showTelegramSender() {
   var screen = document.getElementById('telegramScreen');
   screen.style.display = 'flex';
-  var opts = document.getElementById('tgs_branch_opts');
-  if (opts) {
-    opts.innerHTML = BRANCHES.map(function(b){
-      return '<option value="branch_'+b+'">שלוחת '+b+'</option>';
-    }).join('');
+  var sel = document.getElementById('tgs_branch_select');
+  if (sel) {
+    sel.innerHTML = '<option value="all_branches">כל השלוחות</option>' +
+      BRANCHES.map(function(b){ return '<option value="'+b+'">שלוחת '+b+'</option>'; }).join('');
   }
 }
 
 function hideTelegramSender() {
   var screen = document.getElementById('telegramScreen');
   if (screen) screen.style.display = 'none';
+}
+
+function selectTgRecipient(type) {
+  _tgRecipient = type;
+  ['all','branches','admin','districts'].forEach(function(t) {
+    var btn = document.getElementById('tgr_'+t); if (!btn) return;
+    var active = t === type;
+    btn.style.borderColor = active ? '#1a4a9f' : '#d0d7e4';
+    btn.style.background  = active ? '#e8f0fe' : '#f8faff';
+    btn.style.color       = active ? '#1a4a9f' : '#344054';
+  });
+  var bw = document.getElementById('tgs_branch_select_wrap');
+  if (bw) bw.style.display = type === 'branches' ? '' : 'none';
+  var sw = document.getElementById('tgs_stat_btn_wrap');
+  if (sw) sw.style.display = type !== 'all' ? '' : 'none';
+  var cw = document.getElementById('tgs_content_wrap');
+  if (cw) cw.style.display = '';
+  hidePreview();
 }
 
 function useTgSenderTemplate(i) {
@@ -2175,9 +2176,9 @@ function useTgSenderTemplate(i) {
 
 function previewTgSender() {
   var text = (document.getElementById('tgs_text')||{}).value||'';
-  if (!text.trim()) return;
   var pw = document.getElementById('tgs_preview_wrap');
   var pd = document.getElementById('tgs_preview');
+  if (!text.trim()) { if(pw) pw.style.display='none'; return; }
   if (pw && pd) { pd.textContent = text; pw.style.display = ''; }
 }
 
@@ -2187,73 +2188,87 @@ function hidePreview() {
 }
 
 function addDailyStat() {
+  if (!_tgRecipient || _tgRecipient === 'all') return;
   var loading = document.getElementById('tgs_stat_loading');
   if (loading) loading.style.display = '';
-
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
   fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (loading) loading.style.display = 'none';
       if (!d.success || !d.rows) return;
-
-      var today = new Date();
-      today.setHours(0,0,0,0);
-
-      // סנן רק לידים של היום
+      var today = new Date(); today.setHours(0,0,0,0);
       var todayRows = d.rows.filter(function(r){
-        var ts = parseDate(r.timestamp);
-        if (!ts) return false;
+        var ts = parseDate(r.timestamp); if (!ts) return false;
         var rd = new Date(ts); rd.setHours(0,0,0,0);
         return rd.getTime() === today.getTime();
       });
-
-      var total = todayRows.length;
-      var byBranch = {}, byDistrict = {};
-      todayRows.forEach(function(r){
-        if (r.branch)   byBranch[r.branch]     = (byBranch[r.branch]   ||0)+1;
-        if (r.district) byDistrict[r.district]  = (byDistrict[r.district]||0)+1;
-      });
-
       var dateStr = today.toLocaleDateString('he-IL',{day:'numeric',month:'long',year:'numeric'});
       var timeStr = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
-
-      var stat = '📊 סטטיסטיקה יומית - ' + dateStr + ' - ' + timeStr + '\n';
-      stat += 'סה"כ לידים היום: ' + total + '\n';
-
-      // פירוט לפי מחוז
-      ['דרום','מרכז','צפון'].forEach(function(dist){
-        var cnt = byDistrict[dist] || 0;
-        if (cnt > 0) stat += '\n- מחוז ' + dist + ': ' + cnt;
-      });
-
-      // פירוט לפי שלוחה
-      var branchLines = '';
-      Object.keys(byBranch).sort().forEach(function(b){
-        branchLines += '\n  - ' + b + ': ' + byBranch[b];
-      });
-      if (branchLines) stat += '\n\nפירוט שלוחות:' + branchLines;
-
-      // הוסף לטקסט הקיים
       var el = document.getElementById('tgs_text');
-      if (el) el.value = (el.value ? el.value + '\n\n' : '') + stat;
+      var existing = el ? el.value.trim() : '';
+      var stat = '';
+
+      if (_tgRecipient === 'admin') {
+        var byBranch = {}, byDistrict = {};
+        todayRows.forEach(function(r){
+          if (r.branch)   byBranch[r.branch]    = (byBranch[r.branch]   ||0)+1;
+          if (r.district) byDistrict[r.district] = (byDistrict[r.district]||0)+1;
+        });
+        stat = '📊 סיכום יומי - גף פלדה כחולה\n';
+        stat += '📅 ' + dateStr + ' - ' + timeStr + '\n\n';
+        stat += 'סה"כ לידים היום: ' + todayRows.length + '\n\n';
+        stat += 'פירוט לפי מחוז:\n';
+        ['דרום','מרכז','צפון'].forEach(function(dist){
+          stat += '- ' + dist + ': ' + (byDistrict[dist]||0) + '\n';
+        });
+        stat += '\nפירוט לפי שלוחה:\n';
+        Object.keys(byBranch).sort().forEach(function(b){
+          stat += '- ' + b + ': ' + byBranch[b] + '\n';
+        });
+
+      } else if (_tgRecipient === 'districts') {
+        // הודעה גנרית — כל מחוז מקבל שלו בשליחה
+        var byDistrict2 = {};
+        todayRows.forEach(function(r){ if(r.district) byDistrict2[r.district]=(byDistrict2[r.district]||0)+1; });
+        stat = '📊 סיכום יומי - ' + dateStr + ' - ' + timeStr + '\n\n';
+        ['דרום','מרכז','צפון'].forEach(function(dist){
+          stat += 'מחוז ' + dist + ': ' + (byDistrict2[dist]||0) + ' לידים\n';
+        });
+        stat += '(כל מפקד מחוז מקבל את נתוני המחוז שלו)';
+
+      } else if (_tgRecipient === 'branches') {
+        var branchSel = (document.getElementById('tgs_branch_select')||{}).value||'all_branches';
+        if (branchSel === 'all_branches') {
+          stat = '📊 סיכום יומי - ' + dateStr + ' - ' + timeStr + '\n';
+          stat += '(כל שלוחה תקבל את נתוני השלוחה שלה בלבד)';
+        } else {
+          var branchRows = todayRows.filter(function(r){ return r.branch === branchSel; });
+          stat = '📊 סיכום יומי - שלוחת ' + branchSel + '\n';
+          stat += '📅 ' + dateStr + ' - ' + timeStr + '\n\n';
+          stat += 'סה"כ לידים היום: ' + branchRows.length;
+        }
+      }
+
+      if (el) el.value = (existing ? existing + '\n\n' : '') + stat;
       hidePreview();
     })
-    .catch(function(){
-      if (loading) loading.style.display = 'none';
-    });
+    .catch(function(){ if (loading) loading.style.display = 'none'; });
 }
 
 function sendTgSender() {
-  var text      = (document.getElementById('tgs_text')||{}).value||'';
-  var recipient = (document.getElementById('tgs_recipient')||{}).value||'all';
-  var msgEl     = document.getElementById('tgs_msg');
-
-  if (!text.trim()) {
-    if (msgEl) { msgEl.textContent='נא להזין הודעה'; msgEl.style.background='#fee4e2'; msgEl.style.color='#912018'; msgEl.style.display=''; }
+  if (!_tgRecipient) {
+    var m = document.getElementById('tgs_msg');
+    if (m) { m.textContent='נא לבחור נמענים'; m.style.background='#fee4e2'; m.style.color='#912018'; m.style.display=''; }
     return;
   }
-
+  var text      = (document.getElementById('tgs_text')||{}).value||'';
+  var branchSel = (document.getElementById('tgs_branch_select')||{}).value||'all_branches';
+  var msgEl     = document.getElementById('tgs_msg');
+  var recipient = _tgRecipient;
+  if (_tgRecipient === 'branches' && branchSel !== 'all_branches') {
+    recipient = 'branch_' + branchSel;
+  }
   fetch(APPS_SCRIPT_URL, {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
