@@ -455,6 +455,50 @@ canvas{display:block;width:100%!important;}
 
 </div><!-- /app -->
 
+<!-- TELEGRAM SENDER SCREEN -->
+<div id="telegramScreen" style="display:none;min-height:100vh;background:linear-gradient(145deg,#071529 0%,#0b1f3a 58%,#102a4c 100%);align-items:center;justify-content:center;padding:20px;position:fixed;inset:0;z-index:998">
+  <div style="background:#fff;border-radius:10px;box-shadow:0 22px 54px rgba(0,0,0,.26);width:100%;max-width:500px;overflow:hidden;border:1px solid #d0d7e2">
+    <div style="background:linear-gradient(135deg,#071a3d 0%,#0d2257 100%);padding:24px 28px 20px;border-bottom:3px solid #1ab8d4;text-align:center">
+      <img style="height:48px;margin-bottom:12px" src="IAF_New_Logo_2018.png" alt=""/>
+      <div style="font-family:Heebo,sans-serif;font-size:20px;font-weight:700;color:#fff">שליחת הודעת טלגרם</div>
+      <div style="font-size:12px;color:#b9c4d3;margin-top:4px">שוחרות חיל האוויר</div>
+    </div>
+    <div style="padding:24px 28px">
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:6px">נמענים</label>
+        <select id="tgs_recipient" style="width:100%;height:44px;border:1.5px solid #d0d7e4;border-radius:8px;padding:0 12px;font-family:Heebo,sans-serif;font-size:14px;direction:rtl;outline:none;background:#fff">
+          <option value="all">כולם</option>
+          <option value="admin">גף בלבד</option>
+          <optgroup label="מחוזות">
+            <option value="district_דרום">מחוז דרום</option>
+            <option value="district_מרכז">מחוז מרכז</option>
+            <option value="district_צפון">מחוז צפון</option>
+          </optgroup>
+          <optgroup label="שלוחות" id="tgs_branch_opts"></optgroup>
+        </select>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:6px">תבניות מוכנות</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button onclick="useTgSenderTemplate(0)" style="padding:6px 12px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✅ בדיקת תקינות</button>
+          <button onclick="useTgSenderTemplate(1)" style="padding:6px 12px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">⚠️ לידים לא מטופלים</button>
+          <button onclick="useTgSenderTemplate(2)" style="padding:6px 12px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">🎉 חג שמח</button>
+          <button onclick="useTgSenderTemplate(3)" style="padding:6px 12px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✡️ שבת שלום</button>
+        </div>
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:6px">הודעה</label>
+        <textarea id="tgs_text" style="width:100%;height:130px;border:1.5px solid #d0d7e4;border-radius:8px;padding:12px;font-family:Heebo,sans-serif;font-size:14px;resize:vertical;direction:rtl;outline:none;line-height:1.6" placeholder="כתוב כאן את ההודעה..."></textarea>
+      </div>
+      <button onclick="sendTgSender()" style="width:100%;height:46px;background:linear-gradient(135deg,#0d2257 0%,#1a4a9f 100%);color:#fff;border:none;border-radius:8px;font-family:Heebo,sans-serif;font-size:15px;font-weight:700;cursor:pointer">📨 שלח הודעה</button>
+      <div id="tgs_msg" style="display:none;margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;text-align:center"></div>
+      <div style="margin-top:16px;text-align:center">
+        <button onclick="doLogout()" style="background:none;border:none;color:#98a2b3;font-size:12px;cursor:pointer;font-family:Heebo,sans-serif">יציאה</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- INACTIVITY WARNING -->
 <div id="inactivityOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,.72);z-index:1000;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:10px;box-shadow:0 24px 60px rgba(0,0,0,.3);max-width:400px;width:100%;overflow:hidden;border:1px solid #d0d5dd">
@@ -641,6 +685,7 @@ function loadUsers(cb) {
     USERS_CACHE = {
       'yohai':        {pass:'261204',role:'admin',displayName:'מנהל מערכת'},
       'admin':        {pass:'262104',role:'admin',displayName:'מפקד גף'},
+      'telegram':     {pass:'tg2026',role:'telegram',displayName:'שליח טלגרם'},
       'Darom2026':    {pass:'8520',role:'district',district:'דרום',displayName:'מחוז דרום'},
       'Tzafon2026':   {pass:'8520',role:'district',district:'צפון',displayName:'מחוז צפון'},
       'Mercaz2026':   {pass:'8520',role:'district',district:'מרכז',displayName:'מחוז מרכז'},
@@ -705,9 +750,17 @@ function doLogin() {
     currentUser = Object.assign({}, user, {username: u});
     lastLoginTime = localStorage.getItem('lastLogin_' + u) ? new Date(localStorage.getItem('lastLogin_' + u)) : null;
 
-    // שמור session ב-sessionStorage (נשמר גם ברענון, נמחק בסגירת טאב)
     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
     sessionStorage.setItem('lastLoginTime', lastLoginTime ? lastLoginTime.toISOString() : '');
+
+    document.getElementById('loginScreen').style.display = 'none';
+
+    // משתמש טלגרם — ממשק שליחה בלבד
+    if (currentUser.role === 'telegram') {
+      showTelegramSender();
+      resetInactivity();
+      return;
+    }
 
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -737,6 +790,7 @@ function doLogout() {
   clearTimeout(_inactivityTimer);
   clearTimeout(_inactivityWarning);
   hideInactivityWarning();
+  hideTelegramSender();
   sessionStorage.removeItem('currentUser');
   sessionStorage.removeItem('lastLoginTime');
   _prefetchStarted = false;
@@ -799,6 +853,14 @@ document.addEventListener('DOMContentLoaded', function() {
     lastLoginTime = lt ? new Date(lt) : null;
 
     document.getElementById('loginScreen').style.display = 'none';
+
+    // משתמש טלגרם — ממשק שליחה בלבד
+    if (user.role === 'telegram') {
+      showTelegramSender();
+      resetInactivity();
+      return;
+    }
+
     document.getElementById('app').style.display = 'block';
     document.getElementById('userBadge').textContent = user.displayName || user.username;
     document.getElementById('headerSub').textContent =
@@ -2048,6 +2110,55 @@ function confirmActivity() {
 ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(ev) {
   document.addEventListener(ev, resetInactivity, {passive: true});
 });
+// ── TELEGRAM SENDER (role: telegram) ──
+var TG_SENDER_TEMPLATES = [
+  '✅ הודעת בדיקת תקינות.\nאשרו בפלטפורמות שקיבלתם הודעה זו!',
+  '⚠️ זוהו לידים רבים שעדיין לא תוקפו.\nאנא טפלו בנושא זה.',
+  '🎉 חג שמח!\nתזכורת להשתיק את הבוט עד צאת החג.',
+  '✡️ שבת שלום!\nתזכורת להשתיק את הבוט עד צאת השבת.',
+];
+
+function showTelegramSender() {
+  var screen = document.getElementById('telegramScreen');
+  screen.style.display = 'flex';
+  // מלא את אפשרויות השלוחות
+  var opts = document.getElementById('tgs_branch_opts');
+  if (opts) {
+    opts.innerHTML = BRANCHES.map(function(b){
+      return '<option value="branch_'+b+'">שלוחת '+b+'</option>';
+    }).join('');
+  }
+}
+
+function hideTelegramSender() {
+  var screen = document.getElementById('telegramScreen');
+  if (screen) screen.style.display = 'none';
+}
+
+function useTgSenderTemplate(i) {
+  var el = document.getElementById('tgs_text');
+  if (el) el.value = TG_SENDER_TEMPLATES[i];
+}
+
+function sendTgSender() {
+  var text      = (document.getElementById('tgs_text')||{}).value||'';
+  var recipient = (document.getElementById('tgs_recipient')||{}).value||'all';
+  var msgEl     = document.getElementById('tgs_msg');
+  if (!text.trim()) {
+    if (msgEl) { msgEl.textContent='נא להזין הודעה'; msgEl.style.background='#fee4e2'; msgEl.style.color='#912018'; msgEl.style.display=''; }
+    return;
+  }
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'sendTelegramBroadcast', text:text, recipient:recipient})
+  }).then(function(){
+    if (msgEl) { msgEl.textContent='ההודעה נשלחה בהצלחה ✓'; msgEl.style.background='#e7f5ec'; msgEl.style.color='#14532d'; msgEl.style.display=''; }
+    document.getElementById('tgs_text').value = '';
+    setTimeout(function(){ if(msgEl) msgEl.style.display='none'; }, 3000);
+  });
+}
+
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
 
 
