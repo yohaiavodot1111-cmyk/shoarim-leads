@@ -647,7 +647,7 @@ function loadUsers(cb) {
   // תמיד טען מהקוד המקומי תחילה
   if (!USERS_CACHE) {
     USERS_CACHE = {
-      'yohai':        {pass:'261204',role:'admin',displayName:'מנהל מערכת'},
+      'yohai':        {pass:'261204',role:'manager',displayName:'מנהל מערכת'},
       'admin':        {pass:'262104',role:'admin',displayName:'מפקד גף'},
       'Darom2026':    {pass:'8520',role:'district',district:'דרום',displayName:'מחוז דרום'},
       'Tzafon2026':   {pass:'8520',role:'district',district:'צפון',displayName:'מחוז צפון'},
@@ -721,13 +721,14 @@ function doLogin() {
     document.getElementById('app').style.display = 'block';
     document.getElementById('userBadge').textContent = user.displayName || u;
     document.getElementById('headerSub').textContent =
+      currentUser.role === 'manager'  ? 'מנהל מערכת' :
       currentUser.role === 'admin'    ? 'מפקד גף' :
       currentUser.role === 'district' ? 'מפקד מחוז ' + (currentUser.district||'') :
       'שלוחת ' + (currentUser.branch||'');
 
-    if (currentUser.role === 'admin')    { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
+    if (currentUser.role === 'admin' || currentUser.role === 'manager') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (currentUser.role === 'district') { document.getElementById('tab-branch').style.display=''; }
-    if (currentUser.role === 'branch' || currentUser.role === 'admin') document.getElementById('addBtn').style.display = '';
+    if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'manager') document.getElementById('addBtn').style.display = '';
     if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
@@ -812,13 +813,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('app').style.display = 'block';
     document.getElementById('userBadge').textContent = user.displayName || user.username;
     document.getElementById('headerSub').textContent =
+      user.role === 'manager'  ? 'מנהל מערכת' :
       user.role === 'admin'    ? 'מפקד גף' :
       user.role === 'district' ? 'מפקד מחוז ' + (user.district||'') :
       'שלוחת ' + (user.branch||'');
 
-    if (user.role === 'admin')    { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
+    if (user.role === 'admin' || user.role === 'manager') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
-    if (user.role === 'branch' || user.role === 'admin') document.getElementById('addBtn').style.display = '';
+    if (user.role === 'branch' || user.role === 'admin' || user.role === 'manager') document.getElementById('addBtn').style.display = '';
     if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
@@ -852,6 +854,7 @@ function startPolling() {
         // סינון לפי הרשאה — חובה
         if (currentUser.role === 'branch')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
         if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
+        // manager ו-admin רואים הכל
         // בדוק אם יש שינוי
         if (rows.length === allData.length) return;
         // יש נתונים חדשים — עדכן
@@ -940,6 +943,7 @@ function _processRows(rows, myToken, btn) {
   // סינון לפי הרשאה
   if (currentUser.role === 'branch')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
   if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
+  // manager ו-admin רואים הכל — אין סינון
 
   rows.sort(function(a,b){
     var da=parseDate(a.timestamp), db=parseDate(b.timestamp);
@@ -1764,7 +1768,7 @@ function openModal(i) {
   var r=filtered[i];
   document.getElementById('mName').textContent=r.name||'-';
   document.getElementById('mSub').textContent=(r.city||'')+(r.grade?' - כיתה '+r.grade:'')+(r.branch?' - '+r.branch:'');
-  document.getElementById('delBtn').style.display=(currentUser.role==='branch'||currentUser.role==='admin')?'':'none';
+  document.getElementById('delBtn').style.display=(currentUser.role==='branch'||currentUser.role==='admin'||currentUser.role==='manager')?'':'none';
   renderModal();
   _scrollY = window.scrollY;
   document.body.style.top = '-' + _scrollY + 'px';
