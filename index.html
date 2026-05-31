@@ -701,7 +701,10 @@ function doLogin() {
 
     currentUser = Object.assign({}, user, {username: u});
     lastLoginTime = localStorage.getItem('lastLogin_' + u) ? new Date(localStorage.getItem('lastLogin_' + u)) : null;
-    // הזמן החדש יישמר רק אחרי טעינת הנתונים
+
+    // שמור session ב-sessionStorage (נשמר גם ברענון, נמחק בסגירת טאב)
+    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    sessionStorage.setItem('lastLoginTime', lastLoginTime ? lastLoginTime.toISOString() : '');
 
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -731,6 +734,8 @@ function doLogout() {
   clearTimeout(_inactivityTimer);
   clearTimeout(_inactivityWarning);
   hideInactivityWarning();
+  sessionStorage.removeItem('currentUser');
+  sessionStorage.removeItem('lastLoginTime');
   _prefetchStarted = false;
   _prefetchedRows = null;
   currentUser = null;
@@ -777,6 +782,44 @@ function doLogout() {
 }
 
 document.getElementById('loginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+
+// ── שחזור session אחרי רענון ──
+(function restoreSession() {
+  var saved = sessionStorage.getItem('currentUser');
+  if (!saved) return;
+  try {
+    var user = JSON.parse(saved);
+    if (!user || !user.username) return;
+
+    currentUser = user;
+    var lt = sessionStorage.getItem('lastLoginTime');
+    lastLoginTime = lt ? new Date(lt) : null;
+
+    // הצג את האפליקציה
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('userBadge').textContent = user.displayName || user.username;
+    document.getElementById('headerSub').textContent =
+      user.role === 'admin'    ? 'מפקד גף' :
+      user.role === 'district' ? 'מפקד מחוז ' + (user.district||'') :
+      'שלוחת ' + (user.branch||'');
+
+    if (user.role === 'admin')    { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
+    else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
+    if (user.role === 'branch' || user.role === 'admin') document.getElementById('addBtn').style.display = '';
+
+    var addBranch = document.getElementById('add_branch');
+    addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
+      BRANCHES.map(function(b){ return '<option' + (user.branch===b?' selected':'') + '>' + b + '</option>'; }).join('');
+    if (user.role === 'branch') { addBranch.value = user.branch; addBranch.disabled = true; document.getElementById('add_district').value = user.district||''; }
+
+    loadData();
+    startPolling();
+    resetInactivity();
+  } catch(e) {
+    sessionStorage.removeItem('currentUser');
+  }
+})();
 
 // ── DATA ──
 var _loadToken = 0;
