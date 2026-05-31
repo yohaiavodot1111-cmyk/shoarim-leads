@@ -401,6 +401,7 @@ canvas{display:block;width:100%!important;}
   <div class="tab"        id="tab-branch"   onclick="setTab('branch')"   style="display:none">לפי שלוחה</div>
   <div class="tab"        id="tab-district" onclick="setTab('district')" style="display:none">לפי מחוז</div>
   <div class="tab"        id="tab-stats"    onclick="setTab('stats')">סטטיסטיקות</div>
+  <div class="tab"        id="tab-admin"    onclick="setTab('admin')"    style="display:none">⚙️ ניהול</div>
 </div>
 
 <div class="toolbar">
@@ -442,6 +443,8 @@ canvas{display:block;width:100%!important;}
   <div id="lastUpdate" style="font-size:11px;"></div>
 </div>
 
+<div id="adminWrap" style="display:none;max-width:1440px;margin:12px auto;padding:0 0 40px"></div>
+
 <div id="loadingWrap" class="loading-wrap"><div class="spinner"></div><div>טוען נתונים...</div></div>
 <div id="tableWrap" class="table-wrap" style="display:none">
   <table><thead><tr id="tableHead"></tr></thead><tbody id="tableBody"></tbody></table>
@@ -452,6 +455,13 @@ canvas{display:block;width:100%!important;}
 <div id="emptyWrap" class="empty" style="display:none">לא נמצאו תוצאות</div>
 
 </div><!-- /app -->
+
+<!-- ADMIN MODAL -->
+<div id="adminModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(16,24,40,.54);z-index:300;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;border-radius:10px;border:1px solid #d0d5dd;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+    <div id="adminModalBody"></div>
+  </div>
+</div>
 
 <!-- INACTIVITY WARNING -->
 <div id="inactivityOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,.72);z-index:1000;align-items:center;justify-content:center;padding:20px">
@@ -718,6 +728,7 @@ function doLogin() {
     if (currentUser.role === 'admin')    { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (currentUser.role === 'district') { document.getElementById('tab-branch').style.display=''; }
     if (currentUser.role === 'branch' || currentUser.role === 'admin') document.getElementById('addBtn').style.display = '';
+    if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
     addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
@@ -770,6 +781,7 @@ function doLogout() {
   setTab('all');
   document.getElementById('tab-branch').style.display = 'none';
   document.getElementById('tab-district').style.display = 'none';
+  document.getElementById('tab-admin').style.display = 'none';
   document.getElementById('addBtn').style.display = 'none';
 
   // שחרר נעילת גוף אם היה מודאל פתוח
@@ -807,6 +819,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (user.role === 'admin')    { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
     if (user.role === 'branch' || user.role === 'admin') document.getElementById('addBtn').style.display = '';
+    if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
     addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
@@ -992,7 +1005,11 @@ function applyFilters() {
 // ── TABS & VIEW ──
 function setTab(t) {
   currentTab = t;
-  ['all','branch','district','stats'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
+  ['all','branch','district','stats','admin'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
+  document.getElementById('adminWrap').style.display = t==='admin' ? '' : 'none';
+  document.getElementById('toolbar').style.display   = t==='admin' ? 'none' : '';
+  document.getElementById('status-bar') && (document.getElementById('status-bar').style.display = t==='admin' ? 'none' : '');
+  if (t==='admin') { renderAdmin(); return; }
   render();
 }
 function setView(v) {
@@ -2040,7 +2057,284 @@ function confirmActivity() {
 ['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(ev) {
   document.addEventListener(ev, resetInactivity, {passive: true});
 });
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();closeAdminModal();}});
+
+// ══════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════
+var _adminTab = 'users';
+var _adminUsers = [];
+
+var GRAPH_DEFS = [
+  {id:'funnel',    label:'משפך המרה',           roles:['admin','district','branch']},
+  {id:'monthly',   label:'מגמה חודשית',          roles:['admin','district','branch']},
+  {id:'status',    label:'פילוח סטטוסים',        roles:['admin','district','branch']},
+  {id:'source',    label:'מקורות גיוס',          roles:['admin','district','branch']},
+  {id:'branch',    label:'לידים לפי שלוחה',      roles:['admin','district']},
+  {id:'district',  label:'לידים לפי מחוז',       roles:['admin']},
+  {id:'grade8br',  label:"כיתה ח' לפי שלוחה",   roles:['admin','district']},
+  {id:'grade9br',  label:"כיתה ט' לפי שלוחה",   roles:['admin','district']},
+  {id:'distgrade', label:'כיתה לפי מחוז',        roles:['admin']},
+  {id:'gender',    label:'פילוח מגדר',           roles:['admin','district','branch']},
+  {id:'motiv',     label:'מוטיבציה',             roles:['admin','district','branch']},
+  {id:'gradepie',  label:'פילוח כיתות',          roles:['branch']},
+  {id:'topstatus', label:'סטטוסים מובילים',      roles:['branch']},
+  {id:'openday',   label:'ערב פתוח',             roles:['admin','district','branch']},
+  {id:'cities',    label:'TOP 20 ערים',          roles:['admin','district','branch']},
+];
+
+var TG_TEMPLATES = [
+  {label:'בדיקת תקינות',     text:'✅ הודעת בדיקת תקינות.\nאשרו בפלטפורמות שקיבלתם הודעה זו!'},
+  {label:'לידים לא מטופלים', text:'⚠️ זוהו לידים רבים שעדיין לא תוקפו.\nאנא טפלו בנושא זה.'},
+  {label:'חג שמח',           text:'🎉 חג שמח!\nתזכורת להשתיק את הבוט עד צאת החג.'},
+  {label:'שבת שלום',         text:'✡️ שבת שלום!\nתזכורת להשתיק את הבוט עד צאת השבת.'},
+];
+
+function getGraphSettings() { try { return JSON.parse(localStorage.getItem('graphSettings')||'{}'); } catch(e) { return {}; } }
+function saveGraphSettings(s) { localStorage.setItem('graphSettings', JSON.stringify(s)); }
+
+function renderAdmin() {
+  var tabs = [
+    {id:'users',   label:'👥 משתמשים'},
+    {id:'maps',    label:'🗺️ מיפויים'},
+    {id:'telegram',label:'📨 טלגרם'},
+    {id:'graphs',  label:'📊 גרפים'},
+  ];
+  var html = '<div style="background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:var(--shadow-sm)">' +
+    '<div style="background:var(--navy);padding:16px 20px;display:flex;align-items:center;gap:12px">' +
+      '<span style="font-size:20px">⚙️</span>' +
+      '<div style="color:#fff;font-family:Heebo,sans-serif;font-size:18px;font-weight:700">לוח ניהול מערכת</div>' +
+      '<div style="color:#b9c4d3;font-size:12px;margin-right:auto">מנהל מערכת: yohai</div>' +
+    '</div>' +
+    '<div style="display:flex;border-bottom:1px solid var(--border);background:#f8faff">' +
+    tabs.map(function(t){
+      var active = _adminTab===t.id;
+      return '<div onclick="switchAdminTab(\''+t.id+'\')" style="padding:12px 20px;cursor:pointer;font-size:13px;font-weight:600;color:'+(active?'var(--navy)':'var(--light)')+';border-bottom:2px solid '+(active?'var(--royal)':'transparent')+';white-space:nowrap">'+t.label+'</div>';
+    }).join('') +
+    '</div>' +
+    '<div id="adminContent" style="padding:20px">' + renderAdminContent() + '</div>' +
+  '</div>';
+  document.getElementById('adminWrap').innerHTML = html;
+  if (_adminTab==='users') loadAdminUsers();
+  if (_adminTab==='maps')  setTimeout(loadAdminMaps, 50);
+}
+
+function switchAdminTab(t) { _adminTab=t; renderAdmin(); }
+
+function renderAdminContent() {
+  if (_adminTab==='users')    return renderAdminUsers();
+  if (_adminTab==='maps')     return renderAdminMaps();
+  if (_adminTab==='telegram') return renderAdminTelegram();
+  if (_adminTab==='graphs')   return renderAdminGraphs();
+  return '';
+}
+
+// ── משתמשים ──
+function renderAdminUsers() {
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">' +
+    '<div style="font-size:15px;font-weight:700;color:var(--text)">ניהול משתמשים</div>' +
+    '<button onclick="openUserModal(null)" class="btn btn-success" style="height:36px">+ הוסף משתמש</button>' +
+  '</div><div id="usersTableWrap"><div class="spinner" style="margin:20px auto"></div></div>';
+}
+
+function loadAdminUsers() {
+  fetch(APPS_SCRIPT_URL + '?action=getUsers')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.success) return;
+      _adminUsers = d.users||[];
+      renderUsersTable();
+    }).catch(function(){});
+}
+
+function renderUsersTable() {
+  var wrap = document.getElementById('usersTableWrap');
+  if (!wrap) return;
+  var roleLabel = {admin:'מנהל/גף',district:'מחוז',branch:'שלוחה'};
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr style="background:#f2f4f7">' +
+    ['שם משתמש','שם תצוגה','תפקיד','שלוחה/מחוז','פעולות'].map(function(h,i){
+      return '<th style="padding:9px 12px;text-align:'+(i<2?'right':'center')+';font-weight:600;color:#475467;border-bottom:1px solid var(--border)">'+h+'</th>';
+    }).join('') + '</tr></thead><tbody>';
+  _adminUsers.forEach(function(u,i){
+    html += '<tr style="border-bottom:1px solid #eef1f5">' +
+      '<td style="padding:9px 12px;font-weight:600;color:var(--navy)">'+u.username+'</td>' +
+      '<td style="padding:9px 12px;color:var(--mid)">'+(u.displayName||'-')+'</td>' +
+      '<td style="padding:9px 12px;text-align:center"><span class="badge badge-blue">'+(roleLabel[u.role]||u.role)+'</span></td>' +
+      '<td style="padding:9px 12px;text-align:center;color:var(--mid)">'+(u.branch||u.district||'-')+'</td>' +
+      '<td style="padding:9px 12px;text-align:center"><div style="display:flex;gap:6px;justify-content:center">' +
+        '<button onclick="openUserModal('+i+')" style="padding:4px 10px;font-size:12px;border:1px solid var(--border);background:#fff;border-radius:4px;cursor:pointer">עריכה</button>' +
+        '<button onclick="resetUserPassword('+i+')" style="padding:4px 10px;font-size:12px;border:1px solid var(--border);background:#fff;border-radius:4px;cursor:pointer">איפוס סיסמה</button>' +
+        (u.username!=='yohai'?'<button onclick="deleteUser('+i+')" style="padding:4px 10px;font-size:12px;border:1px solid #fecdca;background:#fef3f2;color:#b42318;border-radius:4px;cursor:pointer">מחק</button>':'') +
+      '</div></td></tr>';
+  });
+  wrap.innerHTML = html + '</tbody></table></div>';
+}
+
+function openUserModal(idx) {
+  var isNew = idx===null;
+  var u = isNew ? {username:'',pass:'',role:'branch',branch:'',district:'',displayName:''} : _adminUsers[idx];
+  var branchOpts = BRANCHES.map(function(b){ return '<option'+(b===u.branch?' selected':'')+'>'+b+'</option>'; }).join('');
+  var distOpts = ['דרום','מרכז','צפון'].map(function(d){ return '<option'+(d===u.district?' selected':'')+'>'+d+'</option>'; }).join('');
+  var html = '<div style="padding:20px">' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:16px">'+(isNew?'הוספת משתמש':'עריכת משתמש — '+u.username)+'</div>' +
+    '<div class="mgrid">' +
+      '<div class="mfield"><label>שם משתמש *</label><input id="um_user" value="'+(u.username||'')+'" '+(isNew?'':'readonly style="background:#f0f4fa"')+'/></div>' +
+      '<div class="mfield"><label>שם תצוגה</label><input id="um_name" value="'+(u.displayName||'')+'"/></div>' +
+      (isNew?'<div class="mfield"><label>סיסמה *</label><input id="um_pass" type="password"/></div>':'') +
+      '<div class="mfield"><label>תפקיד</label><select id="um_role" onchange="onAdminRoleChange()"><option value="branch"'+(u.role==='branch'?' selected':'')+'>שלוחה</option><option value="district"'+(u.role==='district'?' selected':'')+'>מחוז</option><option value="admin"'+(u.role==='admin'?' selected':'')+'>מנהל/גף</option></select></div>' +
+      '<div class="mfield" id="um_bwrap"><label>שלוחה</label><select id="um_branch"><option value="">-</option>'+branchOpts+'</select></div>' +
+      '<div class="mfield" id="um_dwrap" style="display:none"><label>מחוז</label><select id="um_dist"><option value="">-</option>'+distOpts+'</select></div>' +
+    '</div>' +
+    '<div class="edit-actions"><button class="btn-cancel" onclick="closeAdminModal()">ביטול</button><button class="btn-save" onclick="saveUser('+(isNew?'null':idx)+')">שמור</button></div>' +
+    '<div id="um_msg" class="save-msg" style="display:none"></div>' +
+  '</div>';
+  showAdminModal(html);
+  onAdminRoleChange();
+}
+
+function onAdminRoleChange() {
+  var role = document.getElementById('um_role'); if(!role) return;
+  var bw=document.getElementById('um_bwrap'), dw=document.getElementById('um_dwrap');
+  if(bw) bw.style.display = role.value==='branch'?'':'none';
+  if(dw) dw.style.display = role.value==='district'?'':'none';
+}
+
+function saveUser(idx) {
+  var isNew = idx===null;
+  var username = (document.getElementById('um_user')||{}).value||'';
+  var displayName = (document.getElementById('um_name')||{}).value||'';
+  var role = (document.getElementById('um_role')||{}).value||'branch';
+  var branch = (document.getElementById('um_branch')||{}).value||'';
+  var district = (document.getElementById('um_dist')||{}).value||'';
+  var pass = isNew ? ((document.getElementById('um_pass')||{}).value||'') : (_adminUsers[idx]||{}).pass||'';
+  if (!username) { var m=document.getElementById('um_msg'); if(m){m.textContent='שם משתמש חובה';m.className='save-msg err';m.style.display='';} return; }
+  if (isNew && !pass) { var m=document.getElementById('um_msg'); if(m){m.textContent='סיסמה חובה';m.className='save-msg err';m.style.display='';} return; }
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveUser',user:{username:username,pass:pass,role:role,branch:branch,district:district,displayName:displayName}})})
+    .then(function(){ closeAdminModal(); loadAdminUsers(); });
+}
+
+function resetUserPassword(idx) {
+  var u=_adminUsers[idx], np=prompt('סיסמה חדשה עבור '+u.username+':');
+  if (!np) return;
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveUser',user:Object.assign({},u,{pass:np})})})
+    .then(function(){ alert('הסיסמה אופסה'); loadAdminUsers(); });
+}
+
+function deleteUser(idx) {
+  var u=_adminUsers[idx];
+  if (!confirm('למחוק את '+u.username+'?')) return;
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deleteUser',username:u.username})})
+    .then(function(){ loadAdminUsers(); });
+}
+
+// ── מיפויים ──
+function renderAdminMaps() {
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+    '<div><div style="font-size:14px;font-weight:700;margin-bottom:8px">מיפוי עיר → שלוחה</div>' +
+    '<div style="font-size:11px;color:var(--light);margin-bottom:6px">פורמט: עיר|שלוחה (שורה לכל ערך)</div>' +
+    '<textarea id="cityMapEdit" style="width:100%;height:260px;font-size:12px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:10px;direction:rtl;resize:vertical" placeholder="טוען..."></textarea>' +
+    '<button onclick="saveCityMap()" class="btn btn-success" style="margin-top:8px;height:36px;width:100%">שמור מיפוי ערים</button></div>' +
+    '<div><div style="font-size:14px;font-weight:700;margin-bottom:8px">מיפוי שלוחה → מחוז</div>' +
+    '<div style="font-size:11px;color:var(--light);margin-bottom:6px">פורמט: שלוחה|מחוז (שורה לכל ערך)</div>' +
+    '<textarea id="distMapEdit" style="width:100%;height:260px;font-size:12px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:10px;direction:rtl;resize:vertical" placeholder="טוען..."></textarea>' +
+    '<button onclick="saveDistMap()" class="btn btn-success" style="margin-top:8px;height:36px;width:100%">שמור מיפוי מחוזות</button></div>' +
+  '</div><div id="mapMsg" class="save-msg" style="display:none;margin-top:10px"></div>';
+}
+
+function loadAdminMaps() {
+  fetch(APPS_SCRIPT_URL+'?action=getMaps').then(function(r){return r.json();}).then(function(d){
+    if(!d.success) return;
+    var cm=document.getElementById('cityMapEdit'), dm=document.getElementById('distMapEdit');
+    if(cm&&d.cityMap) cm.value=d.cityMap.map(function(r){return r[0]+'|'+r[1];}).join('\n');
+    if(dm&&d.distMap) dm.value=d.distMap.map(function(r){return r[0]+'|'+r[1];}).join('\n');
+  }).catch(function(){});
+}
+
+function saveCityMap() {
+  var rows=(document.getElementById('cityMapEdit')||{value:''}).value.split('\n').map(function(l){var p=l.split('|');return[p[0]&&p[0].trim(),p[1]&&p[1].trim()];}).filter(function(r){return r[0]&&r[1];});
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveCityMap',rows:rows})})
+    .then(function(){var m=document.getElementById('mapMsg');if(m){m.textContent='מיפוי ערים נשמר';m.className='save-msg ok';m.style.display='';setTimeout(function(){m.style.display='none';},3000);}});
+}
+
+function saveDistMap() {
+  var rows=(document.getElementById('distMapEdit')||{value:''}).value.split('\n').map(function(l){var p=l.split('|');return[p[0]&&p[0].trim(),p[1]&&p[1].trim()];}).filter(function(r){return r[0]&&r[1];});
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveDistMap',rows:rows})})
+    .then(function(){var m=document.getElementById('mapMsg');if(m){m.textContent='מיפוי מחוזות נשמר';m.className='save-msg ok';m.style.display='';setTimeout(function(){m.style.display='none';},3000);}});
+}
+
+// ── טלגרם ──
+function renderAdminTelegram() {
+  var rOpts='<option value="all">כולם</option><option value="admin">גף בלבד</option>'+
+    ['דרום','מרכז','צפון'].map(function(d){return '<option value="district_'+d+'">מחוז '+d+'</option>';}).join('')+
+    BRANCHES.map(function(b){return '<option value="branch_'+b+'">שלוחת '+b+'</option>';}).join('');
+  return '<div>' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:16px">שליחת הודעת טלגרם</div>' +
+    '<div class="mfield" style="margin-bottom:12px"><label>נמענים</label><select id="tg_recipient" style="height:42px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:Heebo,sans-serif;font-size:13px;width:100%;max-width:300px">'+rOpts+'</select></div>' +
+    '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--light);margin-bottom:8px">תבניות מוכנות:</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">'+TG_TEMPLATES.map(function(t,i){return '<button onclick="useTgTemplate('+i+')" style="padding:7px 12px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">'+t.label+'</button>';}).join('')+'</div></div>' +
+    '<div class="mfield" style="margin-bottom:14px"><label>הודעה</label><textarea id="tg_text" style="width:100%;height:120px;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:Heebo,sans-serif;font-size:13px;resize:vertical;direction:rtl" placeholder="כתוב כאן..."></textarea></div>' +
+    '<button onclick="sendAdminTelegram()" class="btn btn-success" style="height:42px;min-width:160px">📨 שלח</button>' +
+    '<div id="tg_msg" class="save-msg" style="display:none;margin-top:10px"></div></div>';
+}
+
+function useTgTemplate(i) { var el=document.getElementById('tg_text'); if(el) el.value=TG_TEMPLATES[i].text; }
+
+function sendAdminTelegram() {
+  var text=(document.getElementById('tg_text')||{}).value||'';
+  var recipient=(document.getElementById('tg_recipient')||{}).value||'all';
+  if(!text.trim()){var m=document.getElementById('tg_msg');if(m){m.textContent='נא להזין הודעה';m.className='save-msg err';m.style.display='';}return;}
+  fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sendTelegramBroadcast',text:text,recipient:recipient})})
+    .then(function(){var m=document.getElementById('tg_msg');if(m){m.textContent='ההודעה נשלחה ✓';m.className='save-msg ok';m.style.display='';document.getElementById('tg_text').value='';setTimeout(function(){m.style.display='none';},3000);}});
+}
+
+// ── גרפים ──
+function renderAdminGraphs() {
+  var s=getGraphSettings();
+  var roles=['admin','district','branch'];
+  var rl={admin:'מנהל/גף',district:'מחוז',branch:'שלוחה'};
+  var html='<div><div style="font-size:15px;font-weight:700;margin-bottom:4px">הגדרות תצוגת גרפים</div>' +
+    '<div style="font-size:12px;color:var(--light);margin-bottom:14px">סמן אילו גרפים יוצגו לכל תפקיד</div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr style="background:#f2f4f7">' +
+    '<th style="padding:10px 14px;text-align:right;font-weight:600;color:#475467;border-bottom:1px solid var(--border)">גרף</th>' +
+    roles.map(function(r){return '<th style="padding:10px 14px;text-align:center;font-weight:600;color:#475467;border-bottom:1px solid var(--border)">'+rl[r]+'</th>';}).join('')+
+    '</tr></thead><tbody>';
+  GRAPH_DEFS.forEach(function(g){
+    html+='<tr style="border-bottom:1px solid #eef1f5"><td style="padding:9px 14px;color:var(--mid);font-weight:500">'+g.label+'</td>';
+    roles.forEach(function(r){
+      var relevant=g.roles.indexOf(r)>-1;
+      var key=g.id+'_'+r;
+      var checked=relevant&&s[key]!==false;
+      html+='<td style="padding:9px 14px;text-align:center">'+(relevant?'<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleGraph(\''+key+'\',this.checked)" style="width:16px;height:16px;cursor:pointer"/>':'<span style="color:var(--muted)">—</span>')+'</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div><div style="margin-top:14px;display:flex;gap:10px;align-items:center">' +
+    '<button onclick="resetGraphSettings()" style="padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:6px;cursor:pointer;font-size:13px">איפוס לברירת מחדל</button>' +
+    '<span id="graph_msg" style="display:none;padding:8px 14px;background:#e7f5ec;color:#14532d;border-radius:6px;font-size:13px;border:1px solid #abefc6">נשמר ✓</span>' +
+  '</div></div>';
+  return html;
+}
+
+function toggleGraph(key,val) {
+  var s=getGraphSettings(); s[key]=val; saveGraphSettings(s);
+  var m=document.getElementById('graph_msg'); if(m){m.style.display='';setTimeout(function(){m.style.display='none';},1500);}
+}
+
+function resetGraphSettings() {
+  if(!confirm('לאפס את כל הגרפים לברירת מחדל?')) return;
+  saveGraphSettings({}); switchAdminTab('graphs');
+}
+
+// ── Admin Modal ──
+function showAdminModal(html) {
+  document.getElementById('adminModalBody').innerHTML=html;
+  document.getElementById('adminModalOverlay').style.display='flex';
+}
+function closeAdminModal() {
+  document.getElementById('adminModalOverlay').style.display='none';
+}
 </script>
 </body>
 </html>
