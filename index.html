@@ -453,6 +453,26 @@ canvas{display:block;width:100%!important;}
 
 </div><!-- /app -->
 
+<!-- INACTIVITY WARNING -->
+<div id="inactivityOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,.72);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:10px;box-shadow:0 24px 60px rgba(0,0,0,.3);max-width:400px;width:100%;overflow:hidden;border:1px solid #d0d5dd">
+    <div style="background:var(--navy);padding:18px 20px;border-bottom:3px solid #b68a2c;display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">⚠️</span>
+      <div style="font-family:'Heebo',sans-serif;font-size:16px;font-weight:700;color:#fff">זוהה חוסר שימוש במערכת</div>
+    </div>
+    <div style="padding:24px 20px;text-align:center">
+      <div style="font-size:14px;color:#344054;line-height:1.7;margin-bottom:20px">
+        לא זוהתה פעילות במשך 5 דקות.<br/>
+        במידה ולא תאשר הודעה זו תנותק מהמערכת.
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button onclick="confirmActivity()" style="flex:1;max-width:160px;height:42px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">אני כאן ✓</button>
+        <button onclick="doLogout()" style="flex:1;max-width:160px;height:42px;background:#fff;color:#667085;border:1px solid #d0d5dd;border-radius:6px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:500;cursor:pointer">התנתק</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- VIEW MODAL -->
 <div class="overlay" id="overlay" onclick="closeOverlay(event)">
   <div class="modal" id="modalBox">
@@ -702,11 +722,15 @@ function doLogin() {
 
     loadData();
     startPolling();
+    resetInactivity();
   });
 }
 
 function doLogout() {
   stopPolling();
+  clearTimeout(_inactivityTimer);
+  clearTimeout(_inactivityWarning);
+  hideInactivityWarning();
   _prefetchStarted = false;
   _prefetchedRows = null;
   currentUser = null;
@@ -1933,7 +1957,46 @@ function exportExcel() {
   }
 }
 
-function closeOverlay(e) { if(e.target===document.getElementById('overlay')) closeModal(); }
+// ── INACTIVITY TIMEOUT ──
+var _inactivityTimer   = null;
+var _inactivityWarning = null;
+var INACTIVITY_MS      = 5 * 60 * 1000; // 5 דקות
+var WARNING_MS         = 30 * 1000;      // 30 שניות להגיב לפני ניתוק
+
+function resetInactivity() {
+  if (!currentUser) return;
+  clearTimeout(_inactivityTimer);
+  clearTimeout(_inactivityWarning);
+  hideInactivityWarning();
+  _inactivityTimer = setTimeout(showInactivityWarning, INACTIVITY_MS);
+}
+
+function showInactivityWarning() {
+  if (!currentUser) return;
+  var overlay = document.getElementById('inactivityOverlay');
+  if (overlay) overlay.style.display = 'flex';
+  // אם לא אישר תוך 30 שניות — ניתוק
+  _inactivityWarning = setTimeout(function() {
+    hideInactivityWarning();
+    doLogout();
+  }, WARNING_MS);
+}
+
+function hideInactivityWarning() {
+  var overlay = document.getElementById('inactivityOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function confirmActivity() {
+  clearTimeout(_inactivityWarning);
+  hideInactivityWarning();
+  resetInactivity();
+}
+
+// האזן לפעילות משתמש
+['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(ev) {
+  document.addEventListener(ev, resetInactivity, {passive: true});
+});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
 </script>
 </body>
