@@ -1006,10 +1006,18 @@ function applyFilters() {
 function setTab(t) {
   currentTab = t;
   ['all','branch','district','stats','admin'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
-  document.getElementById('adminWrap').style.display = t==='admin' ? '' : 'none';
-  document.getElementById('toolbar').style.display   = t==='admin' ? 'none' : '';
-  document.getElementById('status-bar') && (document.getElementById('status-bar').style.display = t==='admin' ? 'none' : '');
-  if (t==='admin') { renderAdmin(); return; }
+
+  var isAdmin = t === 'admin';
+  document.getElementById('adminWrap').style.display    = isAdmin ? '' : 'none';
+  document.getElementById('toolbar').style.display      = isAdmin ? 'none' : '';
+  var sb = document.querySelector('.status-bar');
+  if (sb) sb.style.display = isAdmin ? 'none' : '';
+  ['loadingWrap','tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = isAdmin ? 'none' : (el.dataset.prevDisplay || 'none');
+  });
+
+  if (isAdmin) { renderAdmin(); return; }
   render();
 }
 function setView(v) {
@@ -1123,6 +1131,7 @@ function statusBadge(s) {
 
 // ── RENDER ──
 function render() {
+  if (currentTab === 'admin') return; // admin מנוהל בנפרד
   var showTable=false, showCards=false, showGroup=false, showStats=false;
   if (currentTab==='stats')                              { showStats=true; renderStats(); }
   else if (currentTab==='branch'||currentTab==='district'){ showGroup=true; renderGrouped(); }
