@@ -1400,16 +1400,16 @@ function renderStats() {
         '<div class="stat-card"><div class="stats-section-title">לידים לפי שלוחה</div><canvas id="statsBranch" height="160"></canvas></div>' +
       '</div>' : '') +
 
-    // שורה 7: אדמין - מחוזות + כיתה ח לפי שלוחה
+    // שורה 7: אדמין - מחוזות + מגדר + כיתה לפי מחוז
     (currentUser.role==='admin' ?
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
         '<div class="stat-card"><div class="stats-section-title">לידים לפי מחוז</div><canvas id="statsDistrict" height="160"></canvas></div>' +
-        '<div class="stat-card"><div class="stats-section-title">כיתה ח׳ לפי שלוחה</div><canvas id="statsGrade8Branch" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">פילוח מגדר</div><canvas id="statsGender" height="160"></canvas></div>' +
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
-        '<div class="stat-card"><div class="stats-section-title">פילוח מגדר</div><canvas id="statsGender" height="160"></canvas></div>' +
         '<div class="stat-card"><div class="stats-section-title">כיתה לפי מחוז</div>' +
           '<canvas id="statsDistrictGrade" height="160"></canvas></div>' +
+        '<div class="stat-card"><div class="stats-section-title">לידים לפי שלוחה</div><canvas id="statsBranch" height="160"></canvas></div>' +
       '</div>' : '') +
 
     // ערב פתוח
