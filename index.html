@@ -1123,7 +1123,7 @@ function render() {
 }
 
 function renderTable() {
-  var cols = ['שם מלא','טלפון','עיר','כיתה','מין','שלוחה','מחוז','סטטוס','תאריך'];
+  var cols = ['שם מלא','עודכן','טלפון','עיר','כיתה','מין','שלוחה','מחוז','סטטוס','תאריך'];
   document.getElementById('tableHead').innerHTML = cols.map(function(c,i){
     return '<th style="' + (i===0?'text-align:right;':'') + '">' + c + '</th>';
   }).join('');
@@ -1136,9 +1136,10 @@ function renderTable() {
 
   var html = '';
   page.forEach(function(r, pi) {
-    var i = start + pi; // אינדקס ב-filtered
+    var i = start + pi;
     html += '<tr onclick="openModal(' + i + ')">' +
-      '<td>' + (r.name||'-') + dupBadge(r, i) + (r.hasEdit?' <small style="color:var(--gold)">(עודכן)</small>':'') + '</td>' +
+      '<td>' + (r.name||'-') + dupBadge(r, i) + '</td>' +
+      '<td>' + (r.hasEdit?'<small style="color:var(--gold)">(עודכן)</small>':'') + '</td>' +
       '<td><a class="phone-link" href="tel:' + r.phone + '" onclick="event.stopPropagation()">' + (r.phone||'-') + '</a></td>' +
       '<td>' + (r.city||'-') + '</td>' +
       '<td>' + gradeBadge(r.grade) + '</td>' +
