@@ -937,7 +937,7 @@ function loadData() {
 function _processRows(rows, myToken, btn) {
   if (myToken !== _loadToken || !currentUser) return;
 
-  // סינון לפי הרשאה — אבטחה: תמיד מסננים בצד הלקוח גם
+  // סינון לפי הרשאה
   if (currentUser.role === 'branch')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
   if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
 
@@ -961,11 +961,16 @@ function _processRows(rows, myToken, btn) {
 
   localStorage.setItem('lastLogin_' + currentUser.username, new Date().toISOString());
 
-  applyFilters(); updateStats();
-  document.getElementById('loadingWrap').style.display = 'none';
+  updateStats();
   document.getElementById('statusText').textContent = 'מסונכרן - ' + allData.length + ' רשומות';
   document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
   if (btn) { btn.disabled=false; btn.textContent='רענן'; }
+
+  // אל תציג את הטבלה אם אנחנו בטאב ניהול
+  if (currentTab === 'admin') return;
+
+  document.getElementById('loadingWrap').style.display = 'none';
+  applyFilters();
 }
 
 function parseDate(ts) {
@@ -983,6 +988,7 @@ function updateStats() {
 
 // ── FILTERS ──
 function applyFilters() {
+  if (currentTab === 'admin') return;
   var q    = document.getElementById('searchInput').value.trim().toLowerCase();
   var g    = document.getElementById('gradeFilter').value;
   var days = parseInt(document.getElementById('dateFilter').value)||0;
