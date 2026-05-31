@@ -784,7 +784,7 @@ function doLogout() {
 document.getElementById('loginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 
 // ── שחזור session אחרי רענון ──
-(function restoreSession() {
+document.addEventListener('DOMContentLoaded', function() {
   var saved = sessionStorage.getItem('currentUser');
   if (!saved) return;
   try {
@@ -795,7 +795,6 @@ document.getElementById('loginPass').addEventListener('keydown', function(e){ if
     var lt = sessionStorage.getItem('lastLoginTime');
     lastLoginTime = lt ? new Date(lt) : null;
 
-    // הצג את האפליקציה
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('userBadge').textContent = user.displayName || user.username;
@@ -819,7 +818,7 @@ document.getElementById('loginPass').addEventListener('keydown', function(e){ if
   } catch(e) {
     sessionStorage.removeItem('currentUser');
   }
-})();
+});
 
 // ── DATA ──
 var _loadToken = 0;
