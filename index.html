@@ -970,11 +970,9 @@ function _processRows(rows, myToken, btn) {
   document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
   if (btn) { btn.disabled=false; btn.textContent='רענן'; }
 
-  // אל תציג את הטבלה אם אנחנו בטאב ניהול
-  if (currentTab === 'admin') return;
-
+  // תמיד עדכן נתונים — render יחליט מה להציג לפי הטאב הנוכחי
   document.getElementById('loadingWrap').style.display = 'none';
-  applyFilters();
+  applyFilters(); // applyFilters עצמה מגנה עם if(admin) return
 }
 
 function parseDate(ts) {
@@ -993,6 +991,7 @@ function updateStats() {
 // ── FILTERS ──
 function applyFilters() {
   if (currentTab === 'admin') return;
+  _page = 0;
   var q    = document.getElementById('searchInput').value.trim().toLowerCase();
   var g    = document.getElementById('gradeFilter').value;
   var days = parseInt(document.getElementById('dateFilter').value)||0;
@@ -1018,16 +1017,22 @@ function setTab(t) {
   ['all','branch','district','stats','admin'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
 
   var isAdmin = t === 'admin';
-  document.getElementById('adminWrap').style.display    = isAdmin ? '' : 'none';
-  document.getElementById('toolbar').style.display      = isAdmin ? 'none' : '';
+  document.getElementById('adminWrap').style.display = isAdmin ? '' : 'none';
+  document.getElementById('toolbar').style.display   = isAdmin ? 'none' : '';
   var sb = document.querySelector('.status-bar');
   if (sb) sb.style.display = isAdmin ? 'none' : '';
-  ['loadingWrap','tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.style.display = isAdmin ? 'none' : (el.dataset.prevDisplay || 'none');
-  });
+  if (isAdmin) {
+    // הסתר את כל אלמנטי הלידים
+    ['loadingWrap','tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){
+      var el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+  }
 
-  if (isAdmin) { renderAdmin(); return; }
+  if (isAdmin) {
+    document.getElementById('loadingWrap').style.display = 'none';
+    renderAdmin();
+    return;
+  }
   render();
 }
 function setView(v) {
