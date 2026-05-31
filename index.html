@@ -979,7 +979,7 @@ function applyFilters() {
   var now  = new Date();
   _page = 0;
   filtered = allData.filter(function(r){
-    if (g && r.grade !== g) return false;
+    if (g && normalizeGrade(r.grade) !== normalizeGrade(g)) return false;
     if (selectedStatuses.length && selectedStatuses.indexOf(r.status||'חדש') === -1) return false;
     if (days) { var ts=parseDate(r.timestamp); if(!ts||(now-ts)>days*86400000) return false; }
     if (q) { var hay=(r.name+r.city+r.phone+r.branch+r.district+r.parentName).toLowerCase(); if(!hay.includes(q)) return false; }
