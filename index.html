@@ -2144,7 +2144,7 @@ function confirmActivity() {
 }
 
 // האזן לפעילות משתמש
-['mousemove','mousedown','keydown','touchstart','scroll','click'].forEach(function(ev) {
+['keydown','click'].forEach(function(ev) {
   document.addEventListener(ev, resetInactivity, {passive: true});
 });
 // ── TELEGRAM SENDER (role: telegram) ──
