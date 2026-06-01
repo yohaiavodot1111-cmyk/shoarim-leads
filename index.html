@@ -520,16 +520,18 @@ canvas{display:block;width:100%!important;}
   <div style="background:#fff;border-radius:10px;box-shadow:0 24px 60px rgba(0,0,0,.3);max-width:400px;width:100%;overflow:hidden;border:1px solid #d0d5dd">
     <div style="background:var(--navy);padding:18px 20px;border-bottom:3px solid #b68a2c;display:flex;align-items:center;gap:12px">
       <span style="font-size:22px">⚠️</span>
-      <div style="font-family:'Heebo',sans-serif;font-size:16px;font-weight:700;color:#fff">זוהה חוסר שימוש במערכת</div>
+      <div style="font-family:'Heebo',sans-serif;font-size:16px;font-weight:700;color:#fff">זוהתה חוסר פעילות</div>
     </div>
     <div style="padding:24px 20px;text-align:center">
-      <div style="font-size:14px;color:#344054;line-height:1.7;margin-bottom:20px">
-        לא זוהתה פעילות במשך 5 דקות.<br/>
-        במידה ולא תאשר הודעה זו תנותק מהמערכת.
+      <div style="font-size:15px;color:#344054;line-height:1.7;margin-bottom:20px;font-weight:600">
+        המערכת זיהתה חוסר פעילות.<br/>
+        האם ברצונך להמשיך לפעול במערכת?
       </div>
-      <div style="display:flex;gap:10px;justify-content:center">
-        <button onclick="confirmActivity()" style="flex:1;max-width:160px;height:42px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">אני כאן ✓</button>
-        <button onclick="doLogout()" style="flex:1;max-width:160px;height:42px;background:#fff;color:#667085;border:1px solid #d0d5dd;border-radius:6px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:500;cursor:pointer">התנתק</button>
+      <button onclick="confirmActivity()" style="display:block;margin:0 auto 20px;padding:10px 36px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;min-width:120px">כן</button>
+      <div style="font-size:13px;color:#667085">
+        לחץ/י <b>כן</b> לאישור, אחרת המערכת תנתק אותך עוד
+        <span id="inactivityCountdown" style="color:#e53e3e;font-weight:700;font-size:14px"> 30 </span>
+        שניות
       </div>
     </div>
   </div>
@@ -2100,24 +2102,43 @@ function resetInactivity() {
   _inactivityTimer = setTimeout(showInactivityWarning, INACTIVITY_MS);
 }
 
+var _inactivityCountdownInterval = null;
+
 function showInactivityWarning() {
   if (!currentUser) return;
   var overlay = document.getElementById('inactivityOverlay');
   if (overlay) overlay.style.display = 'flex';
-  // אם לא אישר תוך 30 שניות — ניתוק
+  // ספירה לאחור
+  var seconds = 30;
+  var cd = document.getElementById('inactivityCountdown');
+  if (cd) cd.textContent = ' ' + seconds + ' ';
+  clearInterval(_inactivityCountdownInterval);
+  _inactivityCountdownInterval = setInterval(function() {
+    seconds--;
+    if (cd) cd.textContent = ' ' + seconds + ' ';
+    if (seconds <= 0) {
+      clearInterval(_inactivityCountdownInterval);
+      hideInactivityWarning();
+      doLogout();
+    }
+  }, 1000);
+  // גיבוי: ניתוק אחרי 30 שניות
   _inactivityWarning = setTimeout(function() {
+    clearInterval(_inactivityCountdownInterval);
     hideInactivityWarning();
     doLogout();
   }, WARNING_MS);
 }
 
 function hideInactivityWarning() {
+  clearInterval(_inactivityCountdownInterval);
   var overlay = document.getElementById('inactivityOverlay');
   if (overlay) overlay.style.display = 'none';
 }
 
 function confirmActivity() {
   clearTimeout(_inactivityWarning);
+  clearInterval(_inactivityCountdownInterval);
   hideInactivityWarning();
   resetInactivity();
 }
