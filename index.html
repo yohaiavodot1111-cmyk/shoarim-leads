@@ -893,9 +893,13 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
     if (user.role === 'branch' || user.role === 'admin') document.getElementById('addBtn').style.display = '';
     if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
-    addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
-      BRANCHES.map(function(b){ return '<option' + (user.branch===b?' selected':'') + '>' + b + '</option>'; }).join('');
-    if (user.role === 'branch') { addBranch.value = user.branch; addBranch.disabled = true; document.getElementById('add_district').value = user.district||''; }
+
+    var addBranch = document.getElementById('add_branch');
+    if (addBranch) {
+      addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
+        BRANCHES.map(function(b){ return '<option' + (user.branch===b?' selected':'') + '>' + b + '</option>'; }).join('');
+      if (user.role === 'branch') { addBranch.value = user.branch; addBranch.disabled = true; document.getElementById('add_district').value = user.district||''; }
+    }
 
     loadData();
     startPolling();
