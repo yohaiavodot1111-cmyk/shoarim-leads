@@ -937,7 +937,7 @@ function startPolling() {
         document.getElementById('statusText').textContent = 'מסונכרן - ' + allData.length + ' רשומות';
         document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
       }).catch(function(){});
-  }, 60000); // כל 60 שניות
+  }, 30000); // כל 30 שניות
 }
 
 function stopPolling() {
@@ -1870,7 +1870,7 @@ function buildEditForm(r) {
   var bopts = BRANCHES.map(function(b){ return '<option' + (b===r.branch?' selected':'') + '>' + b + '</option>'; }).join('');
   return '<div class="mgrid">' +
     ef('name','שם מלא',r.name) + ef('city','עיר',r.city) +
-    ef('phone','טלפון',r.phone) + esel('grade','כיתה',r.grade,["ח'","ט'"]) +
+    ef('phone','טלפון',r.phone) + esel('grade','כיתה',r.grade,["ח'","ט'","עתודה טכנולוגית"]) +
     esel('gender','מין',r.gender,['זכר','נקבה']) + ef('school','מוסד לימודי',r.school) +
     ef('idNumber','ת.ז.',r.idNumber) + esel('motivation','מוטיבציה',r.motivation,['1','2','3','4','5','6','7','8','9','10']) +
     esel('source','מקור גיוס',r.source,['שיווק נציגי חי"א','דיוור ישיר','עיתון','קמפיין דיגיטל','המלצת חבר','רדיו','שלטי פרסום','קישור בהודעה','לא יודע']) +
