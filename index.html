@@ -428,10 +428,23 @@ canvas{display:block;width:100%!important;}
       <div id="statusCheckboxes"></div>
     </div>
   </div>
-  <select class="fsel" id="dateFilter">
+  <select class="fsel" id="dateFilter" style="min-width:150px">
     <option value="">כל הזמנים</option>
-    <option value="1">יום אחרון</option><option value="7">שבוע אחרון</option><option value="30">חודש אחרון</option>
+    <option value="1">יום אחרון</option>
+    <option value="7">שבוע אחרון</option>
+    <option value="30">חודש אחרון</option>
+    <option value="90">3 חודשים אחרונים</option>
+    <option value="180">חצי שנה אחרונה</option>
+    <option value="365">שנה אחרונה</option>
+    <option value="prev_quarter">רבעון קודם</option>
+    <option value="prev_year">שנה קודמת</option>
+    <option value="range">טווח תאריכים...</option>
   </select>
+  <div id="dateRangeWrap" style="display:none;display:none;align-items:center;gap:6px;flex-wrap:wrap">
+    <input type="date" id="dateFrom" style="height:38px;border:1px solid #cfd7e3;border-radius:6px;padding:0 8px;font-family:Heebo,sans-serif;font-size:13px;outline:none" onchange="applyFilters()"/>
+    <span style="color:var(--light);font-size:13px">עד</span>
+    <input type="date" id="dateTo" style="height:38px;border:1px solid #cfd7e3;border-radius:6px;padding:0 8px;font-family:Heebo,sans-serif;font-size:13px;outline:none" onchange="applyFilters()"/>
+  </div>
   <button class="btn btn-success" id="addBtn" onclick="openAddModal()" style="display:none">הוסף ליד</button>
   <button class="btn btn-primary" onclick="exportExcel()">Excel</button>
   <button class="btn btn-primary" onclick="loadData()">רענן</button>
@@ -1067,13 +1080,42 @@ function applyFilters() {
   _page = 0;
   var q    = document.getElementById('searchInput').value.trim().toLowerCase();
   var g    = document.getElementById('gradeFilter').value;
-  var days = parseInt(document.getElementById('dateFilter').value)||0;
+  var dateVal = document.getElementById('dateFilter').value;
   var now  = new Date();
-  _page = 0;
+
+  // הצג/הסתר טווח תאריכים
+  var rw = document.getElementById('dateRangeWrap');
+  if (rw) rw.style.display = dateVal === 'range' ? 'flex' : 'none';
+
   filtered = allData.filter(function(r){
     if (g && normalizeGrade(r.grade) !== normalizeGrade(g)) return false;
     if (selectedStatuses.length && selectedStatuses.indexOf(r.status||'חדש') === -1) return false;
-    if (days) { var ts=parseDate(r.timestamp); if(!ts||(now-ts)>days*86400000) return false; }
+
+    if (dateVal) {
+      var ts = parseDate(r.timestamp);
+      if (!ts) return false;
+
+      if (dateVal === 'range') {
+        var fromEl = document.getElementById('dateFrom');
+        var toEl   = document.getElementById('dateTo');
+        var from   = fromEl && fromEl.value ? new Date(fromEl.value) : null;
+        var to     = toEl   && toEl.value   ? new Date(toEl.value + 'T23:59:59') : null;
+        if (from && ts < from) return false;
+        if (to   && ts > to)   return false;
+      } else if (dateVal === 'prev_quarter') {
+        var qn = Math.floor(now.getMonth() / 3);
+        var qStart, qEnd;
+        if (qn === 0) { qStart = new Date(now.getFullYear()-1, 9, 1); qEnd = new Date(now.getFullYear()-1, 11, 31, 23, 59, 59); }
+        else          { qStart = new Date(now.getFullYear(), (qn-1)*3, 1); qEnd = new Date(now.getFullYear(), qn*3, 0, 23, 59, 59); }
+        if (ts < qStart || ts > qEnd) return false;
+      } else if (dateVal === 'prev_year') {
+        if (ts.getFullYear() !== now.getFullYear() - 1) return false;
+      } else {
+        var days = parseInt(dateVal) || 0;
+        if (days && (now - ts) > days * 86400000) return false;
+      }
+    }
+
     if (q) { var hay=(r.name+r.city+r.phone+r.branch+r.district+r.parentName).toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
