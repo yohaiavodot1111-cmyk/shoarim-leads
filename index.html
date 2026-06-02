@@ -824,6 +824,7 @@ function doLogin() {
 
 function doLogout() {
   stopPolling();
+  _callsLoaded = false; _callsData = [];
   clearTimeout(_inactivityTimer);
   clearTimeout(_inactivityWarning);
   hideInactivityWarning();
@@ -1104,7 +1105,11 @@ function setTab(t) {
   document.getElementById('callsWrap').style.display = isCalls ? '' : 'none';
   document.getElementById('toolbar').style.display   = isCalls ? 'none' : '';
   var sb = document.querySelector('.status-bar'); if(sb) sb.style.display = isCalls ? 'none' : '';
-  if (isCalls) { renderCalls(); return; }
+  if (isCalls) {
+    document.getElementById('loadingWrap').style.display = 'none';
+    ['tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
+    renderCalls(); return;
+  }
   render();
 }
 function setView(v) {
@@ -2334,16 +2339,19 @@ function sendTgSender() {
 // ══════════════════════════════════════════
 // CALLS — שיחות שוחרים
 // ══════════════════════════════════════════
-var _callsData = []; // נטען בנפרד
+var _callsData = [];
+var _callsLoaded = false;
 
 function renderCalls() {
   if (!currentUser) return;
   var wrap = document.getElementById('callsWrap');
   if (!wrap) return;
-
-  // מנהל שלוחה — רואה סיכום לפי חייל
   if (currentUser.role === 'branch') {
-    renderCallsSummary(wrap);
+    if (_callsLoaded) {
+      renderCallsTable(wrap, _callsData);
+    } else {
+      renderCallsSummary(wrap);
+    }
   }
 }
 
@@ -2354,6 +2362,13 @@ function renderCallsSummary(wrap) {
     .then(function(d){
       if (!d.success) { wrap.innerHTML = '<div class="empty">שגיאה בטעינה</div>'; return; }
       var calls = d.calls || [];
+      _callsData = calls;
+      _callsLoaded = true;
+      renderCallsTable(wrap, calls);
+    }).catch(function(){ wrap.innerHTML = '<div class="empty">שגיאה בטעינה</div>'; });
+}
+
+function renderCallsTable(wrap, calls) {
       // קבץ לפי חייל
       var bySoldier = {};
       calls.forEach(function(c){
@@ -2394,7 +2409,6 @@ function renderCallsSummary(wrap) {
       }
       html += '</div></div>';
       wrap.innerHTML = html;
-    }).catch(function(){ wrap.innerHTML = '<div class="empty">שגיאה בטעינה</div>'; });
 }
 
 // ── כפתור שיחה במודאל ──
