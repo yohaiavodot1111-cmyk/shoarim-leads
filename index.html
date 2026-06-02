@@ -402,7 +402,8 @@ canvas{display:block;width:100%!important;}
   <div class="tab active" id="tab-all"      onclick="setTab('all')">כל הלידים</div>
   <div class="tab"        id="tab-branch"   onclick="setTab('branch')"   style="display:none">לפי שלוחה</div>
   <div class="tab"        id="tab-district" onclick="setTab('district')" style="display:none">לפי מחוז</div>
-  <div class="tab"        id="tab-stats"    onclick="setTab('stats')">סטטיסטיקות</div>
+  <div class="tab"        id="tab-stats"    onclick="setTab('stats')" >סטטיסטיקות</div>
+  <div class="tab"        id="tab-calls"    onclick="setTab('calls')"   style="display:none">📞 שיחות שוחרים</div>
 </div>
 
 <div class="toolbar">
@@ -443,6 +444,8 @@ canvas{display:block;width:100%!important;}
   <div><span class="status-dot"></span><span id="statusText">מתחבר...</span></div>
   <div id="lastUpdate" style="font-size:11px;"></div>
 </div>
+
+<div id="callsWrap" style="display:none;max-width:1440px;margin:12px auto;padding:0 0 40px"></div>
 
 <div id="loadingWrap" class="loading-wrap"><div class="spinner"></div><div>טוען נתונים...</div></div>
 <div id="tableWrap" class="table-wrap" style="display:none">
@@ -512,6 +515,16 @@ canvas{display:block;width:100%!important;}
         <button onclick="doLogout()" style="background:none;border:none;color:#98a2b3;font-size:12px;cursor:pointer;font-family:Heebo,sans-serif">יציאה</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- CALL MODAL -->
+<div id="callModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(16,24,40,.54);z-index:300;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;width:100%;max-width:420px;border-radius:10px;border:1px solid #d0d5dd;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden">
+    <div style="background:var(--navy);padding:14px 18px;border-bottom:3px solid var(--teal)">
+      <div style="color:#fff;font-family:Heebo,sans-serif;font-size:16px;font-weight:700">📞 סימון שיחה</div>
+    </div>
+    <div id="callModalBody"></div>
   </div>
 </div>
 
@@ -786,11 +799,17 @@ function doLogin() {
     document.getElementById('headerSub').textContent =
       currentUser.role === 'admin'    ? 'מפקד גף' :
       currentUser.role === 'district' ? 'מפקד מחוז ' + (currentUser.district||'') :
+      currentUser.role === 'soldier'  ? 'שוחר - שלוחת ' + (currentUser.branch||'') :
       'שלוחת ' + (currentUser.branch||'');
 
     if (currentUser.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (currentUser.role === 'district') { document.getElementById('tab-branch').style.display=''; }
-    if (currentUser.role === 'branch' || currentUser.role === 'admin') document.getElementById('addBtn').style.display = '';
+    if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'soldier') document.getElementById('addBtn').style.display = '';
+    // טאב שיחות — למפקד שלוחה
+    if (currentUser.role === 'branch') document.getElementById('tab-calls').style.display = '';
+    // חייל — הסתר סטטיסטיקות
+    if (currentUser.role === 'soldier') document.getElementById('tab-stats').style.display = 'none';
+    if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
     addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
@@ -884,13 +903,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('headerSub').textContent =
       user.role === 'admin'    ? 'מפקד גף' :
       user.role === 'district' ? 'מפקד מחוז ' + (user.district||'') :
+      user.role === 'soldier'  ? 'שוחר - שלוחת ' + (user.branch||'') :
       'שלוחת ' + (user.branch||'');
 
     if (user.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
-    if (user.role === 'branch' || user.role === 'admin') document.getElementById('addBtn').style.display = '';
-
-    var addBranch = document.getElementById('add_branch');
+    if (user.role === 'branch' || user.role === 'admin' || user.role === 'soldier') document.getElementById('addBtn').style.display = '';
+    if (user.role === 'branch') document.getElementById('tab-calls').style.display = '';
+    if (user.role === 'soldier') document.getElementById('tab-stats').style.display = 'none';
+    if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
     addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
       BRANCHES.map(function(b){ return '<option' + (user.branch===b?' selected':'') + '>' + b + '</option>'; }).join('');
     if (user.role === 'branch') { addBranch.value = user.branch; addBranch.disabled = true; document.getElementById('add_district').value = user.district||''; }
@@ -919,7 +940,7 @@ function startPolling() {
         if (!currentUser || !d.success || !d.rows) return;
         var rows = d.rows;
         // סינון לפי הרשאה — חובה
-        if (currentUser.role === 'branch')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
+        if (currentUser.role === 'branch' || currentUser.role === 'soldier')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
         if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
         // בדוק אם יש שינוי
         if (rows.length === allData.length) return;
@@ -1007,7 +1028,7 @@ function _processRows(rows, myToken, btn) {
   if (myToken !== _loadToken || !currentUser) return;
 
   // סינון לפי הרשאה
-  if (currentUser.role === 'branch')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
+  if (currentUser.role === 'branch' || currentUser.role === 'soldier')   rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
   if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
 
   rows.sort(function(a,b){
@@ -1054,6 +1075,7 @@ function updateStats() {
 
 // ── FILTERS ──
 function applyFilters() {
+  if (currentTab === 'calls') return;
   _page = 0;
   var q    = document.getElementById('searchInput').value.trim().toLowerCase();
   var g    = document.getElementById('gradeFilter').value;
@@ -1077,7 +1099,12 @@ function applyFilters() {
 // ── TABS & VIEW ──
 function setTab(t) {
   currentTab = t;
-  ['all','branch','district','stats'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
+  ['all','branch','district','stats','calls'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
+  var isCalls = t === 'calls';
+  document.getElementById('callsWrap').style.display = isCalls ? '' : 'none';
+  document.getElementById('toolbar').style.display   = isCalls ? 'none' : '';
+  var sb = document.querySelector('.status-bar'); if(sb) sb.style.display = isCalls ? 'none' : '';
+  if (isCalls) { renderCalls(); return; }
   render();
 }
 function setView(v) {
@@ -1191,6 +1218,7 @@ function statusBadge(s) {
 
 // ── RENDER ──
 function render() {
+  if (currentTab === 'calls') return;
   var showTable=false, showCards=false, showGroup=false, showStats=false;
   if (currentTab==='stats')                              { showStats=true; renderStats(); }
   else if (currentTab==='branch'||currentTab==='district'){ showGroup=true; renderGrouped(); }
@@ -1860,7 +1888,8 @@ function buildViewBody(r) {
     fv('שלוחה',r.branch),fv('מחוז',r.district),fv('סטטוס',r.status||'חדש'),
     fv('סיבת דחייה',r.rejectNote),fv('הערות',r.notes),fv('תאריך',r.timestamp)
   ]) +
-  (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:7px 10px;font-size:12px;color:#92400e;margin-top:8px">עודכן ידנית</div>' : '');
+  (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:7px 10px;font-size:12px;color:#92400e;margin-top:8px">עודכן ידנית</div>' : '') +
+  (currentUser && currentUser.role === 'soldier' ? renderCallBtn(r) : '');
 }
 
 function buildEditForm(r) {
@@ -2300,6 +2329,138 @@ function sendTgSender() {
     hidePreview();
     setTimeout(function(){ if(msgEl) msgEl.style.display='none'; }, 3000);
   });
+}
+
+// ══════════════════════════════════════════
+// CALLS — שיחות שוחרים
+// ══════════════════════════════════════════
+var _callsData = []; // נטען בנפרד
+
+function renderCalls() {
+  if (!currentUser) return;
+  var wrap = document.getElementById('callsWrap');
+  if (!wrap) return;
+
+  // מנהל שלוחה — רואה סיכום לפי חייל
+  if (currentUser.role === 'branch') {
+    renderCallsSummary(wrap);
+  }
+}
+
+function renderCallsSummary(wrap) {
+  wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div>טוען שיחות...</div></div>';
+  fetch(APPS_SCRIPT_URL + '?action=getCalls&branch=' + encodeURIComponent(currentUser.branch))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.success) { wrap.innerHTML = '<div class="empty">שגיאה בטעינה</div>'; return; }
+      var calls = d.calls || [];
+      // קבץ לפי חייל
+      var bySoldier = {};
+      calls.forEach(function(c){
+        var k = c.soldier || 'לא ידוע';
+        if (!bySoldier[k]) bySoldier[k] = [];
+        bySoldier[k].push(c);
+      });
+      var html = '<div style="background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:var(--shadow-sm)">' +
+        '<div style="background:var(--navy);padding:14px 20px;display:flex;align-items:center;justify-content:space-between">' +
+          '<div style="color:#fff;font-size:17px;font-weight:700;font-family:Heebo,sans-serif">📞 שיחות שוחרים - שלוחת ' + currentUser.branch + '</div>' +
+          '<div style="color:#b9c4d3;font-size:12px">סה"כ: ' + calls.length + ' שיחות</div>' +
+        '</div>' +
+        '<div style="padding:16px">';
+
+      if (!Object.keys(bySoldier).length) {
+        html += '<div class="empty">לא נרשמו שיחות עדיין</div>';
+      } else {
+        html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+          '<thead><tr style="background:#f2f4f7">' +
+          '<th style="padding:10px 14px;text-align:right;font-weight:600;color:#475467;border-bottom:1px solid var(--border)">שם חייל</th>' +
+          '<th style="padding:10px 14px;text-align:center;font-weight:600;color:#475467;border-bottom:1px solid var(--border)">מס׳ שיחות</th>' +
+          '<th style="padding:10px 14px;text-align:center;font-weight:600;color:#475467;border-bottom:1px solid var(--border)">שיחה אחרונה</th>' +
+          '<th style="padding:10px 14px;text-align:center;font-weight:600;color:#475467;border-bottom:1px solid var(--border)">לידים שטופלו</th>' +
+          '</tr></thead><tbody>';
+        Object.keys(bySoldier).sort().forEach(function(soldier) {
+          var sc = bySoldier[soldier];
+          var last = sc.sort(function(a,b){ return b.timestamp > a.timestamp ? 1 : -1; })[0];
+          var uniqueLeads = {};
+          sc.forEach(function(c){ uniqueLeads[c.leadUuid] = true; });
+          html += '<tr style="border-bottom:1px solid #eef1f5">' +
+            '<td style="padding:9px 14px;font-weight:600;color:var(--navy)">' + soldier + '</td>' +
+            '<td style="padding:9px 14px;text-align:center"><span style="background:#eff6ff;color:#1f4e79;border:1px solid #c7d7ea;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700">' + sc.length + '</span></td>' +
+            '<td style="padding:9px 14px;text-align:center;color:var(--light);font-size:12px">' + (last.timestamp||'-') + '</td>' +
+            '<td style="padding:9px 14px;text-align:center;color:var(--mid)">' + Object.keys(uniqueLeads).length + '</td>' +
+          '</tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+      html += '</div></div>';
+      wrap.innerHTML = html;
+    }).catch(function(){ wrap.innerHTML = '<div class="empty">שגיאה בטעינה</div>'; });
+}
+
+// ── כפתור שיחה במודאל ──
+function renderCallBtn(r) {
+  if (!currentUser || currentUser.role !== 'soldier') return '';
+  return '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eef1f5">' +
+    '<button onclick="openCallModal(\'' + (r.uuid||'') + '\')" style="width:100%;height:42px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:Heebo,sans-serif;font-size:14px;font-weight:700;cursor:pointer">📞 סמן שיחה</button>' +
+    '<div id="callsList_' + (r.uuid||'') + '" style="margin-top:10px"></div>' +
+  '</div>';
+}
+
+var _callModalUuid = null;
+function openCallModal(uuid) {
+  _callModalUuid = uuid;
+  var lead = allData.find(function(r){ return r.uuid === uuid; });
+  var name = lead ? (lead.name||'-') : uuid;
+
+  // טען שיחות קיימות
+  fetch(APPS_SCRIPT_URL + '?action=getLeadCalls&uuid=' + encodeURIComponent(uuid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var existing = (d.calls||[]).map(function(c){
+        return '<div style="font-size:12px;color:var(--mid);padding:4px 0;border-bottom:1px solid #eef1f5">' +
+          '<b>' + c.soldier + '</b> - ' + c.timestamp + '</div>';
+      }).join('') || '<div style="font-size:12px;color:var(--muted)">אין שיחות קודמות</div>';
+
+      var html = '<div style="padding:20px">' +
+        '<div style="font-size:15px;font-weight:700;margin-bottom:4px">סימון שיחה</div>' +
+        '<div style="font-size:12px;color:var(--light);margin-bottom:16px">' + name + '</div>' +
+        '<div style="margin-bottom:14px">' +
+          '<div style="font-size:11px;font-weight:600;color:var(--light);margin-bottom:6px">שיחות קודמות:</div>' +
+          '<div style="max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:8px">' + existing + '</div>' +
+        '</div>' +
+        '<button onclick="saveCall()" style="width:100%;height:42px;background:var(--navy);color:#fff;border:none;border-radius:6px;font-family:Heebo,sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ סמן שיחה עכשיו</button>' +
+        '<div id="callSaveMsg" class="save-msg" style="display:none;margin-top:8px"></div>' +
+        '<div style="margin-top:10px;text-align:center"><button onclick="closeCallModal()" style="background:none;border:none;color:var(--light);cursor:pointer;font-family:Heebo,sans-serif;font-size:13px">ביטול</button></div>' +
+      '</div>';
+
+      document.getElementById('callModalBody').innerHTML = html;
+      document.getElementById('callModalOverlay').style.display = 'flex';
+    }).catch(function(){});
+}
+
+function saveCall() {
+  var uuid = _callModalUuid; if (!uuid) return;
+  var msg = document.getElementById('callSaveMsg');
+  var ts = new Date().toLocaleString('he-IL', {timeZone:'Asia/Jerusalem'});
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action: 'addCall',
+      leadUuid: uuid,
+      soldier: currentUser.displayName || currentUser.username,
+      branch: currentUser.branch,
+      timestamp: ts
+    })
+  }).then(function(){
+    if (msg) { msg.textContent='השיחה נרשמה ✓'; msg.className='save-msg ok'; msg.style.display=''; }
+    setTimeout(function(){ closeCallModal(); }, 1200);
+  });
+}
+
+function closeCallModal() {
+  document.getElementById('callModalOverlay').style.display = 'none';
+  _callModalUuid = null;
 }
 
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
