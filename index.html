@@ -332,7 +332,7 @@ canvas{display:block;width:100%!important;}
   .header-sub,.user-badge{display:none;}
   .hstat{padding:7px 8px;}
   .hstat-num{font-size:18px;}
-  .hstat:nth-child(n+4){display:none;}
+  .hstat:nth-child(n+5){display:none;}
   .new-leads-badge{font-size:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tabs,.toolbar,.status-bar,.table-wrap,.cards-wrap,.group-wrap,.stats-wrap,.empty{margin-right:10px;margin-left:10px;}
   .tab{padding:11px 13px;font-size:12px;}
@@ -389,6 +389,7 @@ canvas{display:block;width:100%!important;}
       <div class="hstat"><div class="hstat-num" id="totalCount">-</div><div class="hstat-label">סה"כ</div></div>
       <div class="hstat"><div class="hstat-num" id="grade8Count">-</div><div class="hstat-label">כיתה ח'</div></div>
       <div class="hstat"><div class="hstat-num" id="grade9Count">-</div><div class="hstat-label">כיתה ט'</div></div>
+      <div class="hstat"><div class="hstat-num" id="gradeETCount">-</div><div class="hstat-label">ע"ט</div></div>
     </div>
     <div class="header-user">
       <span id="newLeadsBadge" class="new-leads-badge" style="display:none" title="לחץ לסגירה"></span>
@@ -837,6 +838,7 @@ function doLogout() {
   document.getElementById('totalCount').textContent = '-';
   document.getElementById('grade8Count').textContent = '-';
   document.getElementById('grade9Count').textContent = '-';
+  document.getElementById('gradeETCount').textContent = '-';
   document.getElementById('loadingWrap').style.display = '';
   document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
   ['tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){
@@ -1055,6 +1057,8 @@ function parseDate(ts) {
 function updateStats() {
   document.getElementById('totalCount').textContent  = allData.length;
   document.getElementById('grade8Count').textContent = allData.filter(function(r){return normalizeGrade(r.grade)==="ח";}).length;
+  document.getElementById('grade9Count').textContent = allData.filter(function(r){return normalizeGrade(r.grade)==="ט";}).length;
+  document.getElementById('gradeETCount').textContent = allData.filter(function(r){return (r.grade||'').includes('עתודה');}).length;
   document.getElementById('grade9Count').textContent = allData.filter(function(r){return normalizeGrade(r.grade)==="ט";}).length;
 }
 
