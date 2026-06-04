@@ -1912,8 +1912,7 @@ function buildViewBody(r) {
     fv('שלוחה',r.branch),fv('מחוז',r.district),fv('סטטוס',r.status||'חדש'),
     fv('סיבת דחייה',r.rejectNote),fv('הערות',r.notes),fv('תאריך',r.timestamp)
   ]) +
-  (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:7px 10px;font-size:12px;color:#92400e;margin-top:8px">עודכן ידנית</div>' : '') +
-  buildDocsSection(r);
+  (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:7px 10px;font-size:12px;color:#92400e;margin-top:8px">עודכן ידנית</div>' : '');
 }
 
 function buildEditForm(r) {
@@ -2358,92 +2357,7 @@ function sendTgSender() {
 
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
 
-// ── DOCUMENTS SECTION IN MODAL ──
-var MODAL_DOCS = [
-  {id:'tz',       name:'ת"ז + ספח',     icon:'🪪', required:true},
-  {id:'machazit', name:'תעודת מחצית',   icon:'📄', required:true},
-  {id:'reva',     name:'תעודת רבעון',   icon:'📋', required:false},
-  {id:'passport', name:'תמונת פספורט', icon:'📸', required:true},
-];
-var _docsCache = {};
 
-function buildDocsSection(r) {
-  var uuid = r.uuid || '';
-  var cached = _docsCache[uuid];
-  var html = '<div class="modal-section" style="margin-top:8px"><div class="sec-title">📁 מסמכים</div>';
-  if (!cached) {
-    html += '<div id="docsLoading_' + uuid + '" style="font-size:12px;color:var(--light);padding:6px 0">טוען...</div>';
-    setTimeout(function(){ loadModalDocs(uuid); }, 50);
-  } else {
-    html += renderDocsList(uuid, cached);
-  }
-  return html + '</div>';
-}
-
-function loadModalDocs(uuid) {
-  var el = document.getElementById('docsLoading_' + uuid);
-  fetch(APPS_SCRIPT_URL + '?action=getUploads&uuid=' + encodeURIComponent(uuid))
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      var uploads = {};
-      if (d.uploads) d.uploads.forEach(function(u){ uploads[u.docId] = u; });
-      _docsCache[uuid] = uploads;
-      var container = document.getElementById('docsContainer_' + uuid);
-      if (container) container.innerHTML = renderDocsList(uuid, uploads);
-      else if (el) el.outerHTML = '<div id="docsContainer_' + uuid + '">' + renderDocsList(uuid, uploads) + '</div>';
-    }).catch(function(){ if(el) el.textContent='שגיאה בטעינה'; });
-}
-
-function renderDocsList(uuid, uploads) {
-  var html = '<div id="docsContainer_' + uuid + '" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  MODAL_DOCS.forEach(function(doc) {
-    var up  = uploads[doc.id];
-    var isUp = !!up;
-    var color = isUp ? '#067647' : (doc.required ? '#b42318' : '#b54708');
-    var bg    = isUp ? '#ecfdf3' : (doc.required ? '#fef3f2' : '#fffaeb');
-    var bdr   = isUp ? '#abefc6' : (doc.required ? '#fecdca' : '#fedf89');
-    var canUpload = currentUser && (currentUser.role==='branch' || currentUser.role==='admin');
-    html += '<div style="border:1px solid ' + bdr + ';background:' + bg + ';border-radius:6px;padding:8px 10px">' +
-      '<div style="font-size:11px;font-weight:700;color:' + color + ';margin-bottom:3px">' + doc.icon + ' ' + doc.name + '</div>' +
-      '<div style="font-size:11px;color:' + color + '">' + (isUp ? '✅ הועלה' : (doc.required ? '❌ חסר' : '⚠️ אופציונלי')) + '</div>' +
-      (isUp ? (function(){
-        var fid = (up.url||'').replace('https://drive.google.com/file/d/','').replace('/preview','');
-        return '<div style="margin-top:3px;display:flex;gap:6px">' +
-          '<a href="https://drive.google.com/file/d/' + fid + '/view" target="_blank" style="font-size:10px;color:var(--royal);text-decoration:none;font-weight:600">👁 צפה</a>' +
-          '<a href="https://drive.google.com/uc?export=download&id=' + fid + '" target="_blank" style="font-size:10px;color:var(--light);text-decoration:none">⬇️ הורד</a>' +
-        '</div>';
-      })() : '') +
-      (canUpload ? '<label style="display:block;margin-top:5px;cursor:pointer;font-size:10px;color:#1a4a9f;font-weight:600">📎 ' + (isUp?'החלף':'העלה') +
-        '<input type="file" accept="image/*,application/pdf" style="display:none" onchange="uploadDocManager(\'' + uuid + '\',\'' + doc.id + '\',this)"/></label>' : '') +
-    '</div>';
-  });
-  return html + '</div>';
-}
-
-function uploadDocManager(uuid, docId, input) {
-  if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-  if (file.size > 10*1024*1024) { alert('הקובץ גדול מדי (מקסימום 10MB)'); return; }
-  var container = document.getElementById('docsContainer_' + uuid);
-  if (container) container.innerHTML = '<div style="font-size:12px;color:var(--light);padding:6px">מעלה...</div>';
-  var lead = allData.find(function(r){ return r.uuid===uuid; }) || {};
-  var doc  = MODAL_DOCS.find(function(d){ return d.id===docId; });
-  var reader = new FileReader();
-  reader.onload = function(ev) {
-    fetch(APPS_SCRIPT_URL, {
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'uploadDoc', uuid:uuid, name:lead.name||'', branch:lead.branch||'',
-        grade:lead.grade||'', docId:docId, docName:doc?doc.name:docId,
-        fileName:file.name, mimeType:file.type, data:ev.target.result.split(',')[1]})
-    }).then(function(){
-      setTimeout(function(){ delete _docsCache[uuid]; loadModalDocs(uuid); }, 2500);
-    }).catch(function(){
-      if(container) container.innerHTML = '<div style="font-size:12px;color:var(--red)">שגיאה בהעלאה</div>';
-    });
-  };
-  reader.readAsDataURL(file);
-}
 
 
 </script>
