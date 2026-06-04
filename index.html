@@ -2406,7 +2406,10 @@ function renderDocsList(uuid, uploads) {
     html += '<div style="border:1px solid ' + bdr + ';background:' + bg + ';border-radius:6px;padding:8px 10px">' +
       '<div style="font-size:11px;font-weight:700;color:' + color + ';margin-bottom:3px">' + doc.icon + ' ' + doc.name + '</div>' +
       '<div style="font-size:11px;color:' + color + '">' + (isUp ? '✅ הועלה' : (doc.required ? '❌ חסר' : '⚠️ אופציונלי')) + '</div>' +
-      (isUp ? '<a href="' + up.url + '" target="_blank" style="font-size:10px;color:var(--royal);text-decoration:none;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + up.fileName + '</a>' : '') +
+      (isUp ? '<div style="margin-top:3px;display:flex;gap:6px">' +
+        '<a href="' + up.url + '" target="_blank" style="font-size:10px;color:var(--royal);text-decoration:none;font-weight:600">👁 צפה</a>' +
+        '<a href="' + (up.url||'').replace('export=view','export=download') + '" target="_blank" style="font-size:10px;color:var(--light);text-decoration:none">⬇️ הורד</a>' +
+      '</div>' : '') +
       (canUpload ? '<label style="display:block;margin-top:5px;cursor:pointer;font-size:10px;color:#1a4a9f;font-weight:600">📎 ' + (isUp?'החלף':'העלה') +
         '<input type="file" accept="image/*,application/pdf" style="display:none" onchange="uploadDocManager(\'' + uuid + '\',\'' + doc.id + '\',this)"/></label>' : '') +
     '</div>';
