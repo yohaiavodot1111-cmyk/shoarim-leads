@@ -2534,9 +2534,21 @@ function saveNoteEdit(uuid, nid) {
 
   // עדכן מיידית
   var note = (_notesCache[uuid]||[]).find(function(n){ return n.noteId===nid; });
+  var oldText = note ? note.text : '';
   if (note) { note.text = text; }
   document.getElementById('noteText_' + nid).textContent = text;
   cancelNoteEdit(nid);
+
+  var editor2 = currentUser.displayName || currentUser.username;
+  // עדכן היסטוריה מיידית
+  var now3 = new Date();
+  var hEntry2 = { editor:editor2, date:now3.toLocaleDateString('he-IL'),
+    time:now3.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}),
+    field:'עריכת הערה', from:oldText.substring(0,60)+(oldText.length>60?'...':''), to:text.substring(0,60)+(text.length>60?'...':'') };
+  if (!_historyCache[uuid]) _historyCache[uuid] = [];
+  _historyCache[uuid].unshift(hEntry2);
+  var hc2 = document.getElementById('histContainer_' + uuid);
+  if (hc2) hc2.outerHTML = renderHistory(uuid, _historyCache[uuid]);
 
   fetch(APPS_SCRIPT_URL, {
     method:'POST', mode:'no-cors',
