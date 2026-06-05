@@ -363,7 +363,7 @@ canvas{display:block;width:100%!important;}
   <div class="login-box">
     <img class="login-logo" src="IAF_New_Logo_2018.png" alt=""/>
     <div class="login-title">מערכת לידים - שוחרות</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.8.1</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.0</div>
     <input class="login-input" id="loginUser" type="text" placeholder="שם משתמש" autocomplete="off" dir="ltr" oninput="startPrefetch()"/>
     <input class="login-input" id="loginPass" type="password" placeholder="סיסמה" dir="ltr"/>
     <button class="login-btn" onclick="doLogin()">כניסה למערכת</button>
@@ -381,7 +381,7 @@ canvas{display:block;width:100%!important;}
     <div>
       <div class="header-title">מערכת לידים - שוחרות</div>
       <div class="header-sub" id="headerSub"></div>
-      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.8.1</div>
+      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.0</div>
     </div>
   </div>
   <div class="header-right">
@@ -861,10 +861,12 @@ function doLogout() {
     document.getElementById(id).style.display = 'none';
   });
 
-  // אפס טאבים
+  // אפס טאבים למצב ברירת מחדל
   setTab('all');
-  document.getElementById('tab-branch').style.display = 'none';
+  document.getElementById('tab-branch').style.display  = 'none';
   document.getElementById('tab-district').style.display = 'none';
+  document.getElementById('tab-stats').style.display   = '';    // תמיד מוצג כברירת מחדל
+  document.getElementById('tab-admin') && (document.getElementById('tab-admin').style.display = 'none');
   document.getElementById('addBtn').style.display = 'none';
 
   // שחרר נעילת גוף אם היה מודאל פתוח
