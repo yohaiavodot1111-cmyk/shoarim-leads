@@ -1990,7 +1990,41 @@ function saveEdit() {
 
     var sm=document.getElementById('saveMsg'); sm.textContent='נשמר'; sm.className='save-msg ok'; sm.style.display='';
     editMode=false; document.getElementById('editBtn').textContent='עריכה';
+
+    // עדכן היסטוריה מיידית מצד הלקוח
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('he-IL');
+    var timeStr = now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    var editor  = currentUser.displayName || currentUser.username;
+    var FIELD_LABELS = {
+      name:'שם מלא', city:'עיר', grade:'כיתה', phone:'טלפון', gender:'מין',
+      school:'מוסד לימודי', parentName:'הורה 1 שם', parentPhone:'הורה 1 טלפון',
+      parentEmail:'הורה 1 מייל', parent2Name:'הורה 2 שם', parent2Phone:'הורה 2 טלפון',
+      parent2Email:'הורה 2 מייל', idNumber:'ת.ז.', motivation:'מוטיבציה',
+      source:'מקור גיוס', branch:'שלוחה', district:'מחוז',
+      rejectNote:'סיבת דחייה', notes:'הערות', status:'סטטוס'
+    };
+    var newEntries = [];
+    EDIT_FIELDS.forEach(function(f){
+      var oldVal = String(r[f]||'').trim();
+      var newVal = String(lead[f]||'').trim();
+      if (oldVal !== newVal && FIELD_LABELS[f]) {
+        newEntries.push({ editor:editor, date:dateStr, time:timeStr,
+          field:FIELD_LABELS[f], from:oldVal||'(ריק)', to:newVal||'(ריק)' });
+      }
+    });
+    if (newEntries.length > 0) {
+      var existing = _historyCache[r.uuid] || [];
+      _historyCache[r.uuid] = newEntries.concat(existing);
+    }
+
     renderModal(); updateStats(); applyFilters();
+
+    // טען מחדש מהשרת אחרי 3 שניות לוודא סנכרון
+    setTimeout(function(){
+      delete _historyCache[r.uuid];
+      loadHistory(r.uuid);
+    }, 3000);
   })
   .catch(function(e){ var sm=document.getElementById('saveMsg'); sm.textContent='שגיאה: '+e.message; sm.className='save-msg err'; sm.style.display=''; saveBtn.disabled=false; saveBtn.textContent='שמור'; })
   .then(function(){ saveBtn.disabled=false; saveBtn.textContent='שמור'; });
