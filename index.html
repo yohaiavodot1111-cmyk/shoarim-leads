@@ -823,6 +823,7 @@ function doLogin() {
 function doLogout() {
   stopPolling();
   _historyCache = {};
+  _notesCache   = {};
   clearTimeout(_inactivityTimer);
   clearTimeout(_inactivityWarning);
   hideInactivityWarning();
@@ -1914,6 +1915,7 @@ function buildViewBody(r) {
     fv('סיבת דחייה',r.rejectNote),fv('הערות',r.notes),fv('תאריך',r.timestamp)
   ]) +
   (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:7px 10px;font-size:12px;color:#92400e;margin-top:8px">עודכן ידנית</div>' : '') +
+  buildNotesSection(r) +
   buildHistorySection(r);
 }
 
@@ -1932,7 +1934,7 @@ function buildEditForm(r) {
     '<div class="mfield"><label>מחוז</label><input id="edit_district" value="' + (r.district||'') + '" readonly style="background:#f0f4fa;"/></div>' +
     '<div class="mfield full-col"><label>סטטוס</label><select id="edit_status" onchange="onStatusChange(this)"><option value="">-</option>' + sopts + '</select></div>' +
     '<div class="mfield"><label>סיבת דחייה <span id="notesReq" style="color:var(--red);display:none">* חובה</span></label><input id="edit_rejectNote" value="' + (r.rejectNote||'').replace(/"/g,'&quot;') + '"/></div>' +
-    '<div class="mfield full-col"><label>הערות</label><input id="edit_notes" value="' + (r.notes||'').replace(/"/g,'&quot;') + '"/></div>' +
+    '<div class="mfield full-col"><label>הערות פנימיות</label><input id="edit_notes" value="' + (r.notes||'').replace(/"/g,'&quot;') + '" placeholder="הערה ישנה (לרקע בלבד)"/></div>' +
   '</div>' +
   '<div class="edit-actions"><button class="btn-cancel" onclick="cancelEdit()">ביטול</button><button class="btn-save" id="saveBtn" onclick="saveEdit()">שמור</button></div>' +
   '<div id="saveMsg" class="save-msg" style="display:none"></div>';
@@ -2390,6 +2392,143 @@ function sendTgSender() {
   });
 }
 
+
+// ── NOTES ──
+var _notesCache = {};
+
+function buildNotesSection(r) {
+  var uuid   = r.uuid || '';
+  var cached = _notesCache[uuid];
+  var html   = '<div class="modal-section" style="margin-top:8px">' +
+    '<div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<span>💬 הערות</span>' +
+      '<button onclick="showNewNoteBox(\'' + uuid + '\')" style="background:var(--navy);color:#fff;border:none;border-radius:5px;padding:4px 12px;font-family:Heebo,sans-serif;font-size:12px;cursor:pointer">+ הערה חדשה</button>' +
+    '</div>' +
+    '<div id="newNoteBox_' + uuid + '" style="display:none;margin-bottom:10px">' +
+      '<textarea id="newNoteText_' + uuid + '" style="width:100%;height:72px;border:1.5px solid var(--border);border-radius:6px;padding:8px;font-family:Heebo,sans-serif;font-size:13px;resize:vertical;direction:rtl;outline:none" placeholder="כתוב הערה..."></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:6px">' +
+        '<button onclick="saveNewNote(\'' + uuid + '\')" style="background:var(--navy);color:#fff;border:none;border-radius:5px;padding:6px 16px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;cursor:pointer">שמור</button>' +
+        '<button onclick="cancelNewNote(\'' + uuid + '\')" style="background:none;border:1px solid var(--border);border-radius:5px;padding:6px 12px;font-family:Heebo,sans-serif;font-size:13px;cursor:pointer;color:var(--light)">ביטול</button>' +
+      '</div>' +
+    '</div>';
+  if (!cached) {
+    html += '<div id="notesLoading_' + uuid + '" style="font-size:12px;color:var(--light);padding:4px 0">טוען...</div>';
+    setTimeout(function(){ loadNotes(uuid); }, 60);
+  } else {
+    html += renderNotesList(uuid, cached);
+  }
+  return html + '</div>';
+}
+
+function loadNotes(uuid) {
+  fetch(APPS_SCRIPT_URL + '?action=getNotes&uuid=' + encodeURIComponent(uuid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      _notesCache[uuid] = d.notes || [];
+      var el = document.getElementById('notesLoading_' + uuid);
+      var nc = document.getElementById('notesContainer_' + uuid);
+      var html = renderNotesList(uuid, _notesCache[uuid]);
+      if (nc) nc.outerHTML = html;
+      else if (el) el.outerHTML = html;
+    }).catch(function(){
+      var el = document.getElementById('notesLoading_' + uuid);
+      if (el) el.textContent = 'שגיאה בטעינה';
+    });
+}
+
+function renderNotesList(uuid, notes) {
+  var html = '<div id="notesContainer_' + uuid + '">';
+  if (!notes || !notes.length) {
+    html += '<div style="font-size:12px;color:var(--muted);padding:4px 0">אין הערות עדיין</div>';
+  } else {
+    notes.forEach(function(n) {
+      var nid = n.noteId;
+      html += '<div id="noteCard_' + nid + '" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fafbfc">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+          '<span style="font-size:11px;font-weight:700;color:var(--navy)">' + n.editor + '</span>' +
+          '<span style="font-size:11px;color:var(--light)">' + n.date + ' ' + n.time + '</span>' +
+        '</div>' +
+        '<div id="noteText_' + nid + '" style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap">' + n.text + '</div>' +
+        '<div id="noteEditBox_' + nid + '" style="display:none">' +
+          '<textarea id="noteEditText_' + nid + '" style="width:100%;height:72px;border:1.5px solid var(--border);border-radius:6px;padding:8px;font-family:Heebo,sans-serif;font-size:13px;resize:vertical;direction:rtl;outline:none">' + n.text + '</textarea>' +
+          '<div style="display:flex;gap:8px;margin-top:6px">' +
+            '<button onclick="saveNoteEdit(\'' + uuid + '\',\'' + nid + '\')" style="background:var(--navy);color:#fff;border:none;border-radius:5px;padding:5px 14px;font-family:Heebo,sans-serif;font-size:12px;font-weight:600;cursor:pointer">שמור</button>' +
+            '<button onclick="cancelNoteEdit(\'' + nid + '\')" style="background:none;border:1px solid var(--border);border-radius:5px;padding:5px 10px;font-family:Heebo,sans-serif;font-size:12px;cursor:pointer;color:var(--light)">ביטול</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:12px;margin-top:8px">' +
+          '<button onclick="openNoteEdit(\'' + nid + '\')" style="background:none;border:none;font-size:11px;color:var(--light);cursor:pointer;font-family:Heebo,sans-serif;padding:0">✏️ ערוך</button>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+  return html + '</div>';
+}
+
+function showNewNoteBox(uuid) {
+  var box = document.getElementById('newNoteBox_' + uuid);
+  if (box) { box.style.display = ''; document.getElementById('newNoteText_' + uuid).focus(); }
+}
+function cancelNewNote(uuid) {
+  var box = document.getElementById('newNoteBox_' + uuid);
+  if (box) { box.style.display='none'; document.getElementById('newNoteText_' + uuid).value=''; }
+}
+
+function saveNewNote(uuid) {
+  var el   = document.getElementById('newNoteText_' + uuid);
+  var text = el ? el.value.trim() : '';
+  if (!text) return;
+  var editor = currentUser.displayName || currentUser.username;
+  var now    = new Date();
+  var tmpId  = 'tmp_' + now.getTime();
+
+  // הוסף מיידית לממשק
+  var newNote = { noteId:tmpId, uuid:uuid, text:text, editor:editor,
+    date:now.toLocaleDateString('he-IL'),
+    time:now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) };
+  if (!_notesCache[uuid]) _notesCache[uuid] = [];
+  _notesCache[uuid].unshift(newNote);
+  cancelNewNote(uuid);
+  var nc = document.getElementById('notesContainer_' + uuid);
+  if (nc) nc.outerHTML = renderNotesList(uuid, _notesCache[uuid]);
+
+  // שמור בשרת
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'addNote', uuid:uuid, text:text, editor:editor})
+  }).then(function(){
+    setTimeout(function(){ delete _notesCache[uuid]; loadNotes(uuid); }, 2000);
+  });
+}
+
+function openNoteEdit(nid) {
+  document.getElementById('noteText_' + nid).style.display    = 'none';
+  document.getElementById('noteEditBox_' + nid).style.display = '';
+  document.getElementById('noteEditText_' + nid).focus();
+}
+function cancelNoteEdit(nid) {
+  document.getElementById('noteText_' + nid).style.display    = '';
+  document.getElementById('noteEditBox_' + nid).style.display = 'none';
+}
+
+function saveNoteEdit(uuid, nid) {
+  var el   = document.getElementById('noteEditText_' + nid);
+  var text = el ? el.value.trim() : '';
+  if (!text) return;
+
+  // עדכן מיידית
+  var note = (_notesCache[uuid]||[]).find(function(n){ return n.noteId===nid; });
+  if (note) { note.text = text; }
+  document.getElementById('noteText_' + nid).textContent = text;
+  cancelNoteEdit(nid);
+
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'editNote', uuid:uuid, noteId:nid, text:text})
+  });
+}
 
 // ── HISTORY ──
 var _historyCache = {};
