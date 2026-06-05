@@ -822,6 +822,7 @@ function doLogin() {
 
 function doLogout() {
   stopPolling();
+  _historyCache = {};
   clearTimeout(_inactivityTimer);
   clearTimeout(_inactivityWarning);
   hideInactivityWarning();
@@ -1912,7 +1913,8 @@ function buildViewBody(r) {
     fv('שלוחה',r.branch),fv('מחוז',r.district),fv('סטטוס',r.status||'חדש'),
     fv('סיבת דחייה',r.rejectNote),fv('הערות',r.notes),fv('תאריך',r.timestamp)
   ]) +
-  (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:7px 10px;font-size:12px;color:#92400e;margin-top:8px">עודכן ידנית</div>' : '');
+  (r.hasEdit ? '<div style="background:#fef9c3;border:1px solid #fbbf24;padding:7px 10px;font-size:12px;color:#92400e;margin-top:8px">עודכן ידנית</div>' : '') +
+  buildHistorySection(r);
 }
 
 function buildEditForm(r) {
@@ -1974,7 +1976,7 @@ function saveEdit() {
     var sm=document.getElementById('saveMsg'); sm.textContent='סטטוס זה מחייב סיבת דחייה'; sm.className='save-msg err'; sm.style.display='';
     saveBtn.disabled=false; saveBtn.textContent='שמור'; return;
   }
-  fetch(APPS_SCRIPT_URL, {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveEdit',lead:lead})})
+  fetch(APPS_SCRIPT_URL, {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveEdit',lead:lead,editor:currentUser.displayName||currentUser.username})})
   .then(function(){
     // עדכן מיידית בכל מקום בנתונים המקומיים
     EDIT_FIELDS.forEach(function(f){r[f]=lead[f];}); r.hasEdit=true;
@@ -2354,6 +2356,71 @@ function sendTgSender() {
   });
 }
 
+
+// ── HISTORY ──
+var _historyCache = {};
+
+function buildHistorySection(r) {
+  var uuid = r.uuid || '';
+  var cached = _historyCache[uuid];
+  var html = '<div class="modal-section" style="margin-top:8px"><div class="sec-title">📋 היסטוריית שינויים</div>';
+  if (!cached) {
+    html += '<div id="histLoading_' + uuid + '" style="font-size:12px;color:var(--light);padding:4px 0">טוען...</div>';
+    setTimeout(function(){ loadHistory(uuid); }, 80);
+  } else {
+    html += renderHistory(uuid, cached);
+  }
+  return html + '</div>';
+}
+
+function loadHistory(uuid) {
+  fetch(APPS_SCRIPT_URL + '?action=getHistory&uuid=' + encodeURIComponent(uuid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      _historyCache[uuid] = d.history || [];
+      var el = document.getElementById('histLoading_' + uuid);
+      var hc = document.getElementById('histContainer_' + uuid);
+      var html = renderHistory(uuid, _historyCache[uuid]);
+      if (hc) hc.outerHTML = html;
+      else if (el) el.outerHTML = html;
+    }).catch(function(){
+      var el = document.getElementById('histLoading_' + uuid);
+      if (el) el.textContent = 'שגיאה בטעינה';
+    });
+}
+
+function renderHistory(uuid, history) {
+  var html = '<div id="histContainer_' + uuid + '">';
+  if (!history || !history.length) {
+    html += '<div style="font-size:12px;color:var(--muted);padding:4px 0">אין שינויים מתועדים עדיין</div>';
+  } else {
+    var shown = history.slice(0, 8); // הצג 8 אחרונים
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">' +
+      '<thead><tr style="background:#f2f4f7">' +
+        '<th style="padding:6px 8px;text-align:right;color:#475467;font-weight:600;border-bottom:1px solid var(--border)">תאריך</th>' +
+        '<th style="padding:6px 8px;text-align:right;color:#475467;font-weight:600;border-bottom:1px solid var(--border)">שעה</th>' +
+        '<th style="padding:6px 8px;text-align:right;color:#475467;font-weight:600;border-bottom:1px solid var(--border)">עורך</th>' +
+        '<th style="padding:6px 8px;text-align:right;color:#475467;font-weight:600;border-bottom:1px solid var(--border)">שדה</th>' +
+        '<th style="padding:6px 8px;text-align:right;color:#475467;font-weight:600;border-bottom:1px solid var(--border)">מ</th>' +
+        '<th style="padding:6px 8px;text-align:right;color:#475467;font-weight:600;border-bottom:1px solid var(--border)">ל</th>' +
+      '</tr></thead><tbody>';
+    shown.forEach(function(h) {
+      html += '<tr style="border-bottom:1px solid #eef1f5">' +
+        '<td style="padding:5px 8px;color:var(--light)">' + h.date + '</td>' +
+        '<td style="padding:5px 8px;color:var(--light)">' + h.time + '</td>' +
+        '<td style="padding:5px 8px;font-weight:600;color:var(--navy)">' + h.editor + '</td>' +
+        '<td style="padding:5px 8px;color:var(--mid)">' + h.field + '</td>' +
+        '<td style="padding:5px 8px;color:var(--red);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + h.from + '">' + h.from + '</td>' +
+        '<td style="padding:5px 8px;color:var(--green);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + h.to + '">' + h.to + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+    if (history.length > 8) {
+      html += '<div style="font-size:11px;color:var(--light);margin-top:4px;text-align:center">מוצגים 8 שינויים אחרונים מתוך ' + history.length + '</div>';
+    }
+  }
+  return html + '</div>';
+}
 
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
 
