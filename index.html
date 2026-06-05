@@ -2498,8 +2498,23 @@ function saveNewNote(uuid) {
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({action:'addNote', uuid:uuid, text:text, editor:editor})
   }).then(function(){
+    // תעד בהיסטוריה
+    fetch(APPS_SCRIPT_URL, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'saveEdit', lead:{uuid:uuid}, editor:editor, historyOnly:true, historyChanges:[{field:'הערה חדשה', from:'(ריק)', to:text.substring(0,60)+(text.length>60?'...':'')}]})
+    });
     setTimeout(function(){ delete _notesCache[uuid]; loadNotes(uuid); }, 2000);
   });
+  // עדכן cache היסטוריה מיידית
+  var now2 = new Date();
+  var hEntry = { editor:editor, date:now2.toLocaleDateString('he-IL'),
+    time:now2.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}),
+    field:'הערה חדשה', from:'(ריק)', to:text.substring(0,60)+(text.length>60?'...':'') };
+  if (!_historyCache[uuid]) _historyCache[uuid] = [];
+  _historyCache[uuid].unshift(hEntry);
+  var hc = document.getElementById('histContainer_' + uuid);
+  if (hc) hc.outerHTML = renderHistory(uuid, _historyCache[uuid]);
 }
 
 function openNoteEdit(nid) {
@@ -2527,6 +2542,14 @@ function saveNoteEdit(uuid, nid) {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({action:'editNote', uuid:uuid, noteId:nid, text:text})
+  }).then(function(){
+    // תעד עריכת הערה בהיסטוריה
+    var editor = currentUser.displayName || currentUser.username;
+    fetch(APPS_SCRIPT_URL, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'saveEdit', lead:{uuid:uuid}, editor:editor, historyOnly:true, historyChanges:[{field:'עריכת הערה', from:'(קודם)', to:text.substring(0,60)+(text.length>60?'...':'')}]})
+    });
   });
 }
 
