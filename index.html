@@ -801,7 +801,7 @@ function doLogin() {
     document.getElementById('headerSub').textContent =
       currentUser.role === 'admin'    ? 'מפקד גף' :
       currentUser.role === 'district' ? 'מפקד מחוז ' + (currentUser.district||'') :
-      currentUser.role === 'soldier'  ? 'שוחר - שלוחת ' + (currentUser.branch||'') :
+      currentUser.role === 'soldier'  ? 'חייל - שלוחת ' + (currentUser.branch||'') :
       'שלוחת ' + (currentUser.branch||'');
 
     if (currentUser.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
@@ -905,7 +905,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('headerSub').textContent =
       user.role === 'admin'    ? 'מפקד גף' :
       user.role === 'district' ? 'מפקד מחוז ' + (user.district||'') :
-      user.role === 'soldier'  ? 'שוחר - שלוחת ' + (user.branch||'') :
+      user.role === 'soldier'  ? 'חייל - שלוחת ' + (user.branch||'') :
       'שלוחת ' + (user.branch||'');
 
     if (user.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
