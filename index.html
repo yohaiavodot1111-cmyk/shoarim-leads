@@ -806,8 +806,8 @@ function doLogin() {
 
     if (currentUser.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (currentUser.role === 'district') { document.getElementById('tab-branch').style.display=''; }
-    if (currentUser.role === 'branch' || currentUser.role === 'admin') document.getElementById('addBtn').style.display = '';
-    // טאב שיחות — למפקד שלוחה
+    if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'soldier') document.getElementById('addBtn').style.display = '';
+    document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
     if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
@@ -913,7 +913,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (user.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
     else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
     if (user.role === 'branch' || user.role === 'admin' || user.role === 'soldier') document.getElementById('addBtn').style.display = '';
-    if (user.role === 'soldier') document.getElementById('tab-stats').style.display = 'none';
+    document.getElementById('tab-stats').style.display = (user.role === 'soldier') ? 'none' : '';
     if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
