@@ -909,15 +909,13 @@ function doLogout(silent) {
 document.getElementById('loginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 
 // ── שחזור session אחרי רענון ──
-document.addEventListener('DOMContentLoaded', function() {
+function restoreSession() {
   var token   = localStorage.getItem('authToken');
   var expires = localStorage.getItem('authExpiresAt');
   var saved   = localStorage.getItem('currentUser');
 
-  // אין token — הצג מסך כניסה
   if (!token || !saved) return;
 
-  // token פג תוקף לפי שעון הלקוח — נקה ועבור לכניסה
   if (expires && new Date() > new Date(expires)) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('authExpiresAt');
@@ -925,31 +923,23 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // ── הצג מיד את המסך ללא הבהוב — מבוסס על localStorage ──
-  // אם ה-validateSession יכשל אחר כך — נעביר לכניסה
   try {
     var user = JSON.parse(saved);
     if (user && user.username) {
-      // הסתר מסך כניסה מיד, הצג spinner עד שהנתונים יעלו
       document.getElementById('loginScreen').style.display = 'none';
       _activateUser(user, user.username);
     }
   } catch(e) { return; }
 
-  // ── אמת מול השרת ברקע (אחרי שהמסך כבר עלה) ──
+  // אמת ברקע — אם נכשל בלבד, נתק
   fetch(APPS_SCRIPT_URL + '?action=validateSession&token=' + encodeURIComponent(token))
     .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (!d.success) {
-        // token לא תקף — התנתק
-        doLogout(true);
-      }
-      // הצלחה — המסך כבר פעיל, כלום לא צריך לעשות
-    })
-    .catch(function() {
-      // שגיאת רשת — נשאר מחובר (localStorage תקף, לא מנתקים על שגיאת רשת)
-    });
-});
+    .then(function(d) { if (!d.success) doLogout(true); })
+    .catch(function() { /* שגיאת רשת — נשאר מחובר */ });
+}
+
+// הפעל מיד (הסקריפט בסוף הדף — DOM כבר מוכן)
+restoreSession();
 
 // ── DATA ──
 var _loadToken = 0;
