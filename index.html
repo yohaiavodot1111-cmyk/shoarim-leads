@@ -664,37 +664,42 @@ function doLogin() {
   btn.disabled = true;
   btn.textContent = 'מתחבר...';
 
-  // login דרך GET — CORS ידידותי
-  var qs = 'action=login&username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p);
-  fetch(APPS_SCRIPT_URL + '?' + qs)
+  // קבל IP של הלקוח לפני שליחת הבקשה
+  fetch('https://api.ipify.org?format=json')
     .then(function(r) { return r.json(); })
-    .then(function(d) {
-      btn.disabled = false;
-      btn.textContent = 'כניסה למערכת';
+    .catch(function() { return { ip: 'לא ידוע' }; })
+    .then(function(ipData) {
+      var clientIp = (ipData && ipData.ip) ? ipData.ip : 'לא ידוע';
+      var qs = 'action=login'
+        + '&username=' + encodeURIComponent(u)
+        + '&password=' + encodeURIComponent(p)
+        + '&ip='       + encodeURIComponent(clientIp);
 
-      if (!d.success) {
-        if (d.error === 'locked') {
-          errEl.textContent = 'החשבון נעול ל-' + (d.remaining || 15) + ' דקות עקב ניסיונות כניסה חוזרים.';
-        } else {
-          // ספירת ניסיונות — הגדל מונה מקומי
-          var attempts = parseInt(localStorage.getItem('_loginAttempts_' + u) || '0') + 1;
-          localStorage.setItem('_loginAttempts_' + u, attempts);
-          var remaining = Math.max(0, 5 - attempts);
-          errEl.textContent = 'זוהה ניסיון התחברות כושל. הניסיון תועד. הנך מוגבל ל-5 ניסיונות. נשארו לך ' + remaining + ' ניסיונות.';
-        }
-        errEl.style.display = 'block';
-        return;
-      }
+      return fetch(APPS_SCRIPT_URL + '?' + qs)
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          btn.disabled = false;
+          btn.textContent = 'כניסה למערכת';
 
-      // הצלחה — אפס מונה ניסיונות
-      localStorage.removeItem('_loginAttempts_' + u);
+          if (!d.success) {
+            if (d.error === 'locked') {
+              errEl.textContent = 'כתובת ה-IP שלך זוהתה (' + clientIp + '). החשבון נעול ל-' + (d.remaining || 15) + ' דקות עקב ניסיונות כניסה חוזרים.';
+            } else {
+              var attempts = parseInt(localStorage.getItem('_loginAttempts_' + u) || '0') + 1;
+              localStorage.setItem('_loginAttempts_' + u, attempts);
+              var remaining = Math.max(0, 5 - attempts);
+              errEl.textContent = 'כתובת ה-IP שלך זוהתה (' + clientIp + '). זוהה ניסיון התחברות כושל. הניסיון תועד. הנך מוגבל ל-5 ניסיונות. נשארו לך ' + remaining + ' ניסיונות.';
+            }
+            errEl.style.display = 'block';
+            return;
+          }
 
-      // שמור token ופרופיל
-      localStorage.setItem('authToken',    d.token);
-      localStorage.setItem('authExpiresAt', d.expiresAt);
-      localStorage.setItem('currentUser',  JSON.stringify(d.user));
-
-      _activateUser(d.user, u);
+          localStorage.removeItem('_loginAttempts_' + u);
+          localStorage.setItem('authToken',    d.token);
+          localStorage.setItem('authExpiresAt', d.expiresAt);
+          localStorage.setItem('currentUser',  JSON.stringify(d.user));
+          _activateUser(d.user, u);
+        });
     })
     .catch(function() {
       btn.disabled = false;
