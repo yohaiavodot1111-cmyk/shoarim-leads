@@ -960,10 +960,14 @@ function startPolling() {
   _pollingInterval = setInterval(function() {
     if (!currentUser) { stopPolling(); return; }
     var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-    apiCall('getLeads', { since: sinceStr })
+    var token    = localStorage.getItem('authToken') || '';
+    var url      = APPS_SCRIPT_URL + '?action=getLeads&token=' + encodeURIComponent(token) + '&since=' + encodeURIComponent(sinceStr);
+
+    fetch(url)
+      .then(function(r) { return r.json(); })
       .then(function(d) {
         if (!currentUser || !d || !d.success || !d.rows) return;
-        // השרת כבר מחזיר רק מה שמותר — אין צורך בסינון נוסף
+        if (d.error === 'unauthorized') { doLogout(true); return; }
         var rows = d.rows;
         if (rows.length === allData.length) return;
         rows.sort(function(a,b){
@@ -976,7 +980,9 @@ function startPolling() {
         applyFilters(); updateStats();
         document.getElementById('statusText').textContent = 'מסונכרן - ' + allData.length + ' רשומות';
         document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
-      }).catch(function(){});
+      }).catch(function(){
+        // שגיאת polling — לא מציגים כלום, ינסה שוב בסיבוב הבא
+      });
   }, 30000);
 }
 
@@ -1002,27 +1008,57 @@ function loadData() {
   document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
 
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-  var token = localStorage.getItem('authToken') || '';
+  var token    = localStorage.getItem('authToken') || '';
+  var url      = APPS_SCRIPT_URL + '?action=getLeads&token=' + encodeURIComponent(token) + '&since=' + encodeURIComponent(sinceStr);
 
-  // קריאה ישירה עם token — בדיוק כמו apiCall אבל עם טיפול שגיאות מורחב
-  fetch(APPS_SCRIPT_URL + '?action=getLeads&token=' + encodeURIComponent(token) + '&since=' + encodeURIComponent(sinceStr))
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (myToken !== _loadToken || !currentUser) return;
-      if (d && d.error === 'unauthorized') { doLogout(true); return; }
-      if (!d || !d.success) {
-        var msg = (d && d.error) ? d.error : 'שגיאה לא ידועה';
-        document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאה מהשרת: ' + msg + '</div>';
-        if (btn) { btn.disabled=false; btn.textContent='רענן'; }
-        return;
-      }
-      _processRows(d.rows || [], myToken, btn);
-    })
-    .catch(function(e) {
-      if (myToken !== _loadToken) return;
-      document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאת רשת: ' + (e && e.message || e) + '</div>';
-      if (btn) { btn.disabled=false; btn.textContent='רענן'; }
-    });
+  var MAX_RETRIES  = 3;
+  var TIMEOUT_MS   = 20000; // 20 שניות timeout לכל ניסיון
+
+  function attempt(tryNum) {
+    if (myToken !== _loadToken || !currentUser) return;
+
+    var label = tryNum === 1 ? 'טוען נתונים...' : 'ניסיון ' + tryNum + ' מתוך ' + MAX_RETRIES + '...';
+    document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>' + label + '</div>';
+
+    // timeout controller
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timeoutId  = controller ? setTimeout(function() { controller.abort(); }, TIMEOUT_MS) : null;
+
+    var fetchOpts = controller ? { signal: controller.signal } : {};
+
+    fetch(url, fetchOpts)
+      .then(function(r) {
+        if (timeoutId) clearTimeout(timeoutId);
+        return r.json();
+      })
+      .then(function(d) {
+        if (myToken !== _loadToken || !currentUser) return;
+        if (d && d.error === 'unauthorized') { doLogout(true); return; }
+        if (!d || !d.success) {
+          throw new Error((d && d.error) ? d.error : 'שגיאה מהשרת');
+        }
+        _processRows(d.rows || [], myToken, btn);
+      })
+      .catch(function(e) {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (myToken !== _loadToken || !currentUser) return;
+
+        if (tryNum < MAX_RETRIES) {
+          // המתן שנייה וחזור
+          setTimeout(function() { attempt(tryNum + 1); }, 1500);
+        } else {
+          document.getElementById('loadingWrap').innerHTML =
+            '<div style="color:var(--red);padding:20px;text-align:center">' +
+            '⚠️ לא ניתן לטעון נתונים.<br>' +
+            '<small style="color:var(--light)">' + (e && e.message || 'שגיאת רשת') + '</small><br><br>' +
+            '<button onclick="loadData()" style="margin-top:8px;padding:8px 20px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">נסה שוב</button>' +
+            '</div>';
+          if (btn) { btn.disabled=false; btn.textContent='רענן'; }
+        }
+      });
+  }
+
+  attempt(1);
 }
 
 // מעבד את השורות ומציג — השרת כבר מסנן לפי הרשאות
