@@ -363,7 +363,7 @@ canvas{display:block;width:100%!important;}
   <div class="login-box">
     <img class="login-logo" src="IAF_New_Logo_2018.png" alt=""/>
     <div class="login-title">מערכת לידים - שוחרות</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.0</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.3</div>
     <input class="login-input" id="loginUser" type="text" placeholder="שם משתמש" autocomplete="off" dir="ltr" oninput="startPrefetch()"/>
     <input class="login-input" id="loginPass" type="password" placeholder="סיסמה" dir="ltr"/>
     <button class="login-btn" onclick="doLogin()">כניסה למערכת</button>
@@ -381,7 +381,7 @@ canvas{display:block;width:100%!important;}
     <div>
       <div class="header-title">מערכת לידים - שוחרות</div>
       <div class="header-sub" id="headerSub"></div>
-      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.0</div>
+      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.3</div>
     </div>
   </div>
   <div class="header-right">
@@ -719,7 +719,7 @@ function _activateUser(user, username) {
 
   if (currentUser.role === 'telegram') {
     showTelegramSender();
-    resetInactivity();
+    if (!_restoringSession) resetInactivity();
     return;
   }
 
@@ -755,7 +755,9 @@ function _activateUser(user, username) {
 
   loadData();
   startPolling();
-  resetInactivity();
+  // resetInactivity נקרא רק מ-doLogin (כניסה ידנית) — לא מ-restoreSession
+  // כדי שלא יעלה timer מיידי אחרי F5
+  if (!_restoringSession) resetInactivity();
 }
 
 var _prefetchedRows = null;   // נתונים שנטענו ברקע לפני התחברות
@@ -909,6 +911,8 @@ function doLogout(silent) {
 document.getElementById('loginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 
 // ── שחזור session אחרי רענון ──
+var _restoringSession = false;
+
 function restoreSession() {
   var token   = localStorage.getItem('authToken');
   var expires = localStorage.getItem('authExpiresAt');
@@ -927,7 +931,10 @@ function restoreSession() {
     var user = JSON.parse(saved);
     if (user && user.username) {
       document.getElementById('loginScreen').style.display = 'none';
+      _restoringSession = true;
       _activateUser(user, user.username);
+      _restoringSession = false;
+      // הפעל inactivity רק אחרי אינטראקציה ראשונה של המשתמש
     }
   } catch(e) { return; }
 
@@ -1001,20 +1008,25 @@ function loadData() {
   var token    = localStorage.getItem('authToken') || '';
   var url      = APPS_SCRIPT_URL + '?action=getLeads&token=' + encodeURIComponent(token) + '&since=' + encodeURIComponent(sinceStr);
 
-  var MAX_RETRIES  = 3;
-  var TIMEOUT_MS   = 20000; // 20 שניות timeout לכל ניסיון
+  var MAX_RETRIES = 4;
+  var TIMEOUT_MS  = 40000; // 40 שניות — Apps Script יכול לקחת זמן
 
   function attempt(tryNum) {
-    if (myToken !== _loadToken || !currentUser) return;
+    if (!currentUser) return;
 
-    var label = tryNum === 1 ? 'טוען נתונים...' : 'ניסיון ' + tryNum + ' מתוך ' + MAX_RETRIES + '...';
+    var messages = [
+      'טוען נתונים...',
+      'מתחבר לשרת, רגע...',
+      'עוד רגע...',
+      'כמעט שם...',
+    ];
+    var label = messages[Math.min(tryNum - 1, messages.length - 1)];
     document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>' + label + '</div>';
 
-    // timeout controller
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timeoutId  = controller ? setTimeout(function() { controller.abort(); }, TIMEOUT_MS) : null;
-
-    var fetchOpts = controller ? { signal: controller.signal } : {};
+    var fetchOpts  = controller ? { signal: controller.signal } : {};
+    var currentLoadToken = _loadToken;
 
     fetch(url, fetchOpts)
       .then(function(r) {
@@ -1022,20 +1034,17 @@ function loadData() {
         return r.json();
       })
       .then(function(d) {
-        if (myToken !== _loadToken || !currentUser) return;
+        if (!currentUser || currentLoadToken !== _loadToken) return;
         if (d && d.error === 'unauthorized') { doLogout(true); return; }
-        if (!d || !d.success) {
-          throw new Error((d && d.error) ? d.error : 'שגיאה מהשרת');
-        }
-        _processRows(d.rows || [], myToken, btn);
+        if (!d || !d.success) throw new Error((d && d.error) ? d.error : 'שגיאה מהשרת');
+        _processRows(d.rows || [], currentLoadToken, btn);
       })
       .catch(function(e) {
         if (timeoutId) clearTimeout(timeoutId);
-        if (myToken !== _loadToken || !currentUser) return;
+        if (!currentUser || currentLoadToken !== _loadToken) return;
 
         if (tryNum < MAX_RETRIES) {
-          // המתן שנייה וחזור
-          setTimeout(function() { attempt(tryNum + 1); }, 1500);
+          setTimeout(function() { attempt(tryNum + 1); }, 2000);
         } else {
           document.getElementById('loadingWrap').innerHTML =
             '<div style="color:var(--red);padding:20px;text-align:center">' +
@@ -1052,8 +1061,8 @@ function loadData() {
 }
 
 // מעבד את השורות ומציג — השרת כבר מסנן לפי הרשאות
-function _processRows(rows, myToken, btn) {
-  if (myToken !== _loadToken || !currentUser) return;
+function _processRows(rows, loadToken, btn) {
+  if (!currentUser || loadToken !== _loadToken) return;
 
   // אין סינון נוסף — השרת מחזיר רק מה שמותר למשתמש זה
 
@@ -2257,9 +2266,12 @@ function confirmActivity() {
   resetInactivity();
 }
 
-// האזן לפעילות משתמש
-['keydown','click'].forEach(function(ev) {
-  document.addEventListener(ev, resetInactivity, {passive: true});
+// האזן לפעילות משתמש — רק אם מחובר ורק על אינטראקציה אמיתית
+// אחרי restoreSession, ה-timer מתחיל רק עם הנגיעה הראשונה
+['keydown','mousedown','touchstart'].forEach(function(ev) {
+  document.addEventListener(ev, function() {
+    if (currentUser) resetInactivity();
+  }, {passive: true});
 });
 // ── TELEGRAM SENDER (role: telegram) ──
 var TG_SENDER_TEMPLATES = [
