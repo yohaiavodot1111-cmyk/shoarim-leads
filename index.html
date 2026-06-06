@@ -636,22 +636,23 @@ var selectedStatuses = [];
 // הלקוח שומר token בלבד — לא סיסמה, לא רשימת משתמשים.
 
 // ── helper: כל קריאת API עוברת כאן עם token ──
+// משתמשת ב-GET כי Apps Script GET תומך ב-CORS אוטומטית
 function apiCall(action, payload) {
-  var token = localStorage.getItem('authToken') || '';
-  var body  = Object.assign({ action: action, token: token }, payload || {});
-  return fetch(APPS_SCRIPT_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(d) {
-    if (d && d.error === 'unauthorized') {
-      doLogout(true); // silent logout — חזור למסך כניסה
-      return Promise.reject('unauthorized');
-    }
-    return d;
-  });
+  var token  = localStorage.getItem('authToken') || '';
+  var params = Object.assign({ action: action, token: token }, payload || {});
+  var qs     = Object.keys(params).map(function(k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k] || '');
+  }).join('&');
+
+  return fetch(APPS_SCRIPT_URL + '?' + qs)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.error === 'unauthorized') {
+        doLogout(true);
+        return Promise.reject('unauthorized');
+      }
+      return d;
+    });
 }
 
 function doLogin() {
@@ -663,11 +664,9 @@ function doLogin() {
   btn.disabled = true;
   btn.textContent = 'מתחבר...';
 
-  fetch(APPS_SCRIPT_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ action: 'login', username: u, password: p }),
-  })
+  // login דרך GET — CORS ידידותי
+  var qs = 'action=login&username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p);
+  fetch(APPS_SCRIPT_URL + '?' + qs)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       btn.disabled = false;
@@ -838,11 +837,8 @@ function doLogout(silent) {
   // הודע לשרת לבטל את ה-token
   var token = localStorage.getItem('authToken');
   if (token) {
-    fetch(APPS_SCRIPT_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ action: 'logout', token: token }),
-    }).catch(function(){});
+    fetch(APPS_SCRIPT_URL + '?action=logout&token=' + encodeURIComponent(token))
+      .catch(function(){});
   }
 
   // נקה localStorage
@@ -916,12 +912,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // יש token — אמת מול השרת
-  fetch(APPS_SCRIPT_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ action: 'validateSession', token: token }),
-  })
+  // יש token — אמת מול השרת דרך GET
+  fetch(APPS_SCRIPT_URL + '?action=validateSession&token=' + encodeURIComponent(token))
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (!d.success) {
