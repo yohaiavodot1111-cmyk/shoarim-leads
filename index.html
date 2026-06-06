@@ -631,7 +631,89 @@ var STATUS_GREEN  = ['יום פתוח התייצב','מבחן מיון עבר ב
 var STATUS_NOTES_REQUIRED = ['קשר ראשוני פסילה','לא תקין'];
 
 var selectedStatuses = [];
-var USERS_CACHE = null;
+// ── AUTH — אימות מאובטח דרך Apps Script ──
+// הסיסמאות נשמרות רק בגיליון Google Sheets ונבדקות בשרת.
+// הלקוח לעולם לא מקבל רשימת משתמשים או סיסמאות.
+
+function doLogin() {
+  var u = document.getElementById('loginUser').value.trim();
+  var p = document.getElementById('loginPass').value.trim();
+  var errEl = document.getElementById('loginErr');
+  errEl.style.display = 'none';
+  var btn = document.querySelector('.login-btn');
+  btn.disabled = true;
+  btn.textContent = 'מתחבר...';
+
+  fetch(APPS_SCRIPT_URL + '?action=login&u=' + encodeURIComponent(u) + '&p=' + encodeURIComponent(p))
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      btn.disabled = false;
+      btn.textContent = 'כניסה למערכת';
+
+      if (!d.success) {
+        errEl.style.display = 'block';
+        return;
+      }
+
+      var user = d.user;
+      currentUser = Object.assign({}, user, { username: u });
+      lastLoginTime = localStorage.getItem('lastLogin_' + u)
+        ? new Date(localStorage.getItem('lastLogin_' + u))
+        : null;
+
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      sessionStorage.setItem('lastLoginTime', lastLoginTime ? lastLoginTime.toISOString() : '');
+
+      document.getElementById('loginScreen').style.display = 'none';
+
+      if (currentUser.role === 'telegram') {
+        showTelegramSender();
+        resetInactivity();
+        return;
+      }
+
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('userBadge').textContent = user.displayName || u;
+      document.getElementById('headerSub').textContent =
+        currentUser.role === 'admin'    ? 'מפקד גף' :
+        currentUser.role === 'district' ? 'מפקד מחוז ' + (currentUser.district || '') :
+        currentUser.role === 'soldier'  ? 'חייל - שלוחת ' + (currentUser.branch || '') :
+        'שלוחת ' + (currentUser.branch || '');
+
+      if (currentUser.role === 'admin') {
+        document.getElementById('tab-branch').style.display = '';
+        document.getElementById('tab-district').style.display = '';
+      } else if (currentUser.role === 'district') {
+        document.getElementById('tab-branch').style.display = '';
+      }
+      if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'soldier')
+        document.getElementById('addBtn').style.display = '';
+      document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
+      if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
+
+      var addBranch = document.getElementById('add_branch');
+      addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
+        BRANCHES.map(function(b) {
+          return '<option' + (currentUser.branch === b ? ' selected' : '') + '>' + b + '</option>';
+        }).join('');
+      if (currentUser.role === 'branch') {
+        addBranch.value = currentUser.branch;
+        addBranch.disabled = true;
+        document.getElementById('add_district').value = currentUser.district || '';
+      }
+
+      loadData();
+      startPolling();
+      resetInactivity();
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'כניסה למערכת';
+      errEl.textContent = 'שגיאת רשת — נסה שנית';
+      errEl.style.display = 'block';
+    });
+}
+
 var _prefetchedRows = null;   // נתונים שנטענו ברקע לפני התחברות
 var _pollingInterval = null;  // polling אוטומטי
 var SINCE_DATE = new Date(2026, 4, 1); // 01.05.26 — תאריך התחלת טעינה
@@ -710,116 +792,6 @@ var currentView = 'table', currentTab = 'all';
 var sortKey = 'timestamp', sortAsc = false;
 var activeIdx = -1, editMode = false;
 var lastLoginTime = null;
-
-// ── AUTH ──
-function loadUsers(cb) {
-  // תמיד טען מהקוד המקומי תחילה
-  if (!USERS_CACHE) {
-    USERS_CACHE = {
-      'yohai':        {pass:'261204',role:'admin',displayName:'מנהל מערכת'},
-      'admin':        {pass:'262104',role:'admin',displayName:'מפקד גף'},
-      'telegram':     {pass:'tg2026',role:'telegram',displayName:'שליח טלגרם'},
-      'Darom2026':    {pass:'8520',role:'district',district:'דרום',displayName:'מחוז דרום'},
-      'Tzafon2026':   {pass:'8520',role:'district',district:'צפון',displayName:'מחוז צפון'},
-      'Mercaz2026':   {pass:'8520',role:'district',district:'מרכז',displayName:'מחוז מרכז'},
-      'ashkelon2026': {pass:'8520',role:'branch',branch:'אשקלון',district:'דרום'},
-      'nahariya2026': {pass:'8520',role:'branch',branch:'נהריה',district:'צפון'},
-      'eylat2026':    {pass:'8520',role:'branch',branch:'אילת',district:'דרום'},
-      'kiryatgat2026':{pass:'8520',role:'branch',branch:'קריית גת',district:'דרום'},
-      'dimona2026':   {pass:'8520',role:'branch',branch:'דימונה',district:'דרום'},
-      'ashdod2026':   {pass:'8520',role:'branch',branch:'אשדוד',district:'דרום'},
-      'shemesh2026':  {pass:'8520',role:'branch',branch:'בית שמש',district:'מרכז'},
-      'ram2026':      {pass:'8520',role:'branch',branch:'גבעת רם',district:'מרכז'},
-      'adomim2026':   {pass:'8520',role:'branch',branch:'מעלה אדומים',district:'מרכז'},
-      'holtz2026':    {pass:'8520',role:'branch',branch:'הולץ',district:'מרכז'},
-      'tikva2026':    {pass:'8520',role:'branch',branch:'פתח תקווה',district:'מרכז'},
-      'batyam2026':   {pass:'8520',role:'branch',branch:'בת ים',district:'מרכז'},
-      'rishon2026':   {pass:'8520',role:'branch',branch:'ראשון לציון',district:'מרכז'},
-      'saba2026':     {pass:'8520',role:'branch',branch:'כפר סבא',district:'מרכז'},
-      'rosh2026':     {pass:'8520',role:'branch',branch:'ראש העין',district:'מרכז'},
-      'hatzor2026':   {pass:'8520',role:'branch',branch:'חצור הגלילית',district:'צפון'},
-      'maalot2026':   {pass:'8520',role:'branch',branch:'מעלות תרשיחא',district:'צפון'},
-      'hedra2026':    {pass:'8520',role:'branch',branch:'חדרה',district:'מרכז'},
-      'bistbash2026': {pass:'8520',role:'branch',branch:'ביסט בש',district:'ביסט בש'},
-      'bishat2026':   {pass:'8520',role:'branch',branch:'ביסהת',district:'ביסהת'},
-    };
-    // נסה לעדכן מגיליון — חכה לתשובה לפני שקוראים cb
-    fetch(APPS_SCRIPT_URL + '?action=getUsers')
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if (d.success && d.users && d.users.length) {
-          var updated = {};
-          d.users.forEach(function(u){
-            updated[u.username] = Object.assign({}, u, { pass: u.pass || u.password || '' });
-          });
-          var valid = Object.keys(updated).some(function(k){ return updated[k].pass; });
-          if (valid) USERS_CACHE = updated;
-        }
-        cb();
-      })
-      .catch(function(){ cb(); });
-    return;
-  }
-  // cache כבר קיים — קרא cb ישר
-  cb();
-}
-
-function doLogin() {
-  var u = document.getElementById('loginUser').value.trim();
-  var p = document.getElementById('loginPass').value.trim();
-  var errEl = document.getElementById('loginErr');
-  errEl.style.display = 'none';
-  var btn = document.querySelector('.login-btn');
-  btn.disabled = true;
-  btn.textContent = 'מתחבר...';
-
-  loadUsers(function() {
-    btn.disabled = false;
-    btn.textContent = 'כניסה למערכת';
-    var user = USERS_CACHE && USERS_CACHE[u];
-    var storedPass = user && (user.pass || user.password || '');
-    if (!user || storedPass !== p) { errEl.style.display = 'block'; return; }
-
-    currentUser = Object.assign({}, user, {username: u});
-    lastLoginTime = localStorage.getItem('lastLogin_' + u) ? new Date(localStorage.getItem('lastLogin_' + u)) : null;
-
-    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-    sessionStorage.setItem('lastLoginTime', lastLoginTime ? lastLoginTime.toISOString() : '');
-
-    document.getElementById('loginScreen').style.display = 'none';
-
-    // משתמש טלגרם — ממשק שליחה בלבד
-    if (currentUser.role === 'telegram') {
-      showTelegramSender();
-      resetInactivity();
-      return;
-    }
-
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('userBadge').textContent = user.displayName || u;
-    document.getElementById('headerSub').textContent =
-      currentUser.role === 'admin'    ? 'מפקד גף' :
-      currentUser.role === 'district' ? 'מפקד מחוז ' + (currentUser.district||'') :
-      currentUser.role === 'soldier'  ? 'חייל - שלוחת ' + (currentUser.branch||'') :
-      'שלוחת ' + (currentUser.branch||'');
-
-    if (currentUser.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
-    else if (currentUser.role === 'district') { document.getElementById('tab-branch').style.display=''; }
-    if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'soldier') document.getElementById('addBtn').style.display = '';
-    document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
-    if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
-
-    var addBranch = document.getElementById('add_branch');
-    addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
-      BRANCHES.map(function(b){ return '<option' + (currentUser.branch===b?' selected':'') + '>' + b + '</option>'; }).join('');
-    if (currentUser.role === 'branch') { addBranch.value = currentUser.branch; addBranch.disabled = true; document.getElementById('add_district').value = currentUser.district||''; }
-
-    loadData();
-    startPolling();
-    resetInactivity();
-  });
-}
 
 function doLogout() {
   stopPolling();
