@@ -363,7 +363,7 @@ canvas{display:block;width:100%!important;}
   <div class="login-box">
     <img class="login-logo" src="IAF_New_Logo_2018.png" alt=""/>
     <div class="login-title">מערכת לידים - שוחרות</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.3</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.4</div>
     <input class="login-input" id="loginUser" type="text" placeholder="שם משתמש" autocomplete="off" dir="ltr" oninput="startPrefetch()"/>
     <input class="login-input" id="loginPass" type="password" placeholder="סיסמה" dir="ltr"/>
     <button class="login-btn" onclick="doLogin()">כניסה למערכת</button>
@@ -381,7 +381,7 @@ canvas{display:block;width:100%!important;}
     <div>
       <div class="header-title">מערכת לידים - שוחרות</div>
       <div class="header-sub" id="headerSub"></div>
-      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.3</div>
+      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.4</div>
     </div>
   </div>
   <div class="header-right">
@@ -1034,10 +1034,10 @@ function loadData() {
         return r.json();
       })
       .then(function(d) {
-        if (!currentUser || currentLoadToken !== _loadToken) return;
+        if (!currentUser) return;
         if (d && d.error === 'unauthorized') { doLogout(true); return; }
         if (!d || !d.success) throw new Error((d && d.error) ? d.error : 'שגיאה מהשרת');
-        _processRows(d.rows || [], currentLoadToken, btn);
+        _processRows(d.rows || [], _loadToken, btn);
       })
       .catch(function(e) {
         if (timeoutId) clearTimeout(timeoutId);
@@ -1062,7 +1062,7 @@ function loadData() {
 
 // מעבד את השורות ומציג — השרת כבר מסנן לפי הרשאות
 function _processRows(rows, loadToken, btn) {
-  if (!currentUser || loadToken !== _loadToken) return;
+  if (!currentUser) return;
 
   // אין סינון נוסף — השרת מחזיר רק מה שמותר למשתמש זה
 
