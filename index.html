@@ -674,13 +674,20 @@ function doLogin() {
 
       if (!d.success) {
         if (d.error === 'locked') {
-          errEl.textContent = 'החשבון נעול ל-' + (d.remaining || 15) + ' דקות עקב ניסיונות כניסה חוזרים';
+          errEl.textContent = 'החשבון נעול ל-' + (d.remaining || 15) + ' דקות עקב ניסיונות כניסה חוזרים.';
         } else {
-          errEl.textContent = 'שם משתמש או סיסמה שגויים';
+          // ספירת ניסיונות — הגדל מונה מקומי
+          var attempts = parseInt(localStorage.getItem('_loginAttempts_' + u) || '0') + 1;
+          localStorage.setItem('_loginAttempts_' + u, attempts);
+          var remaining = Math.max(0, 5 - attempts);
+          errEl.textContent = 'זוהה ניסיון התחברות כושל. הניסיון תועד. הנך מוגבל ל-5 ניסיונות. נשארו לך ' + remaining + ' ניסיונות.';
         }
         errEl.style.display = 'block';
         return;
       }
+
+      // הצלחה — אפס מונה ניסיונות
+      localStorage.removeItem('_loginAttempts_' + u);
 
       // שמור token ופרופיל
       localStorage.setItem('authToken',    d.token);
@@ -900,11 +907,12 @@ document.getElementById('loginPass').addEventListener('keydown', function(e){ if
 document.addEventListener('DOMContentLoaded', function() {
   var token   = localStorage.getItem('authToken');
   var expires = localStorage.getItem('authExpiresAt');
+  var saved   = localStorage.getItem('currentUser');
 
   // אין token — הצג מסך כניסה
-  if (!token) return;
+  if (!token || !saved) return;
 
-  // token פג תוקף — נקה ועבור לכניסה
+  // token פג תוקף לפי שעון הלקוח — נקה ועבור לכניסה
   if (expires && new Date() > new Date(expires)) {
     localStorage.removeItem('authToken');
     localStorage.removeItem('authExpiresAt');
@@ -912,29 +920,29 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // יש token — אמת מול השרת דרך GET
+  // ── הצג מיד את המסך ללא הבהוב — מבוסס על localStorage ──
+  // אם ה-validateSession יכשל אחר כך — נעביר לכניסה
+  try {
+    var user = JSON.parse(saved);
+    if (user && user.username) {
+      // הסתר מסך כניסה מיד, הצג spinner עד שהנתונים יעלו
+      document.getElementById('loginScreen').style.display = 'none';
+      _activateUser(user, user.username);
+    }
+  } catch(e) { return; }
+
+  // ── אמת מול השרת ברקע (אחרי שהמסך כבר עלה) ──
   fetch(APPS_SCRIPT_URL + '?action=validateSession&token=' + encodeURIComponent(token))
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (!d.success) {
-        // token לא תקף — נקה ועבור לכניסה
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authExpiresAt');
-        localStorage.removeItem('currentUser');
-        return;
+        // token לא תקף — התנתק
+        doLogout(true);
       }
-      // token תקף — שחזר session
-      _activateUser(d.user, d.user.username);
+      // הצלחה — המסך כבר פעיל, כלום לא צריך לעשות
     })
     .catch(function() {
-      // שגיאת רשת — נסה מה-localStorage כ-fallback
-      try {
-        var saved = localStorage.getItem('currentUser');
-        if (saved) {
-          var user = JSON.parse(saved);
-          if (user && user.username) _activateUser(user, user.username);
-        }
-      } catch(e) {}
+      // שגיאת רשת — נשאר מחובר (localStorage תקף, לא מנתקים על שגיאת רשת)
     });
 });
 
