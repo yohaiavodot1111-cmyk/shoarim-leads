@@ -997,16 +997,25 @@ function loadData() {
   document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
 
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-  apiCall('getLeads', { since: sinceStr })
+  var token = localStorage.getItem('authToken') || '';
+
+  // קריאה ישירה עם token — בדיוק כמו apiCall אבל עם טיפול שגיאות מורחב
+  fetch(APPS_SCRIPT_URL + '?action=getLeads&token=' + encodeURIComponent(token) + '&since=' + encodeURIComponent(sinceStr))
+    .then(function(r) { return r.json(); })
     .then(function(d) {
       if (myToken !== _loadToken || !currentUser) return;
-      if (!d || !d.success) throw new Error(d && d.error || 'שגיאה');
-      // השרת כבר מסנן לפי הרשאות — אין צורך בסינון נוסף
+      if (d && d.error === 'unauthorized') { doLogout(true); return; }
+      if (!d || !d.success) {
+        var msg = (d && d.error) ? d.error : 'שגיאה לא ידועה';
+        document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאה מהשרת: ' + msg + '</div>';
+        if (btn) { btn.disabled=false; btn.textContent='רענן'; }
+        return;
+      }
       _processRows(d.rows || [], myToken, btn);
     })
     .catch(function(e) {
-      if (e === 'unauthorized') return; // doLogout כבר קרה
-      document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאה: ' + e.message + '</div>';
+      if (myToken !== _loadToken) return;
+      document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאת רשת: ' + (e && e.message || e) + '</div>';
       if (btn) { btn.disabled=false; btn.textContent='רענן'; }
     });
 }
