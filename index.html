@@ -363,7 +363,7 @@ canvas{display:block;width:100%!important;}
   <div class="login-box">
     <img class="login-logo" src="IAF_New_Logo_2018.png" alt=""/>
     <div class="login-title">מערכת לידים - שוחרות</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.4</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:-14px;margin-bottom:10px">v2.0</div>
     <input class="login-input" id="loginUser" type="text" placeholder="שם משתמש" autocomplete="off" dir="ltr" oninput="startPrefetch()"/>
     <input class="login-input" id="loginPass" type="password" placeholder="סיסמה" dir="ltr"/>
     <button class="login-btn" onclick="doLogin()">כניסה למערכת</button>
@@ -381,7 +381,7 @@ canvas{display:block;width:100%!important;}
     <div>
       <div class="header-title">מערכת לידים - שוחרות</div>
       <div class="header-sub" id="headerSub"></div>
-      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.4</div>
+      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.0</div>
     </div>
   </div>
   <div class="header-right">
@@ -633,27 +633,7 @@ var STATUS_NOTES_REQUIRED = ['קשר ראשוני פסילה','לא תקין'];
 var selectedStatuses = [];
 // ── AUTH — אימות מאובטח דרך Apps Script ──
 // הסיסמאות נשמרות רק בגיליון Google Sheets ונבדקות בשרת.
-// הלקוח שומר token בלבד — לא סיסמה, לא רשימת משתמשים.
-
-// ── helper: כל קריאת API עוברת כאן עם token ──
-// משתמשת ב-GET כי Apps Script GET תומך ב-CORS אוטומטית
-function apiCall(action, payload) {
-  var token  = localStorage.getItem('authToken') || '';
-  var params = Object.assign({ action: action, token: token }, payload || {});
-  var qs     = Object.keys(params).map(function(k) {
-    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k] || '');
-  }).join('&');
-
-  return fetch(APPS_SCRIPT_URL + '?' + qs)
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d && d.error === 'unauthorized') {
-        doLogout(true);
-        return Promise.reject('unauthorized');
-      }
-      return d;
-    });
-}
+// הלקוח לעולם לא מקבל רשימת משתמשים או סיסמאות.
 
 function doLogin() {
   var u = document.getElementById('loginUser').value.trim();
@@ -664,42 +644,67 @@ function doLogin() {
   btn.disabled = true;
   btn.textContent = 'מתחבר...';
 
-  // קבל IP של הלקוח לפני שליחת הבקשה
-  fetch('https://api.ipify.org?format=json')
+  fetch(APPS_SCRIPT_URL + '?action=login&u=' + encodeURIComponent(u) + '&p=' + encodeURIComponent(p))
     .then(function(r) { return r.json(); })
-    .catch(function() { return { ip: 'לא ידוע' }; })
-    .then(function(ipData) {
-      var clientIp = (ipData && ipData.ip) ? ipData.ip : 'לא ידוע';
-      var qs = 'action=login'
-        + '&username=' + encodeURIComponent(u)
-        + '&password=' + encodeURIComponent(p)
-        + '&ip='       + encodeURIComponent(clientIp);
+    .then(function(d) {
+      btn.disabled = false;
+      btn.textContent = 'כניסה למערכת';
 
-      return fetch(APPS_SCRIPT_URL + '?' + qs)
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          btn.disabled = false;
-          btn.textContent = 'כניסה למערכת';
+      if (!d.success) {
+        errEl.style.display = 'block';
+        return;
+      }
 
-          if (!d.success) {
-            if (d.error === 'locked') {
-              errEl.textContent = 'כתובת ה-IP שלך זוהתה (' + clientIp + '). החשבון נעול ל-' + (d.remaining || 15) + ' דקות עקב ניסיונות כניסה חוזרים.';
-            } else {
-              var attempts = parseInt(localStorage.getItem('_loginAttempts_' + u) || '0') + 1;
-              localStorage.setItem('_loginAttempts_' + u, attempts);
-              var remaining = Math.max(0, 5 - attempts);
-              errEl.textContent = 'כתובת ה-IP שלך זוהתה (' + clientIp + '). זוהה ניסיון התחברות כושל. הניסיון תועד. הנך מוגבל ל-5 ניסיונות. נשארו לך ' + remaining + ' ניסיונות.';
-            }
-            errEl.style.display = 'block';
-            return;
-          }
+      var user = d.user;
+      currentUser = Object.assign({}, user, { username: u });
+      lastLoginTime = localStorage.getItem('lastLogin_' + u)
+        ? new Date(localStorage.getItem('lastLogin_' + u))
+        : null;
 
-          localStorage.removeItem('_loginAttempts_' + u);
-          localStorage.setItem('authToken',    d.token);
-          localStorage.setItem('authExpiresAt', d.expiresAt);
-          localStorage.setItem('currentUser',  JSON.stringify(d.user));
-          _activateUser(d.user, u);
-        });
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      sessionStorage.setItem('lastLoginTime', lastLoginTime ? lastLoginTime.toISOString() : '');
+
+      document.getElementById('loginScreen').style.display = 'none';
+
+      if (currentUser.role === 'telegram') {
+        showTelegramSender();
+        resetInactivity();
+        return;
+      }
+
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('userBadge').textContent = user.displayName || u;
+      document.getElementById('headerSub').textContent =
+        currentUser.role === 'admin'    ? 'מפקד גף' :
+        currentUser.role === 'district' ? 'מפקד מחוז ' + (currentUser.district || '') :
+        currentUser.role === 'soldier'  ? 'חייל - שלוחת ' + (currentUser.branch || '') :
+        'שלוחת ' + (currentUser.branch || '');
+
+      if (currentUser.role === 'admin') {
+        document.getElementById('tab-branch').style.display = '';
+        document.getElementById('tab-district').style.display = '';
+      } else if (currentUser.role === 'district') {
+        document.getElementById('tab-branch').style.display = '';
+      }
+      if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'soldier')
+        document.getElementById('addBtn').style.display = '';
+      document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
+      if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
+
+      var addBranch = document.getElementById('add_branch');
+      addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
+        BRANCHES.map(function(b) {
+          return '<option' + (currentUser.branch === b ? ' selected' : '') + '>' + b + '</option>';
+        }).join('');
+      if (currentUser.role === 'branch') {
+        addBranch.value = currentUser.branch;
+        addBranch.disabled = true;
+        document.getElementById('add_district').value = currentUser.district || '';
+      }
+
+      loadData();
+      startPolling();
+      resetInactivity();
     })
     .catch(function() {
       btn.disabled = false;
@@ -707,57 +712,6 @@ function doLogin() {
       errEl.textContent = 'שגיאת רשת — נסה שנית';
       errEl.style.display = 'block';
     });
-}
-
-function _activateUser(user, username) {
-  currentUser = Object.assign({}, user, { username: username || user.username });
-  lastLoginTime = localStorage.getItem('lastLogin_' + currentUser.username)
-    ? new Date(localStorage.getItem('lastLogin_' + currentUser.username))
-    : null;
-
-  document.getElementById('loginScreen').style.display = 'none';
-
-  if (currentUser.role === 'telegram') {
-    showTelegramSender();
-    if (!_restoringSession) resetInactivity();
-    return;
-  }
-
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('userBadge').textContent = user.displayName || currentUser.username;
-  document.getElementById('headerSub').textContent =
-    currentUser.role === 'admin'    ? 'מפקד גף' :
-    currentUser.role === 'district' ? 'מפקד מחוז ' + (currentUser.district || '') :
-    currentUser.role === 'soldier'  ? 'חייל - שלוחת ' + (currentUser.branch || '') :
-    'שלוחת ' + (currentUser.branch || '');
-
-  if (currentUser.role === 'admin') {
-    document.getElementById('tab-branch').style.display = '';
-    document.getElementById('tab-district').style.display = '';
-  } else if (currentUser.role === 'district') {
-    document.getElementById('tab-branch').style.display = '';
-  }
-  if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'soldier')
-    document.getElementById('addBtn').style.display = '';
-  document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
-  if (currentUser.username === 'yohai') document.getElementById('tab-admin').style.display = '';
-
-  var addBranch = document.getElementById('add_branch');
-  addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
-    BRANCHES.map(function(b) {
-      return '<option' + (currentUser.branch === b ? ' selected' : '') + '>' + b + '</option>';
-    }).join('');
-  if (currentUser.role === 'branch') {
-    addBranch.value = currentUser.branch;
-    addBranch.disabled = true;
-    document.getElementById('add_district').value = currentUser.district || '';
-  }
-
-  loadData();
-  startPolling();
-  // resetInactivity נקרא רק מ-doLogin (כניסה ידנית) — לא מ-restoreSession
-  // כדי שלא יעלה timer מיידי אחרי F5
-  if (!_restoringSession) resetInactivity();
 }
 
 var _prefetchedRows = null;   // נתונים שנטענו ברקע לפני התחברות
@@ -839,7 +793,7 @@ var sortKey = 'timestamp', sortAsc = false;
 var activeIdx = -1, editMode = false;
 var lastLoginTime = null;
 
-function doLogout(silent) {
+function doLogout() {
   stopPolling();
   _historyCache = {};
   _notesCache   = {};
@@ -847,30 +801,17 @@ function doLogout(silent) {
   clearTimeout(_inactivityWarning);
   hideInactivityWarning();
   hideTelegramSender();
-
-  // הודע לשרת לבטל את ה-token
-  var token = localStorage.getItem('authToken');
-  if (token) {
-    fetch(APPS_SCRIPT_URL + '?action=logout&token=' + encodeURIComponent(token))
-      .catch(function(){});
-  }
-
-  // נקה localStorage
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('authExpiresAt');
-  localStorage.removeItem('currentUser');
   sessionStorage.removeItem('currentUser');
   sessionStorage.removeItem('lastLoginTime');
-
   _prefetchStarted = false;
-  _prefetchedRows  = null;
-  currentUser      = null;
-  allData          = [];
-  filtered         = [];
-  lastLoginTime    = null;
+  _prefetchedRows = null;
+  currentUser = null;
+  allData = [];
+  filtered = [];
+  lastLoginTime = null;
   selectedStatuses = [];
-  activeIdx        = -1;
-  editMode         = false;
+  activeIdx = -1;
+  editMode = false;
 
   // אפס DOM
   document.getElementById('loginScreen').style.display = 'flex';
@@ -892,13 +833,15 @@ function doLogout(silent) {
     document.getElementById(id).style.display = 'none';
   });
 
+  // אפס טאבים למצב ברירת מחדל
   setTab('all');
   document.getElementById('tab-branch').style.display  = 'none';
   document.getElementById('tab-district').style.display = 'none';
-  document.getElementById('tab-stats').style.display   = '';
+  document.getElementById('tab-stats').style.display   = '';    // תמיד מוצג כברירת מחדל
   document.getElementById('tab-admin') && (document.getElementById('tab-admin').style.display = 'none');
   document.getElementById('addBtn').style.display = 'none';
 
+  // שחרר נעילת גוף אם היה מודאל פתוח
   document.body.style.position = '';
   document.body.style.top = '';
   document.body.style.width = '';
@@ -911,62 +854,76 @@ function doLogout(silent) {
 document.getElementById('loginPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
 
 // ── שחזור session אחרי רענון ──
-var _restoringSession = false;
-
-function restoreSession() {
-  var token   = localStorage.getItem('authToken');
-  var expires = localStorage.getItem('authExpiresAt');
-  var saved   = localStorage.getItem('currentUser');
-
-  if (!token || !saved) return;
-
-  if (expires && new Date() > new Date(expires)) {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('authExpiresAt');
-    localStorage.removeItem('currentUser');
-    return;
-  }
-
+document.addEventListener('DOMContentLoaded', function() {
+  var saved = sessionStorage.getItem('currentUser');
+  if (!saved) return;
   try {
     var user = JSON.parse(saved);
-    if (user && user.username) {
-      document.getElementById('loginScreen').style.display = 'none';
-      _restoringSession = true;
-      _activateUser(user, user.username);
-      _restoringSession = false;
-      // הפעל inactivity רק אחרי אינטראקציה ראשונה של המשתמש
+    if (!user || !user.username) return;
+
+    currentUser = user;
+    var lt = sessionStorage.getItem('lastLoginTime');
+    lastLoginTime = lt ? new Date(lt) : null;
+
+    document.getElementById('loginScreen').style.display = 'none';
+
+    // משתמש טלגרם — ממשק שליחה בלבד
+    if (user.role === 'telegram') {
+      showTelegramSender();
+      resetInactivity();
+      return;
     }
-  } catch(e) { return; }
 
-  // אמת ברקע — אם נכשל בלבד, נתק
-  fetch(APPS_SCRIPT_URL + '?action=validateSession&token=' + encodeURIComponent(token))
-    .then(function(r) { return r.json(); })
-    .then(function(d) { if (!d.success) doLogout(true); })
-    .catch(function() { /* שגיאת רשת — נשאר מחובר */ });
-}
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('userBadge').textContent = user.displayName || user.username;
+    document.getElementById('headerSub').textContent =
+      user.role === 'admin'    ? 'מפקד גף' :
+      user.role === 'district' ? 'מפקד מחוז ' + (user.district||'') :
+      user.role === 'soldier'  ? 'חייל - שלוחת ' + (user.branch||'') :
+      'שלוחת ' + (user.branch||'');
 
-// הפעל מיד (הסקריפט בסוף הדף — DOM כבר מוכן)
-restoreSession();
+    if (user.role === 'admin') { document.getElementById('tab-branch').style.display=''; document.getElementById('tab-district').style.display=''; }
+    else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
+    if (user.role === 'branch' || user.role === 'admin' || user.role === 'soldier') document.getElementById('addBtn').style.display = '';
+    document.getElementById('tab-stats').style.display = (user.role === 'soldier') ? 'none' : '';
+    if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
+
+    var addBranch = document.getElementById('add_branch');
+    if (addBranch) {
+      addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
+        BRANCHES.map(function(b){ return '<option' + (user.branch===b?' selected':'') + '>' + b + '</option>'; }).join('');
+      if (user.role === 'branch') { addBranch.value = user.branch; addBranch.disabled = true; document.getElementById('add_district').value = user.district||''; }
+    }
+
+    loadData();
+    startPolling();
+    resetInactivity();
+  } catch(e) {
+    sessionStorage.removeItem('currentUser');
+  }
+});
 
 // ── DATA ──
 var _loadToken = 0;
 
-// ── POLLING: סנכרון אוטומטי כל 30 שניות ──
+// ── POLLING: סנכרון אוטומטי כל 60 שניות ──
 function startPolling() {
   stopPolling();
   _pollingInterval = setInterval(function() {
     if (!currentUser) { stopPolling(); return; }
+    // טעינה שקטה ברקע — ללא spinner, ללא reset של allData
     var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-    var token    = localStorage.getItem('authToken') || '';
-    var url      = APPS_SCRIPT_URL + '?action=getLeads&token=' + encodeURIComponent(token) + '&since=' + encodeURIComponent(sinceStr);
-
-    fetch(url)
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (!currentUser || !d || !d.success || !d.rows) return;
-        if (d.error === 'unauthorized') { doLogout(true); return; }
+    fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!currentUser || !d.success || !d.rows) return;
         var rows = d.rows;
+        // סינון לפי הרשאה — חובה
+        if (currentUser.role === 'branch' || currentUser.role === 'soldier') rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
+        if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
+        // בדוק אם יש שינוי
         if (rows.length === allData.length) return;
+        // יש נתונים חדשים — עדכן
         rows.sort(function(a,b){
           var da=parseDate(a.timestamp), db=parseDate(b.timestamp);
           if(!da&&!db) return 0; if(!da) return 1; if(!db) return -1;
@@ -977,20 +934,28 @@ function startPolling() {
         applyFilters(); updateStats();
         document.getElementById('statusText').textContent = 'מסונכרן - ' + allData.length + ' רשומות';
         document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
-      }).catch(function(){
-        // שגיאת polling — לא מציגים כלום, ינסה שוב בסיבוב הבא
-      });
-  }, 30000);
+      }).catch(function(){});
+  }, 30000); // כל 30 שניות
 }
 
 function stopPolling() {
   if (_pollingInterval) { clearInterval(_pollingInterval); _pollingInterval = null; }
 }
 
-// ── PREFETCH — מבוטל: לא טוענים לידים לפני אימות ──
+// ── PREFETCH ──
 var _prefetchStarted = false;
 function startPrefetch() {
-  // מבוטל מטעמי אבטחה — אין טעינת נתונים לפני login
+  if (_prefetchStarted) return;
+  _prefetchStarted = true;
+  var sinceStr = SINCE_DATE.toISOString().split('T')[0];
+  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      // שמור רק אם אין משתמש מחובר (לפני login) — אחרי login loadData ינהל הכל
+      if (!currentUser && d.success && d.rows) {
+        _prefetchedRows = d.rows; // שמור את כל הנתונים הגולמיים
+      }
+    }).catch(function(){});
 }
 
 function loadData() {
@@ -1001,70 +966,49 @@ function loadData() {
   var btn = document.querySelector('[onclick="loadData()"]');
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
+  // אם יש נתונים מה-prefetch — השתמש בהם מיד (ללא spinner)
+  if (_prefetchedRows && myToken === _loadToken && currentUser) {
+    _processRows(_prefetchedRows, myToken, btn);
+    _prefetchedRows = null; // נקה אחרי שימוש
+    // עדיין תעשה fetch ברקע כדי לוודא עדכניות
+    var sinceStr2 = SINCE_DATE.toISOString().split('T')[0];
+    fetch(APPS_SCRIPT_URL + '?since=' + sinceStr2)
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (myToken !== _loadToken || !currentUser) return;
+        if (d.success && d.rows) _processRows(d.rows, myToken, btn);
+      }).catch(function(){
+        if (btn) { btn.disabled=false; btn.textContent='רענן'; }
+      });
+    return;
+  }
+
+  // טעינה רגילה עם spinner
   document.getElementById('loadingWrap').style.display = '';
   document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
 
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-  var token    = localStorage.getItem('authToken') || '';
-  var url      = APPS_SCRIPT_URL + '?action=getLeads&token=' + encodeURIComponent(token) + '&since=' + encodeURIComponent(sinceStr);
-
-  var MAX_RETRIES = 4;
-  var TIMEOUT_MS  = 40000; // 40 שניות — Apps Script יכול לקחת זמן
-
-  function attempt(tryNum) {
-    if (!currentUser) return;
-
-    var messages = [
-      'טוען נתונים...',
-      'מתחבר לשרת, רגע...',
-      'עוד רגע...',
-      'כמעט שם...',
-    ];
-    var label = messages[Math.min(tryNum - 1, messages.length - 1)];
-    document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>' + label + '</div>';
-
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeoutId  = controller ? setTimeout(function() { controller.abort(); }, TIMEOUT_MS) : null;
-    var fetchOpts  = controller ? { signal: controller.signal } : {};
-    var currentLoadToken = _loadToken;
-
-    fetch(url, fetchOpts)
-      .then(function(r) {
-        if (timeoutId) clearTimeout(timeoutId);
-        return r.json();
-      })
-      .then(function(d) {
-        if (!currentUser) return;
-        if (d && d.error === 'unauthorized') { doLogout(true); return; }
-        if (!d || !d.success) throw new Error((d && d.error) ? d.error : 'שגיאה מהשרת');
-        _processRows(d.rows || [], _loadToken, btn);
-      })
-      .catch(function(e) {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (!currentUser || currentLoadToken !== _loadToken) return;
-
-        if (tryNum < MAX_RETRIES) {
-          setTimeout(function() { attempt(tryNum + 1); }, 2000);
-        } else {
-          document.getElementById('loadingWrap').innerHTML =
-            '<div style="color:var(--red);padding:20px;text-align:center">' +
-            '⚠️ לא ניתן לטעון נתונים.<br>' +
-            '<small style="color:var(--light)">' + (e && e.message || 'שגיאת רשת') + '</small><br><br>' +
-            '<button onclick="loadData()" style="margin-top:8px;padding:8px 20px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">נסה שוב</button>' +
-            '</div>';
-          if (btn) { btn.disabled=false; btn.textContent='רענן'; }
-        }
-      });
-  }
-
-  attempt(1);
+  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (myToken !== _loadToken || !currentUser) return;
+      if (!d.success) throw new Error(d.error||'שגיאה');
+      _processRows(d.rows || [], myToken, btn);
+    })
+    .catch(function(e){
+      document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאה: ' + e.message + '</div>';
+      if (btn) { btn.disabled=false; btn.textContent='רענן'; }
+    })
+    .then(function(){ if (btn) { btn.disabled=false; btn.textContent='רענן'; } });
 }
 
-// מעבד את השורות ומציג — השרת כבר מסנן לפי הרשאות
-function _processRows(rows, loadToken, btn) {
-  if (!currentUser) return;
+// מעבד את השורות ומציג — משותף לטעינה רגילה ו-prefetch
+function _processRows(rows, myToken, btn) {
+  if (myToken !== _loadToken || !currentUser) return;
 
-  // אין סינון נוסף — השרת מחזיר רק מה שמותר למשתמש זה
+  // סינון לפי הרשאה
+  if (currentUser.role === 'branch' || currentUser.role === 'soldier') rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
+  if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
 
   rows.sort(function(a,b){
     var da=parseDate(a.timestamp), db=parseDate(b.timestamp);
@@ -2266,12 +2210,9 @@ function confirmActivity() {
   resetInactivity();
 }
 
-// האזן לפעילות משתמש — רק אם מחובר ורק על אינטראקציה אמיתית
-// אחרי restoreSession, ה-timer מתחיל רק עם הנגיעה הראשונה
-['keydown','mousedown','touchstart'].forEach(function(ev) {
-  document.addEventListener(ev, function() {
-    if (currentUser) resetInactivity();
-  }, {passive: true});
+// האזן לפעילות משתמש
+['keydown','click'].forEach(function(ev) {
+  document.addEventListener(ev, resetInactivity, {passive: true});
 });
 // ── TELEGRAM SENDER (role: telegram) ──
 var TG_SENDER_TEMPLATES = [
@@ -2339,7 +2280,8 @@ function addDailyStat() {
   var loading = document.getElementById('tgs_stat_loading');
   if (loading) loading.style.display = '';
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-  apiCall('getLeads', { since: sinceStr })
+  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+    .then(function(r){ return r.json(); })
     .then(function(d){
       if (loading) loading.style.display = 'none';
       if (!d.success || !d.rows) return;
