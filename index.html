@@ -218,6 +218,15 @@ td .phone-link:hover{text-decoration:underline;}
   border-radius:8px;box-shadow:var(--shadow-sm);padding:14px;
 }
 .group-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;border-bottom:1px solid #eef1f5;padding-bottom:10px;}
+.acc{margin-bottom:8px;border:1px solid #e4e9f0;border-radius:8px;overflow:hidden;background:#fff;}
+.acc-header{cursor:pointer;margin-bottom:0;padding:14px 16px;border-bottom:none;transition:background .15s;user-select:none;}
+.acc-header:hover{background:#f4f7fc;}
+.acc.open .acc-header{background:#f0f5ff;border-bottom:1px solid #e4e9f0;}
+.acc-arrow{color:var(--royal);font-size:13px;transition:transform .2s;display:inline-block;}
+.acc.open .acc-arrow{transform:rotate(90deg);}
+.acc .group-name{font-weight:700;color:var(--navy);font-size:15px;}
+.acc-header .group-count{margin-right:auto;}
+.acc-body{padding:0 14px 14px;}
 .group-name{font-family:'Rubik','Heebo',Arial,sans-serif;font-weight:700;font-size:16px;color:var(--text);}
 .group-count{font-size:11.5px;color:#475467;background:#f2f4f7;padding:4px 9px;border:1px solid #d0d5dd;border-radius:999px;font-weight:500;}
 
@@ -791,6 +800,7 @@ var currentUser = null;
 var allData = [], filtered = [];
 var currentView = 'table', currentTab = 'all';
 var sortKey = 'timestamp', sortAsc = false;
+var _openGroup = null;   // שלוחה/מחוז פתוח כעת בתצוגת אקורדיון
 var activeIdx = -1, editMode = false;
 var lastLoginTime = null;
 
@@ -1314,10 +1324,18 @@ function renderGrouped() {
   var key = currentTab==='branch' ? 'branch' : 'district';
   var groups = {};
   filtered.forEach(function(r,i){ var k=r[key]||'לא משויך'; if(!groups[k]) groups[k]=[]; groups[k].push({r:r,i:i}); });
+  var keys = Object.keys(groups).sort();
   var html = '<div class="group-wrap">';
-  Object.keys(groups).sort().forEach(function(gk){
+  keys.forEach(function(gk, gi){
     var items = groups[gk];
-    html += '<div class="group-section"><div class="group-header"><div class="group-name">' + gk + '</div><div class="group-count">' + items.length + ' לידים</div></div>' +
+    var isOpen = (_openGroup === gk);
+    html += '<div class="group-section acc' + (isOpen?' open':'') + '">' +
+      '<div class="group-header acc-header" onclick="toggleGroup(' + JSON.stringify(gk).replace(/"/g,'&quot;') + ')">' +
+        '<span class="acc-arrow">▸</span>' +
+        '<div class="group-name">' + gk + '</div>' +
+        '<div class="group-count">' + items.length + ' לידים</div>' +
+      '</div>' +
+      '<div class="acc-body" style="' + (isOpen?'':'display:none') + '">' +
       '<div style="overflow-x:auto"><table style="min-width:500px"><thead><tr>' +
         '<th style="text-align:right">שם מלא</th><th>טלפון</th><th>עיר</th><th>כיתה</th>' +
         (key==='branch'?'<th>מחוז</th>':'<th>שלוחה</th>') + '<th>סטטוס</th>' +
@@ -1332,10 +1350,15 @@ function renderGrouped() {
         '<td>' + statusBadge(item.r.status) + '</td>' +
       '</tr>';
     });
-    html += '</tbody></table></div></div>';
+    html += '</tbody></table></div></div></div>';
   });
   html += '</div>';
   document.getElementById('groupedWrap').innerHTML = html;
+}
+
+function toggleGroup(gk) {
+  _openGroup = (_openGroup === gk) ? null : gk;
+  renderGrouped();
 }
 
 // ── STATS ──
