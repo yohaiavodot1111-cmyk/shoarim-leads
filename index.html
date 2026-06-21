@@ -461,6 +461,7 @@ canvas{display:block;width:100%!important;}
 
 <div id="loadingWrap" class="loading-wrap"><div class="spinner"></div><div>טוען נתונים...</div></div>
 <div id="tableWrap" class="table-wrap" style="display:none">
+  <div id="topPager" style="display:none;justify-content:flex-start;align-items:center;gap:8px;font-size:13px;padding:8px 4px 12px"></div>
   <table><thead><tr id="tableHead"></tr></thead><tbody id="tableBody"></tbody></table>
 </div>
 <div id="cardsWrap" class="cards-wrap" style="display:none"></div>
@@ -1264,14 +1265,24 @@ function renderTable() {
     '</tr>';
   });
 
-  // Pagination bar
+  // Pagination controls (shared markup for top + bottom)
+  var topPager = document.getElementById('topPager');
   if (pages > 1) {
+    var ctrls =
+      '<button onclick="goPage(' + (_page-1) + ')" ' + (_page===0?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page===0?'opacity:.4':'') + '">→ הקודם</button>' +
+      '<span style="color:var(--light)">עמוד <b>' + (_page+1) + '</b> מתוך <b>' + pages + '</b> | סה"כ <b>' + total + '</b> רשומות</span>' +
+      '<button onclick="goPage(' + (_page+1) + ')" ' + (_page>=pages-1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page>=pages-1?'opacity:.4':'') + '">הבא ←</button>';
+
+    // top bar — מצד שמאל
+    topPager.style.display = 'flex';
+    topPager.innerHTML = ctrls;
+
+    // bottom bar — בתוך הטבלה, ממורכז
     html += '<tr><td colspan="9" style="padding:10px;text-align:center;background:#f8faff;border-top:2px solid var(--border)">' +
-      '<div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px">' +
-        '<button onclick="goPage(' + (_page-1) + ')" ' + (_page===0?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page===0?'opacity:.4':'') + '">→ הקודם</button>' +
-        '<span style="color:var(--light)">עמוד <b>' + (_page+1) + '</b> מתוך <b>' + pages + '</b> | סה"כ <b>' + total + '</b> רשומות</span>' +
-        '<button onclick="goPage(' + (_page+1) + ')" ' + (_page>=pages-1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page>=pages-1?'opacity:.4':'') + '">הבא ←</button>' +
-      '</div></td></tr>';
+      '<div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px">' + ctrls + '</div></td></tr>';
+  } else {
+    topPager.style.display = 'none';
+    topPager.innerHTML = '';
   }
 
   document.getElementById('tableBody').innerHTML = html;
