@@ -648,14 +648,14 @@ function doLogin() {
     return;
   }
 
-  // בדוק נעילה מקומית (localStorage) לפני קריאה לשרת
+  // בדוק נעילה מקומית לפני קריאה לשרת
   var lockKey = 'lockout_' + u;
   var lockData = localStorage.getItem(lockKey);
   if (lockData) {
     var lock = JSON.parse(lockData);
     var remaining = Math.ceil((lock.until - Date.now()) / 60000);
     if (remaining > 0) {
-      errEl.textContent = 'המשתמש נעול. נסה שוב בעוד ' + remaining + ' דקות.';
+      errEl.textContent = 'החשבון נעול. נסה שוב בעוד ' + remaining + ' דקות.';
       errEl.style.display = 'block';
       return;
     } else {
@@ -666,7 +666,14 @@ function doLogin() {
   btn.disabled = true;
   btn.textContent = 'מתחבר...';
 
-  fetch(APPS_SCRIPT_URL + '?action=login&u=' + encodeURIComponent(u) + '&p=' + encodeURIComponent(p))
+  // קבל IP אמיתי מצד הלקוח, ואז בצע login
+  fetch('https://api.ipify.org?format=json')
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return { ip: 'unknown' }; })
+    .then(function(ipData) {
+      var clientIp = (ipData && ipData.ip) ? ipData.ip : 'unknown';
+      return fetch(APPS_SCRIPT_URL + '?action=login&u=' + encodeURIComponent(u) + '&p=' + encodeURIComponent(p) + '&ip=' + encodeURIComponent(clientIp));
+    })
     .then(function(r) { return r.json(); })
     .then(function(d) {
       btn.disabled = false;
@@ -674,9 +681,8 @@ function doLogin() {
 
       if (!d.success) {
         if (d.error === 'locked') {
-          // שמור נעילה ב-localStorage
           localStorage.setItem(lockKey, JSON.stringify({ until: Date.now() + (d.remaining || 15) * 60000 }));
-          errEl.textContent = 'חשבון נעול עקב ניסיונות כושלים חוזרים. נסה שוב בעוד ' + (d.remaining || 15) + ' דקות.';
+          errEl.textContent = 'חשבון נעול עקב ניסיונות כושלים. נסה שוב בעוד ' + (d.remaining || 15) + ' דקות.';
         } else if (d.error === 'invalid' && d.attemptsLeft !== undefined) {
           errEl.textContent = 'שם משתמש או סיסמה שגויים. נותרו ' + d.attemptsLeft + ' ניסיונות לפני נעילה.';
         } else {
