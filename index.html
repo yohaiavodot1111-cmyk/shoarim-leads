@@ -641,59 +641,19 @@ function doLogin() {
   var errEl = document.getElementById('loginErr');
   errEl.style.display = 'none';
   var btn = document.querySelector('.login-btn');
-
-  if (!u || !p) {
-    errEl.textContent = 'נא למלא שם משתמש וסיסמה';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  // בדוק נעילה מקומית לפני קריאה לשרת
-  var lockKey = 'lockout_' + u;
-  var lockData = localStorage.getItem(lockKey);
-  if (lockData) {
-    var lock = JSON.parse(lockData);
-    var remaining = Math.ceil((lock.until - Date.now()) / 60000);
-    if (remaining > 0) {
-      errEl.textContent = 'החשבון נעול. נסה שוב בעוד ' + remaining + ' דקות.';
-      errEl.style.display = 'block';
-      return;
-    } else {
-      localStorage.removeItem(lockKey);
-    }
-  }
-
   btn.disabled = true;
   btn.textContent = 'מתחבר...';
 
-  // קבל IP אמיתי מצד הלקוח, ואז בצע login
-  fetch('https://api.ipify.org?format=json')
-    .then(function(r){ return r.json(); })
-    .catch(function(){ return { ip: 'unknown' }; })
-    .then(function(ipData) {
-      var clientIp = (ipData && ipData.ip) ? ipData.ip : 'unknown';
-      return fetch(APPS_SCRIPT_URL + '?action=login&u=' + encodeURIComponent(u) + '&p=' + encodeURIComponent(p) + '&ip=' + encodeURIComponent(clientIp));
-    })
+  fetch(APPS_SCRIPT_URL + '?action=login&u=' + encodeURIComponent(u) + '&p=' + encodeURIComponent(p))
     .then(function(r) { return r.json(); })
     .then(function(d) {
       btn.disabled = false;
       btn.textContent = 'כניסה למערכת';
 
       if (!d.success) {
-        if (d.error === 'locked') {
-          localStorage.setItem(lockKey, JSON.stringify({ until: Date.now() + (d.remaining || 15) * 60000 }));
-          errEl.textContent = 'חשבון נעול עקב ניסיונות כושלים. נסה שוב בעוד ' + (d.remaining || 15) + ' דקות.';
-        } else if (d.error === 'invalid' && d.attemptsLeft !== undefined) {
-          errEl.textContent = 'שם משתמש או סיסמה שגויים. נותרו ' + d.attemptsLeft + ' ניסיונות לפני נעילה.';
-        } else {
-          errEl.textContent = 'שם משתמש או סיסמה שגויים';
-        }
         errEl.style.display = 'block';
         return;
       }
-
-      // הצלחה — נקה נעילה מקומית
-      localStorage.removeItem(lockKey);
 
       var user = d.user;
       currentUser = Object.assign({}, user, { username: u });
@@ -943,6 +903,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+
+// ── URL builder — מוסיף role/branch/district לכל קריאת נתונים ──
+function _dataUrl(extra) {
+  if (!currentUser) return APPS_SCRIPT_URL + (extra ? extra.replace('&','?') : '');
+  var base = APPS_SCRIPT_URL +
+    '?role='     + encodeURIComponent(currentUser.role     || '') +
+    '&branch='   + encodeURIComponent(currentUser.branch   || '') +
+    '&district=' + encodeURIComponent(currentUser.district || '');
+  return base + (extra || '');
+}
+
 // ── DATA ──
 var _loadToken = 0;
 
@@ -953,7 +924,7 @@ function startPolling() {
     if (!currentUser) { stopPolling(); return; }
     // טעינה שקטה ברקע — ללא spinner, ללא reset של allData
     var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-    fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+    fetch(_dataUrl('&since=' + sinceStr))
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!currentUser || !d.success || !d.rows) return;
@@ -988,7 +959,7 @@ function startPrefetch() {
   if (_prefetchStarted) return;
   _prefetchStarted = true;
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+  fetch(_dataUrl('&since=' + sinceStr))
     .then(function(r){ return r.json(); })
     .then(function(d){
       // שמור רק אם אין משתמש מחובר (לפני login) — אחרי login loadData ינהל הכל
@@ -1012,7 +983,7 @@ function loadData() {
     _prefetchedRows = null; // נקה אחרי שימוש
     // עדיין תעשה fetch ברקע כדי לוודא עדכניות
     var sinceStr2 = SINCE_DATE.toISOString().split('T')[0];
-    fetch(APPS_SCRIPT_URL + '?since=' + sinceStr2)
+    fetch(_dataUrl('&since=' + sinceStr2))
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (myToken !== _loadToken || !currentUser) return;
@@ -1028,7 +999,7 @@ function loadData() {
   document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
 
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+  fetch(_dataUrl('&since=' + sinceStr))
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (myToken !== _loadToken || !currentUser) return;
@@ -1046,7 +1017,7 @@ function loadData() {
 function _processRows(rows, myToken, btn) {
   if (myToken !== _loadToken || !currentUser) return;
 
-  // סינון לפי הרשאה
+  // סינון לפי הרשאה — שכבת הגנה כפולה (הסינון הראשי בצד השרת)
   if (currentUser.role === 'branch' || currentUser.role === 'soldier') rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
   if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
 
@@ -2320,7 +2291,7 @@ function addDailyStat() {
   var loading = document.getElementById('tgs_stat_loading');
   if (loading) loading.style.display = '';
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
-  fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+  fetch(_dataUrl('&since=' + sinceStr))
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (loading) loading.style.display = 'none';
