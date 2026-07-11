@@ -702,6 +702,63 @@ body.dark .prog-pct{color:var(--text);}
 .prog-cur-t{color:var(--mid);}
 .prog-cur-t b{color:var(--text);}
 
+/* ═══════════ התאמת עמודות ═══════════ */
+.cols-overlay{
+  position:fixed;inset:0;z-index:1100;
+  background:rgba(16,24,40,.56);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.cols-overlay.open{opacity:1;pointer-events:auto;}
+.cols-modal{
+  background:var(--surface);width:100%;max-width:440px;max-height:86vh;
+  border-radius:12px;overflow:hidden;display:flex;flex-direction:column;
+  border:1px solid var(--border);box-shadow:var(--shadow-lg);
+  transform:translateY(12px);transition:transform .25s;
+}
+.cols-overlay.open .cols-modal{transform:none;}
+.cols-head{
+  background:var(--navy);padding:15px 18px;border-bottom:3px solid var(--gold);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;
+}
+.cols-head-t{font-family:'Rubik','Heebo',sans-serif;font-size:16px;font-weight:700;color:#fff;}
+.cols-head-s{font-size:11px;color:#b9c4d3;margin-top:2px;}
+.cols-body{padding:14px 18px;overflow-y:auto;flex:1;}
+.cols-hint{
+  font-size:11.5px;color:var(--light);background:rgba(31,78,121,.06);
+  border:1px solid var(--border);border-radius:7px;padding:8px 11px;
+  margin-bottom:12px;line-height:1.6;
+}
+.col-item{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;
+  border:1px solid var(--border);border-radius:8px;margin-bottom:6px;
+  background:var(--surface);cursor:grab;transition:all .14s;
+}
+.col-item:hover{border-color:var(--royal);background:rgba(31,78,121,.05);}
+.col-item.dragging{opacity:.4;}
+.col-item.over{border-color:var(--royal);border-style:dashed;}
+.col-item.locked{cursor:default;opacity:.75;background:rgba(0,0,0,.03);}
+.col-grip{color:var(--muted);font-size:14px;line-height:1;cursor:grab;flex-shrink:0;letter-spacing:-2px;}
+.col-item.locked .col-grip{visibility:hidden;}
+.col-name{flex:1;font-size:13.5px;font-weight:600;color:var(--text);}
+.col-lock{font-size:10px;color:var(--muted);font-weight:600;}
+.col-chk{width:16px;height:16px;cursor:pointer;accent-color:#1f4e79;flex-shrink:0;}
+.cols-foot{
+  padding:12px 18px;border-top:1px solid var(--border);
+  display:flex;gap:8px;flex-shrink:0;background:var(--surface);
+}
+.cols-save{
+  flex:1;height:40px;border:none;border-radius:8px;background:var(--navy);color:#fff;
+  font-family:'Heebo',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;
+}
+.cols-save:hover{filter:brightness(1.15);}
+.cols-reset{
+  height:40px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;
+  background:transparent;color:var(--mid);font-family:'Heebo',sans-serif;
+  font-size:13px;font-weight:600;cursor:pointer;
+}
+.cols-reset:hover{background:rgba(0,0,0,.05);}
+
 /* HEADER */
 .header{
   background:var(--navy);padding:0 28px;
@@ -1269,6 +1326,7 @@ canvas{display:block;width:100%!important;}
     <input type="date" id="dateTo" style="height:38px;border:1px solid #cfd7e3;border-radius:6px;padding:0 8px;font-family:Heebo,sans-serif;font-size:13px;outline:none" onchange="applyFilters()"/>
   </div>
   <button class="btn btn-success" id="addBtn" onclick="openAddModal()" style="display:none">הוסף ליד</button>
+  <button class="btn btn-primary" onclick="openCols()" title="בחר אילו עמודות להציג">עמודות</button>
   <button class="btn btn-primary" onclick="exportExcel()">Excel</button>
   <button class="btn btn-primary" onclick="loadData()">רענן</button>
   <div class="view-toggle">
@@ -1493,6 +1551,27 @@ canvas{display:block;width:100%!important;}
   </div>
 </div>
 
+<!-- COLUMNS MODAL -->
+<div class="cols-overlay" id="colsOverlay" onclick="if(event.target===this)closeCols()">
+  <div class="cols-modal">
+    <div class="cols-head">
+      <div>
+        <div class="cols-head-t">התאמת עמודות</div>
+        <div class="cols-head-s">בחרו מה להציג · גררו לשינוי הסדר</div>
+      </div>
+      <button class="modal-close" onclick="closeCols()">x</button>
+    </div>
+    <div class="cols-body">
+      <div class="cols-hint">סמנו את העמודות שברצונכם לראות, וגררו אותן כדי לשנות את הסדר. ההעדפות נשמרות עבורכם בלבד.</div>
+      <div id="colsList"></div>
+    </div>
+    <div class="cols-foot">
+      <button class="cols-reset" onclick="resetCols()">איפוס</button>
+      <button class="cols-save" onclick="saveCols()">שמור והחל</button>
+    </div>
+  </div>
+</div>
+
 <!-- VIEW MODAL -->
 <div class="overlay" id="overlay" onclick="closeOverlay(event)">
   <div class="modal" id="modalBox">
@@ -1683,6 +1762,7 @@ function doLogin() {
         document.getElementById('add_district').value = currentUser.district || '';
       }
 
+      loadCols();
       loadData();
       startPolling();
       resetInactivity();
@@ -1793,6 +1873,7 @@ function doLogout() {
   lastLoginTime = null;
   selectedStatuses = [];
   _bulkSel = [];
+  _visibleCols = DEFAULT_COLS.slice();
   activeIdx = -1;
   editMode = false;
 
@@ -1878,6 +1959,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (user.role === 'branch') { addBranch.value = user.branch; addBranch.disabled = true; document.getElementById('add_district').value = user.district||''; }
     }
 
+    loadCols();
     loadData();
     startPolling();
     resetInactivity();
@@ -2220,13 +2302,92 @@ function render() {
   document.getElementById('emptyWrap').style.display   = !showStats && !showGroup && !filtered.length ? '' : 'none';
 }
 
+// ══════════════════════════════════════════════
+// ═══ הגדרת עמודות ═══
+// ══════════════════════════════════════════════
+// key: מזהה | label: כותרת | locked: חובה (לא ניתן להסתיר)
+// render: פונקציה שמחזירה את תוכן התא
+var COLUMN_DEFS = [
+  { key:'name',      label:'שם מלא',  locked:true,
+    render:function(r,i){ return '<td>' + (r.name||'-') + dupBadge(r,i) + '</td>'; } },
+  { key:'edited',    label:'עודכן',
+    render:function(r){ return '<td>' + (r.hasEdit?'<small style="color:var(--gold)">(עודכן)</small>':'') + '</td>'; } },
+  { key:'phone',     label:'טלפון',
+    render:function(r){ return '<td><a class="phone-link" href="tel:' + r.phone + '" onclick="event.stopPropagation()">' + (r.phone||'-') + '</a></td>'; } },
+  { key:'city',      label:'עיר',
+    render:function(r){ return '<td>' + (r.city||'-') + '</td>'; } },
+  { key:'grade',     label:'כיתה',
+    render:function(r){ return '<td>' + gradeBadge(r.grade) + '</td>'; } },
+  { key:'gender',    label:'מין',
+    render:function(r){ return '<td>' + (r.gender||'-') + '</td>'; } },
+  { key:'branch',    label:'שלוחה',
+    render:function(r){ return '<td>' + (r.branch||'-') + '</td>'; } },
+  { key:'district',  label:'מחוז',
+    render:function(r){ return '<td>' + (r.district||'-') + '</td>'; } },
+  { key:'status',    label:'סטטוס',
+    render:function(r){ return '<td>' + statusBadge(r.status) + '</td>'; } },
+  { key:'timestamp', label:'תאריך',
+    render:function(r){ return '<td style="color:var(--light);font-size:11px">' + (r.timestamp||'-') + '</td>'; } },
+  // עמודות אופציונליות נוספות
+  { key:'school',    label:'מוסד לימודי',
+    render:function(r){ return '<td>' + (r.school||'-') + '</td>'; } },
+  { key:'source',    label:'מקור גיוס',
+    render:function(r){ return '<td>' + (r.source||'-') + '</td>'; } },
+  { key:'motivation',label:'מוטיבציה',
+    render:function(r){ return '<td>' + (r.motivation||'-') + '</td>'; } },
+  { key:'idNumber',  label:'ת.ז.',
+    render:function(r){ return '<td>' + (r.idNumber||'-') + '</td>'; } },
+  { key:'parentName',label:'הורה - שם',
+    render:function(r){ return '<td>' + (r.parentName||'-') + '</td>'; } },
+  { key:'parentPhone',label:'הורה - טלפון',
+    render:function(r){ return '<td>' + (r.parentPhone ? '<a class="phone-link" href="tel:' + r.parentPhone + '" onclick="event.stopPropagation()">' + r.parentPhone + '</a>' : '-') + '</td>'; } },
+  { key:'rejectNote',label:'סיבת דחייה',
+    render:function(r){ return '<td style="color:var(--red)">' + (r.rejectNote||'-') + '</td>'; } },
+  { key:'notes',     label:'הערות',
+    render:function(r){ return '<td>' + (r.notes||'-') + '</td>'; } }
+];
+
+// ברירת מחדל — הסדר המקורי
+var DEFAULT_COLS = ['name','edited','phone','city','grade','gender','branch','district','status','timestamp'];
+var _visibleCols = DEFAULT_COLS.slice();
+
+function colsStorageKey() {
+  return 'cols_' + (currentUser ? currentUser.username : 'guest');
+}
+
+function loadCols() {
+  var saved = null;
+  try { saved = localStorage.getItem(colsStorageKey()); } catch(e){}
+  if (saved) {
+    try {
+      var arr = JSON.parse(saved);
+      // סנן מפתחות שכבר לא קיימים
+      arr = arr.filter(function(k){
+        return COLUMN_DEFS.some(function(c){ return c.key === k; });
+      });
+      // ודא שעמודות נעולות תמיד קיימות
+      COLUMN_DEFS.forEach(function(c){
+        if (c.locked && arr.indexOf(c.key) === -1) arr.unshift(c.key);
+      });
+      if (arr.length) { _visibleCols = arr; return; }
+    } catch(e){}
+  }
+  _visibleCols = DEFAULT_COLS.slice();
+}
+
+function colDef(key) {
+  for (var i=0;i<COLUMN_DEFS.length;i++) if (COLUMN_DEFS[i].key===key) return COLUMN_DEFS[i];
+  return null;
+}
+
 function renderTable() {
-  var cols = ['שם מלא','עודכן','טלפון','עיר','כיתה','מין','שלוחה','מחוז','סטטוס','תאריך'];
   var canBulk = canBulkEdit();
+  var cols    = _visibleCols.map(colDef).filter(Boolean);
+
   document.getElementById('tableHead').innerHTML =
     (canBulk ? '<th class="chk-cell"><input type="checkbox" class="row-chk" id="chkAll" onclick="toggleAllRows(this)"/></th>' : '') +
     cols.map(function(c,i){
-      return '<th style="' + (i===0?'text-align:right;':'') + '">' + c + '</th>';
+      return '<th style="' + (i===0?'text-align:right;':'') + '">' + c.label + '</th>';
     }).join('');
 
   var start  = _page * PAGE_SIZE;
@@ -2237,38 +2398,28 @@ function renderTable() {
 
   var html = '';
   page.forEach(function(r, pi) {
-    var i = start + pi;
+    var i   = start + pi;
     var uid = r.uuid || r.originalPhone || '';
     html += '<tr onclick="openModal(' + i + ')">' +
       (canBulk ? '<td class="chk-cell" onclick="event.stopPropagation()"><input type="checkbox" class="row-chk" data-uid="' + uid + '" ' +
         (_bulkSel.indexOf(uid) > -1 ? 'checked' : '') + ' onclick="toggleRow(this)"/></td>' : '') +
-      '<td>' + (r.name||'-') + dupBadge(r, i) + '</td>' +
-      '<td>' + (r.hasEdit?'<small style="color:var(--gold)">(עודכן)</small>':'') + '</td>' +
-      '<td><a class="phone-link" href="tel:' + r.phone + '" onclick="event.stopPropagation()">' + (r.phone||'-') + '</a></td>' +
-      '<td>' + (r.city||'-') + '</td>' +
-      '<td>' + gradeBadge(r.grade) + '</td>' +
-      '<td>' + (r.gender||'-') + '</td>' +
-      '<td>' + (r.branch||'-') + '</td>' +
-      '<td>' + (r.district||'-') + '</td>' +
-      '<td>' + statusBadge(r.status) + '</td>' +
-      '<td style="color:var(--light);font-size:11px">' + (r.timestamp||'-') + '</td>' +
+      cols.map(function(c){ return c.render(r, i); }).join('') +
     '</tr>';
   });
 
-  // Pagination controls (shared markup for top + bottom)
+  var colspan = cols.length + (canBulk ? 1 : 0);
+
   var topPager = document.getElementById('topPager');
   if (pages > 1) {
     var ctrls =
-      '<button onclick="goPage(' + (_page-1) + ')" ' + (_page===0?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page===0?'opacity:.4':'') + '">→ הקודם</button>' +
+      '<button onclick="goPage(' + (_page-1) + ')" ' + (_page===0?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;border-radius:4px;' + (_page===0?'opacity:.4':'') + '">→ הקודם</button>' +
       '<span style="color:var(--light)">עמוד <b>' + (_page+1) + '</b> מתוך <b>' + pages + '</b> | סה"כ <b>' + total + '</b> רשומות</span>' +
-      '<button onclick="goPage(' + (_page+1) + ')" ' + (_page>=pages-1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:4px;' + (_page>=pages-1?'opacity:.4':'') + '">הבא ←</button>';
+      '<button onclick="goPage(' + (_page+1) + ')" ' + (_page>=pages-1?'disabled':'') + ' style="padding:5px 12px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;border-radius:4px;' + (_page>=pages-1?'opacity:.4':'') + '">הבא ←</button>';
 
-    // top bar — מצד שמאל
     topPager.style.display = 'flex';
     topPager.innerHTML = ctrls;
 
-    // bottom bar — בתוך הטבלה, ממורכז
-    html += '<tr><td colspan="' + (canBulk ? 11 : 10) + '" style="padding:10px;text-align:center;background:var(--surface);border-top:2px solid var(--border)">' +
+    html += '<tr><td colspan="' + colspan + '" style="padding:10px;text-align:center;background:var(--surface);border-top:2px solid var(--border)">' +
       '<div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px">' + ctrls + '</div></td></tr>';
   } else {
     topPager.style.display = 'none';
@@ -2276,6 +2427,116 @@ function renderTable() {
   }
 
   document.getElementById('tableBody').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+// ═══ מודאל התאמת עמודות ═══
+// ══════════════════════════════════════════════
+var _colsDraft = [];
+
+function openCols() {
+  _colsDraft = _visibleCols.slice();
+  renderColsList();
+  document.getElementById('colsOverlay').classList.add('open');
+}
+function closeCols() {
+  document.getElementById('colsOverlay').classList.remove('open');
+}
+
+function renderColsList() {
+  // קודם העמודות הפעילות לפי הסדר, אחר כך הכבויות
+  var ordered = _colsDraft.slice();
+  COLUMN_DEFS.forEach(function(c){
+    if (ordered.indexOf(c.key) === -1) ordered.push(c.key);
+  });
+
+  var html = '';
+  ordered.forEach(function(key){
+    var c = colDef(key); if (!c) return;
+    var on = _colsDraft.indexOf(key) > -1;
+    html += '<div class="col-item' + (c.locked ? ' locked' : '') + '" ' +
+      'draggable="' + (c.locked ? 'false' : 'true') + '" data-key="' + key + '">' +
+      '<span class="col-grip">⠿</span>' +
+      '<input type="checkbox" class="col-chk" ' + (on ? 'checked' : '') +
+        (c.locked ? ' disabled' : '') + ' onchange="toggleCol(\'' + key + '\', this)"/>' +
+      '<span class="col-name">' + c.label + '</span>' +
+      (c.locked ? '<span class="col-lock">קבוע</span>' : '') +
+    '</div>';
+  });
+  var list = document.getElementById('colsList');
+  list.innerHTML = html;
+  bindColDrag();
+}
+
+function toggleCol(key, cb) {
+  var i = _colsDraft.indexOf(key);
+  if (cb.checked) { if (i === -1) _colsDraft.push(key); }
+  else            { if (i > -1)  _colsDraft.splice(i, 1); }
+}
+
+function bindColDrag() {
+  var items = document.querySelectorAll('#colsList .col-item');
+  var dragged = null;
+
+  items.forEach(function(el){
+    el.addEventListener('dragstart', function(){
+      dragged = el; el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', function(){
+      el.classList.remove('dragging');
+      document.querySelectorAll('.col-item').forEach(function(x){ x.classList.remove('over'); });
+      dragged = null;
+      syncDraftOrder();
+    });
+    el.addEventListener('dragover', function(e){
+      e.preventDefault();
+      if (!dragged || dragged === el || el.classList.contains('locked')) return;
+      el.classList.add('over');
+    });
+    el.addEventListener('dragleave', function(){ el.classList.remove('over'); });
+    el.addEventListener('drop', function(e){
+      e.preventDefault();
+      el.classList.remove('over');
+      if (!dragged || dragged === el || el.classList.contains('locked')) return;
+      var list = document.getElementById('colsList');
+      var all  = Array.prototype.slice.call(list.children);
+      var from = all.indexOf(dragged), to = all.indexOf(el);
+      if (from < to) el.parentNode.insertBefore(dragged, el.nextSibling);
+      else           el.parentNode.insertBefore(dragged, el);
+    });
+  });
+}
+
+// קורא את הסדר מה-DOM ומעדכן את הטיוטה (רק עמודות מסומנות)
+function syncDraftOrder() {
+  var order = [];
+  document.querySelectorAll('#colsList .col-item').forEach(function(el){
+    var key = el.getAttribute('data-key');
+    var cb  = el.querySelector('.col-chk');
+    if (cb && cb.checked) order.push(key);
+  });
+  _colsDraft = order;
+}
+
+function saveCols() {
+  syncDraftOrder();
+  if (!_colsDraft.length) { alert('יש לבחור לפחות עמודה אחת'); return; }
+  // ודא שעמודות נעולות קיימות
+  COLUMN_DEFS.forEach(function(c){
+    if (c.locked && _colsDraft.indexOf(c.key) === -1) _colsDraft.unshift(c.key);
+  });
+  _visibleCols = _colsDraft.slice();
+  try { localStorage.setItem(colsStorageKey(), JSON.stringify(_visibleCols)); } catch(e){}
+  closeCols();
+  render();
+}
+
+function resetCols() {
+  _visibleCols = DEFAULT_COLS.slice();
+  try { localStorage.removeItem(colsStorageKey()); } catch(e){}
+  _colsDraft = _visibleCols.slice();
+  renderColsList();
+  render();
 }
 
 function goPage(p) {
@@ -4073,7 +4334,7 @@ function submitSupport() {
 }
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeSupport();
+  if (e.key === 'Escape') { closeSupport(); closeCols(); }
 });
 
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
