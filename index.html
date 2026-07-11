@@ -223,6 +223,166 @@ button,input,select{font-family:'Heebo','Segoe UI',Arial,sans-serif;}
   .lg-band,.lg-line,.login-btn::after,.lg-brand h1,.lg-brand p,.lg-feats,.login-box,.lg-brand-rule{animation:none!important;}
 }
 
+/* ═══════════ TELEGRAM SENDER — מסך מלא ═══════════ */
+#telegramScreen{
+  position:fixed;inset:0;z-index:998;
+  display:flex;                 /* flex — תואם ל-showTelegramSender שכופה display:flex */
+  background:#050f1f;overflow:hidden;
+}
+/* — פאנל מיתוגי (ימין) — */
+.tg-brand{
+  flex:1 1 44%;min-width:0;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:center;padding:6vh 4vw;
+  background:radial-gradient(1000px 760px at 70% 20%, #1a4a7e 0%, transparent 58%),
+             linear-gradient(155deg,#050f1f 0%,#0b1f3a 50%,#0a2a4e 100%);
+}
+.tg-brand-inner{position:relative;z-index:2;max-width:480px;}
+.tg-crest{display:flex;align-items:center;gap:15px;margin-bottom:30px;}
+.tg-crest img{height:66px;filter:drop-shadow(0 4px 18px rgba(0,0,0,.45));}
+.tg-crest-div{width:1px;height:48px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.32),transparent);}
+.tg-crest-txt{font-size:11.5px;font-weight:700;color:#a9c4e0;letter-spacing:.2em;line-height:1.9;}
+.tg-brand h1{
+  font-family:'Rubik','Heebo',Arial,sans-serif;
+  font-size:clamp(26px,2.7vw,40px);font-weight:800;color:#fff;
+  line-height:1.14;letter-spacing:-.025em;margin-bottom:16px;
+  text-shadow:0 4px 34px rgba(60,150,255,.30);
+  animation:lgIn .8s cubic-bezier(.22,.9,.3,1) both;
+}
+.tg-brand h1 .accent{display:block;background:linear-gradient(90deg,#7fd4ff,#3ba0e8);
+  -webkit-background-clip:text;background-clip:text;color:transparent;}
+.tg-brand-rule{width:76px;height:3px;margin-bottom:18px;border-radius:2px;
+  background:linear-gradient(90deg,var(--gold),rgba(182,138,44,0));
+  animation:lgIn .8s .1s cubic-bezier(.22,.9,.3,1) both;}
+.tg-brand p{font-size:15px;color:rgba(215,230,248,.80);line-height:1.85;max-width:400px;
+  margin-bottom:30px;animation:lgIn .8s .2s cubic-bezier(.22,.9,.3,1) both;}
+.tg-notes{display:flex;flex-direction:column;gap:11px;animation:lgIn .8s .3s cubic-bezier(.22,.9,.3,1) both;}
+.tg-note{display:flex;align-items:flex-start;gap:11px;font-size:13.5px;color:rgba(200,220,242,.76);line-height:1.6;}
+.tg-note svg{width:17px;height:17px;color:var(--gold);flex-shrink:0;margin-top:2px;}
+
+/* — פאנל טופס (שמאל) — */
+.tg-formside{
+  flex:1 1 56%;min-width:0;position:relative;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:5vh 4vw;overflow-y:auto;
+  background:linear-gradient(180deg,#f7f9fc 0%,#eef2f8 100%);
+}
+.tg-formside::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;
+  background:linear-gradient(180deg,transparent,var(--gold),transparent);opacity:.55;}
+.tg-panel{width:100%;max-width:600px;margin:auto 0;
+  animation:lgIn .7s .15s cubic-bezier(.22,.9,.3,1) both;}
+
+.tg-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;
+  padding:6px 14px;border-radius:999px;
+  background:rgba(31,78,121,.07);border:1px solid rgba(31,78,121,.16);
+  font-size:11px;font-weight:700;color:var(--royal);letter-spacing:.12em;
+}
+.tg-eyebrow svg{width:12px;height:12px;}
+.tg-h{font-family:'Rubik','Heebo',Arial,sans-serif;color:var(--navy);
+  font-size:27px;font-weight:800;line-height:1.15;letter-spacing:-.025em;margin-bottom:5px;}
+.tg-hsub{font-size:14px;color:var(--light);margin-bottom:26px;}
+
+/* צעדים */
+.tg-step{background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:20px 22px;margin-bottom:14px;box-shadow:0 2px 10px rgba(16,24,40,.05);}
+.tg-step-h{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.tg-step-n{width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#0b1f3a,#1f4e79);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12.5px;font-weight:800;font-family:'Rubik',sans-serif;}
+.tg-step-t{font-size:14.5px;font-weight:700;color:var(--navy);}
+
+/* כפתורי נמענים — JS דורס border/bg/color inline, אז מעצבים סביב זה */
+.tg-recips{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.tg-recip{
+  padding:13px 12px;border:1.5px solid #d0d7e4;background:#f8faff;
+  border-radius:9px;cursor:pointer;font-family:'Heebo',sans-serif;
+  font-size:13.5px;font-weight:600;color:#344054;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .14s, box-shadow .18s;
+}
+.tg-recip:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(31,78,121,.13);}
+.tg-recip svg{width:17px;height:17px;flex-shrink:0;}
+
+.tg-sel{width:100%;height:44px;border:1.5px solid #d5dce7;border-radius:9px;
+  padding:0 12px;font-family:'Heebo',sans-serif;font-size:14px;direction:rtl;
+  outline:none;background:#fff;color:var(--text);margin-top:11px;
+  transition:border-color .18s, box-shadow .18s;}
+.tg-sel:focus{border-color:var(--royal);box-shadow:0 0 0 4px rgba(31,78,121,.10);}
+
+.tg-sublabel{font-size:11.5px;font-weight:700;color:var(--light);
+  letter-spacing:.04em;margin-bottom:9px;}
+.tg-tpls{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+.tg-tpl{padding:7px 13px;border:1px solid #d0d7e4;background:#f8faff;
+  border-radius:7px;cursor:pointer;font-size:12.5px;font-family:'Heebo',sans-serif;
+  font-weight:500;color:var(--mid);transition:all .15s;}
+.tg-tpl:hover{border-color:var(--royal);background:#eef4fb;color:var(--navy);}
+
+.tg-statbtn{width:100%;height:44px;border:1.5px solid var(--royal);
+  background:linear-gradient(135deg,#eef4fb,#e2ecf7);border-radius:9px;
+  font-family:'Heebo',sans-serif;font-size:13.5px;font-weight:700;
+  color:var(--royal);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;transition:all .16s;}
+.tg-statbtn:hover{background:var(--royal);color:#fff;box-shadow:0 6px 16px rgba(31,78,121,.28);}
+.tg-statbtn svg{width:16px;height:16px;}
+
+.tg-ta{width:100%;height:130px;border:1.5px solid #d5dce7;border-radius:9px;
+  padding:12px;font-family:'Heebo',sans-serif;font-size:13.5px;resize:vertical;
+  direction:rtl;outline:none;line-height:1.75;color:var(--text);background:#fff;
+  transition:border-color .18s, box-shadow .18s;}
+.tg-ta:focus{border-color:var(--royal);box-shadow:0 0 0 4px rgba(31,78,121,.10);}
+
+.tg-prev{background:#f8faff;border:1px solid #d0d7e4;border-left:3px solid var(--royal);
+  border-radius:9px;padding:14px 16px;}
+.tg-prev-h{font-size:11px;font-weight:800;color:var(--light);
+  letter-spacing:.1em;margin-bottom:9px;}
+.tg-prev-b{font-size:13.5px;color:var(--mid);white-space:pre-wrap;
+  line-height:1.8;direction:rtl;}
+
+.tg-acts{display:flex;gap:10px;}
+.tg-btn-ghost{flex:1;height:48px;border:1.5px solid #d5dce7;background:#fff;
+  border-radius:9px;font-family:'Heebo',sans-serif;font-size:13.5px;font-weight:600;
+  color:var(--mid);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;transition:all .16s;}
+.tg-btn-ghost:hover{border-color:var(--royal);color:var(--navy);background:#f6f9fd;}
+.tg-btn-send{position:relative;overflow:hidden;flex:2;height:48px;
+  background:linear-gradient(135deg,#0b1f3a 0%,#1f4e79 100%);color:#fff;
+  border:none;border-radius:9px;font-family:'Heebo',sans-serif;
+  font-size:14.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 8px 22px rgba(11,31,58,.28);
+  transition:filter .2s, transform .14s, box-shadow .2s;}
+.tg-btn-send::after{content:"";position:absolute;top:0;left:-55%;width:42%;height:100%;
+  background:linear-gradient(115deg,transparent,rgba(255,255,255,.20),transparent);
+  transform:skewX(-18deg);animation:lgBtnSheen 6s ease-in-out infinite;}
+.tg-btn-send:hover{filter:brightness(1.12);transform:translateY(-2px);
+  box-shadow:0 12px 30px rgba(11,31,58,.36);}
+.tg-btn-ghost svg,.tg-btn-send svg{width:17px;height:17px;}
+
+.tg-foot{margin-top:20px;padding-top:16px;border-top:1px solid #dfe5ee;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.tg-foot-txt{font-size:11px;color:var(--muted);letter-spacing:.05em;
+  display:flex;align-items:center;gap:7px;}
+.tg-foot-txt svg{width:12px;height:12px;}
+.tg-logout{background:none;border:none;color:var(--light);font-size:12.5px;
+  font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif;
+  padding:6px 12px;border-radius:6px;transition:all .15s;}
+.tg-logout:hover{background:#eef1f5;color:var(--navy);}
+
+@media (max-width:980px){
+  .tg-brand{display:none;}
+  .tg-formside{flex:1 1 100%;padding:22px 16px;
+    background:radial-gradient(900px 600px at 70% 12%, #163e6b 0%, transparent 60%),
+               linear-gradient(160deg,#050f1f 0%,#0b1f3a 55%,#0a2a4e 100%);}
+  .tg-formside::before{display:none;}
+  .tg-panel{background:#fff;border-radius:14px;padding:26px 20px;
+    box-shadow:0 26px 62px rgba(0,0,0,.42);}
+  .tg-recips{grid-template-columns:1fr;}
+}
+@media (prefers-reduced-motion: reduce){
+  .tg-brand h1,.tg-brand p,.tg-notes,.tg-panel,.tg-brand-rule,.tg-btn-send::after{animation:none!important;}
+}
+
 /* HEADER */
 .header{
   background:var(--navy);padding:0 28px;
@@ -689,63 +849,158 @@ canvas{display:block;width:100%!important;}
 </div><!-- /app -->
 
 <!-- TELEGRAM SENDER SCREEN -->
-<!-- TELEGRAM SENDER SCREEN -->
-<div id="telegramScreen" style="display:none;min-height:100vh;background:linear-gradient(145deg,#071529 0%,#0b1f3a 58%,#102a4c 100%);align-items:center;justify-content:center;padding:20px;position:fixed;inset:0;z-index:998;overflow-y:auto">
-  <div style="background:#fff;border-radius:10px;box-shadow:0 22px 54px rgba(0,0,0,.26);width:100%;max-width:560px;overflow:hidden;border:1px solid #d0d7e2;margin:auto">
-    <div style="background:linear-gradient(135deg,#071a3d 0%,#0d2257 100%);padding:20px 28px 18px;border-bottom:3px solid #1ab8d4;text-align:center">
-      <img style="height:44px;margin-bottom:10px" src="IAF_New_Logo_2018.png" alt=""/>
-      <div style="font-family:Heebo,sans-serif;font-size:19px;font-weight:700;color:#fff">שליחת הודעת טלגרם</div>
-      <div style="font-size:11px;color:#b9c4d3;margin-top:3px">שוחרות חיל האוויר</div>
+<div id="telegramScreen" style="display:none">
+
+  <!-- פאנל מיתוגי -->
+  <div class="tg-brand">
+    <div class="lg-layers">
+      <div class="lg-band b1"></div><div class="lg-band b2"></div>
+      <div class="lg-band b3"></div><div class="lg-band b4"></div>
+      <div class="lg-line l1"></div><div class="lg-line l2"></div>
+      <div class="lg-line l3"></div><div class="lg-line l4"></div>
     </div>
-    <div style="padding:22px 24px">
-      <div style="margin-bottom:16px">
-        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:8px">שלב 1 - בחר נמענים</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button onclick="selectTgRecipient('all')"       id="tgr_all"       style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">🌐 כולם</button>
-          <button onclick="selectTgRecipient('branches')"  id="tgr_branches"  style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">🏫 מפקדי שלוחות</button>
-          <button onclick="selectTgRecipient('admin')"     id="tgr_admin"     style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">✈️ מפקד גף</button>
-          <button onclick="selectTgRecipient('districts')" id="tgr_districts" style="padding:10px;border:1.5px solid #d0d7e4;background:#f8faff;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054">🗺️ מפקדי מחוזות</button>
+    <div class="lg-grid"></div>
+
+    <div class="tg-brand-inner">
+      <div class="tg-crest">
+        <img src="IAF_New_Logo_2018.png" alt=""/>
+        <div class="tg-crest-div"></div>
+        <div class="tg-crest-txt">חיל האוויר<br/>מסלול שוחרות</div>
+      </div>
+
+      <h1>מרכז שליחת<span class="accent">הודעות יזומות</span></h1>
+      <div class="tg-brand-rule"></div>
+      <p>שליחת עדכונים, תזכורות וסיכומים סטטיסטיים למפקדי השלוחות, המחוזות והגף - ישירות לטלגרם.</p>
+
+      <div class="tg-notes">
+        <div class="tg-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          <span>ההודעה נשלחת לנמענים הרשומים בלבד</span>
         </div>
-        <div id="tgs_branch_select_wrap" style="display:none;margin-top:10px">
-          <select id="tgs_branch_select" onchange="hidePreview()" style="width:100%;height:42px;border:1.5px solid #1a4a9f;border-radius:8px;padding:0 12px;font-family:Heebo,sans-serif;font-size:14px;direction:rtl;outline:none;background:#fff">
+        <div class="tg-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-5"/></svg>
+          <span>ניתן לצרף סיכום סטטיסטי מעודכן לרגע השליחה</span>
+        </div>
+        <div class="tg-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
+          <span>מומלץ לצפות בתצוגה מקדימה טרם השליחה</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- פאנל טופס -->
+  <div class="tg-formside">
+    <div class="tg-panel">
+
+      <div class="tg-eyebrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        <span>שידור מבצעי</span>
+      </div>
+      <div class="tg-h">שליחת הודעת טלגרם</div>
+      <div class="tg-hsub">בחרו נמענים, בנו את ההודעה ושלחו</div>
+
+      <!-- שלב 1 -->
+      <div class="tg-step">
+        <div class="tg-step-h">
+          <div class="tg-step-n">1</div>
+          <div class="tg-step-t">בחירת נמענים</div>
+        </div>
+        <div class="tg-recips">
+          <button class="tg-recip" onclick="selectTgRecipient('all')" id="tgr_all">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
+            <span>כולם</span>
+          </button>
+          <button class="tg-recip" onclick="selectTgRecipient('branches')" id="tgr_branches">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+            <span>מפקדי שלוחות</span>
+          </button>
+          <button class="tg-recip" onclick="selectTgRecipient('admin')" id="tgr_admin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 7h7l-5.5 4.5L17.5 21 12 16.8 6.5 21l2-7.5L3 9h7z"/></svg>
+            <span>מפקד גף</span>
+          </button>
+          <button class="tg-recip" onclick="selectTgRecipient('districts')" id="tgr_districts">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg>
+            <span>מפקדי מחוזות</span>
+          </button>
+        </div>
+        <div id="tgs_branch_select_wrap" style="display:none">
+          <select class="tg-sel" id="tgs_branch_select" onchange="hidePreview()">
             <option value="all_branches">כל השלוחות</option>
           </select>
         </div>
       </div>
-      <div id="tgs_content_wrap" style="display:none;border-top:1px solid #eef1f5;padding-top:16px">
-        <label style="display:block;font-size:12px;font-weight:700;color:#344054;margin-bottom:10px">שלב 2 - בנה את ההודעה</label>
-        <div style="margin-bottom:12px">
-          <div style="font-size:11px;font-weight:600;color:#667085;margin-bottom:7px">תבניות מוכנות</div>
-          <div style="display:flex;flex-wrap:wrap;gap:7px">
-            <button onclick="useTgSenderTemplate(0)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✅ בדיקת תקינות</button>
-            <button onclick="useTgSenderTemplate(1)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">⚠️ לידים לא מטופלים</button>
-            <button onclick="useTgSenderTemplate(2)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">🎉 חג שמח</button>
-            <button onclick="useTgSenderTemplate(3)" style="padding:6px 11px;border:1px solid #d0d7e4;background:#f8faff;border-radius:6px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">✡️ שבת שלום</button>
+
+      <!-- שלב 2 -->
+      <div id="tgs_content_wrap" style="display:none">
+
+        <div class="tg-step">
+          <div class="tg-step-h">
+            <div class="tg-step-n">2</div>
+            <div class="tg-step-t">בניית ההודעה</div>
           </div>
+
+          <div class="tg-sublabel">תבניות מוכנות</div>
+          <div class="tg-tpls">
+            <button class="tg-tpl" onclick="useTgSenderTemplate(0)">בדיקת תקינות</button>
+            <button class="tg-tpl" onclick="useTgSenderTemplate(1)">לידים לא מטופלים</button>
+            <button class="tg-tpl" onclick="useTgSenderTemplate(2)">חג שמח</button>
+            <button class="tg-tpl" onclick="useTgSenderTemplate(3)">שבת שלום</button>
+          </div>
+
+          <div id="tgs_stat_btn_wrap" style="display:none;margin-bottom:16px">
+            <button class="tg-statbtn" onclick="addDailyStat()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-5"/></svg>
+              <span>הוסף סיכום סטטיסטי נכון לרגע זה</span>
+            </button>
+            <div id="tgs_stat_loading" style="display:none;font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px">טוען נתונים...</div>
+          </div>
+
+          <div class="tg-sublabel">תוכן ההודעה</div>
+          <textarea class="tg-ta" id="tgs_text" placeholder="כתבו את תוכן ההודעה..."></textarea>
         </div>
-        <div id="tgs_stat_btn_wrap" style="display:none;margin-bottom:12px">
-          <button onclick="addDailyStat()" style="width:100%;height:40px;border:1.5px solid #1a4a9f;background:#f0f5ff;border-radius:8px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#1a4a9f;cursor:pointer">📊 הוסף סטטיסטיקה יומית נכון לרגע זה</button>
-          <div id="tgs_stat_loading" style="display:none;font-size:11px;color:#98a2b3;text-align:center;margin-top:4px">טוען נתונים...</div>
+
+        <!-- שלב 3 -->
+        <div class="tg-step">
+          <div class="tg-step-h">
+            <div class="tg-step-n">3</div>
+            <div class="tg-step-t">אישור ושליחה</div>
+          </div>
+
+          <div id="tgs_preview_wrap" style="display:none;margin-bottom:16px">
+            <div class="tg-prev">
+              <div class="tg-prev-h">תצוגה מקדימה</div>
+              <div class="tg-prev-b" id="tgs_preview"></div>
+            </div>
+          </div>
+
+          <div class="tg-acts">
+            <button class="tg-btn-ghost" onclick="previewTgSender()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>תצוגה מקדימה</span>
+            </button>
+            <button class="tg-btn-send" onclick="sendTgSender()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              <span>שלח הודעה</span>
+            </button>
+          </div>
+
+          <div id="tgs_msg" style="display:none;margin-top:12px;padding:11px 14px;border-radius:8px;font-size:13px;text-align:center;font-weight:600"></div>
         </div>
-        <div style="margin-bottom:14px">
-          <div style="font-size:11px;font-weight:600;color:#667085;margin-bottom:7px">הודעה חופשית (אופציונלי)</div>
-          <textarea id="tgs_text" style="width:100%;height:110px;border:1.5px solid #d0d7e4;border-radius:8px;padding:12px;font-family:Heebo,sans-serif;font-size:13px;resize:vertical;direction:rtl;outline:none;line-height:1.7" placeholder="הוסף טקסט חופשי..."></textarea>
-        </div>
-        <div id="tgs_preview_wrap" style="display:none;margin-bottom:14px;background:#f8faff;border:1px solid #d0d7e4;border-radius:8px;padding:12px">
-          <div style="font-size:11px;font-weight:700;color:#667085;margin-bottom:8px">תצוגה מקדימה</div>
-          <div id="tgs_preview" style="font-size:13px;color:#344054;white-space:pre-wrap;line-height:1.7;direction:rtl"></div>
-        </div>
-        <div style="display:flex;gap:10px">
-          <button onclick="previewTgSender()" style="flex:1;height:44px;border:1.5px solid #d0d7e4;background:#fff;border-radius:8px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;color:#344054;cursor:pointer">👁 תצוגה מקדימה</button>
-          <button onclick="sendTgSender()" style="flex:2;height:44px;background:linear-gradient(135deg,#0d2257 0%,#1a4a9f 100%);color:#fff;border:none;border-radius:8px;font-family:Heebo,sans-serif;font-size:14px;font-weight:700;cursor:pointer">📨 שלח הודעה</button>
-        </div>
-        <div id="tgs_msg" style="display:none;margin-top:10px;padding:10px 14px;border-radius:6px;font-size:13px;text-align:center"></div>
+
       </div>
-      <div style="margin-top:14px;text-align:center">
-        <button onclick="doLogout()" style="background:none;border:none;color:#98a2b3;font-size:12px;cursor:pointer;font-family:Heebo,sans-serif">יציאה</button>
+
+      <div class="tg-foot">
+        <div class="tg-foot-txt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>שליחה מבוקרת ומתועדת · v2.0</span>
+        </div>
+        <button class="tg-logout" onclick="doLogout()">יציאה</button>
       </div>
+
     </div>
   </div>
+
 </div>
 
 <!-- INACTIVITY WARNING -->
