@@ -929,6 +929,16 @@ canvas{display:block;width:100%!important;}
             <option value="all_branches">כל השלוחות</option>
           </select>
         </div>
+        <div id="tgs_district_select_wrap" style="display:none">
+          <select class="tg-sel" id="tgs_district_select" onchange="onDistrictModeChange()">
+            <option value="all_districts">כל מפקדי המחוזות - הודעה זהה</option>
+            <option value="per_district">פר מחוז - כל מפקד מקבל את נתוני המחוז שלו</option>
+            <option value="דרום">מפקד מחוז דרום בלבד</option>
+            <option value="מרכז">מפקד מחוז מרכז בלבד</option>
+            <option value="צפון">מפקד מחוז צפון בלבד</option>
+          </select>
+          <div id="tgs_district_hint" style="display:none;margin-top:8px;font-size:11.5px;color:var(--royal);background:#eef4fb;border:1px solid #d0d7e4;border-radius:7px;padding:8px 11px;line-height:1.6"></div>
+        </div>
       </div>
 
       <!-- שלב 2 -->
@@ -2786,11 +2796,70 @@ function selectTgRecipient(type) {
   });
   var bw = document.getElementById('tgs_branch_select_wrap');
   if (bw) bw.style.display = type === 'branches' ? '' : 'none';
+  var dw = document.getElementById('tgs_district_select_wrap');
+  if (dw) dw.style.display = type === 'districts' ? '' : 'none';
   var sw = document.getElementById('tgs_stat_btn_wrap');
   if (sw) sw.style.display = type !== 'all' ? '' : 'none';
   var cw = document.getElementById('tgs_content_wrap');
   if (cw) cw.style.display = '';
+  if (type === 'districts') onDistrictModeChange();
   hidePreview();
+}
+
+// ── מצב בחירת מחוזות ──
+var TG_DISTRICTS = ['דרום','מרכז','צפון'];
+
+function getDistrictMode() {
+  var el = document.getElementById('tgs_district_select');
+  return el ? el.value : 'all_districts';
+}
+
+function onDistrictModeChange() {
+  var mode = getDistrictMode();
+  var hint = document.getElementById('tgs_district_hint');
+  if (hint) {
+    if (mode === 'all_districts') {
+      hint.textContent = 'כל שלושת מפקדי המחוזות יקבלו את אותה ההודעה בדיוק.';
+    } else if (mode === 'per_district') {
+      hint.textContent = 'תישלחנה 3 הודעות נפרדות - כל מפקד מחוז יקבל את הטקסט החופשי בתוספת נתוני המחוז שלו בלבד.';
+    } else {
+      hint.textContent = 'ההודעה תישלח למפקד מחוז ' + mode + ' בלבד (לא לשלוחות שלו).';
+    }
+    hint.style.display = '';
+  }
+  hidePreview();
+}
+
+// ── בונה סיכום יומי למחוז יחיד ──
+function buildDistrictSummary(rows, district, dateStr, timeStr) {
+  var dRows  = rows.filter(function(r){ return r.district === district; });
+  var byBr   = {};
+  dRows.forEach(function(r){ if(r.branch) byBr[r.branch] = (byBr[r.branch]||0)+1; });
+  var s = '📊 סיכום יומי - מחוז ' + district + '\n';
+  s += '📅 ' + dateStr + ' - ' + timeStr + '\n\n';
+  s += 'סה"כ לידים היום: ' + dRows.length + '\n';
+  var brs = Object.keys(byBr).sort();
+  if (brs.length) {
+    s += '\nפירוט לפי שלוחה:\n';
+    brs.forEach(function(b){ s += '- ' + b + ': ' + byBr[b] + '\n'; });
+  }
+  return s.trim();
+}
+
+// ── שולף את לידי היום ──
+function fetchTodayRows() {
+  var sinceStr = SINCE_DATE.toISOString().split('T')[0];
+  return fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.success || !d.rows) return [];
+      var today = new Date(); today.setHours(0,0,0,0);
+      return d.rows.filter(function(r){
+        var ts = parseDate(r.timestamp); if (!ts) return false;
+        var rd = new Date(ts); rd.setHours(0,0,0,0);
+        return rd.getTime() === today.getTime();
+      });
+    });
 }
 
 function useTgSenderTemplate(i) {
@@ -2853,14 +2922,39 @@ function addDailyStat() {
         });
 
       } else if (_tgRecipient === 'districts') {
-        // הודעה גנרית — כל מחוז מקבל שלו בשליחה
-        var byDistrict2 = {};
-        todayRows.forEach(function(r){ if(r.district) byDistrict2[r.district]=(byDistrict2[r.district]||0)+1; });
-        stat = '📊 סיכום יומי - ' + dateStr + ' - ' + timeStr + '\n\n';
-        ['דרום','מרכז','צפון'].forEach(function(dist){
-          stat += 'מחוז ' + dist + ': ' + (byDistrict2[dist]||0) + ' לידים\n';
-        });
-        stat += '(כל מפקד מחוז מקבל את נתוני המחוז שלו)';
+        var dMode = getDistrictMode();
+
+        if (dMode === 'per_district') {
+          // פר מחוז — הנתונים נבנים בזמן השליחה לכל מחוז בנפרד.
+          // כאן רק מציגים תצוגה מקדימה של מה שכל מפקד יקבל.
+          var free = el ? el.value.trim() : '';
+          var prevTxt = '';
+          TG_DISTRICTS.forEach(function(dist, k){
+            if (k) prevTxt += '\n\n─────────────\n\n';
+            prevTxt += '◀ למפקד מחוז ' + dist + ':\n\n' +
+                       (free ? free + '\n\n' : '') +
+                       buildDistrictSummary(todayRows, dist, dateStr, timeStr);
+          });
+          var pw0 = document.getElementById('tgs_preview_wrap');
+          var pd0 = document.getElementById('tgs_preview');
+          if (pw0 && pd0) { pd0.textContent = prevTxt; pw0.style.display = ''; }
+          return; // לא נוגעים בתיבת הטקסט
+
+        } else if (dMode === 'all_districts') {
+          // הודעה זהה לכולם — סיכום כולל של שלושת המחוזות
+          var byDistrict2 = {};
+          todayRows.forEach(function(r){ if(r.district) byDistrict2[r.district]=(byDistrict2[r.district]||0)+1; });
+          stat = '📊 סיכום יומי - ' + dateStr + ' - ' + timeStr + '\n\n';
+          stat += 'סה"כ לידים היום: ' + todayRows.length + '\n\n';
+          stat += 'פירוט לפי מחוז:\n';
+          TG_DISTRICTS.forEach(function(dist){
+            stat += '- מחוז ' + dist + ': ' + (byDistrict2[dist]||0) + ' לידים\n';
+          });
+
+        } else {
+          // מחוז ספציפי — נתוני המחוז שלו בלבד
+          stat = buildDistrictSummary(todayRows, dMode, dateStr, timeStr);
+        }
 
       } else if (_tgRecipient === 'branches') {
         var branchSel = (document.getElementById('tgs_branch_select')||{}).value||'all_branches';
@@ -2881,28 +2975,78 @@ function addDailyStat() {
     .catch(function(){ if (loading) loading.style.display = 'none'; });
 }
 
-function sendTgSender() {
-  if (!_tgRecipient) {
-    var m = document.getElementById('tgs_msg');
-    if (m) { m.textContent='נא לבחור נמענים'; m.style.background='#fee4e2'; m.style.color='#912018'; m.style.display=''; }
-    return;
-  }
-  var text      = (document.getElementById('tgs_text')||{}).value||'';
-  var branchSel = (document.getElementById('tgs_branch_select')||{}).value||'all_branches';
-  var msgEl     = document.getElementById('tgs_msg');
-  var recipient = _tgRecipient;
-  if (_tgRecipient === 'branches' && branchSel !== 'all_branches') {
-    recipient = 'branch_' + branchSel;
-  }
-  fetch(APPS_SCRIPT_URL, {
+function tgShowMsg(txt, ok) {
+  var m = document.getElementById('tgs_msg');
+  if (!m) return;
+  m.textContent = txt;
+  m.style.background = ok ? '#e7f5ec' : '#fee4e2';
+  m.style.color      = ok ? '#14532d' : '#912018';
+  m.style.display    = '';
+  if (ok) setTimeout(function(){ m.style.display='none'; }, 3500);
+}
+
+function tgPost(recipient, text) {
+  return fetch(APPS_SCRIPT_URL, {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'sendTelegramBroadcast', text:text, recipient:recipient})
-  }).then(function(){
-    if (msgEl) { msgEl.textContent='ההודעה נשלחה בהצלחה ✓'; msgEl.style.background='#e7f5ec'; msgEl.style.color='#14532d'; msgEl.style.display=''; }
+  });
+}
+
+function sendTgSender() {
+  if (!_tgRecipient) { tgShowMsg('נא לבחור נמענים', false); return; }
+
+  var text      = (document.getElementById('tgs_text')||{}).value||'';
+  var branchSel = (document.getElementById('tgs_branch_select')||{}).value||'all_branches';
+  var recipient = _tgRecipient;
+
+  // ── מפקדי מחוזות ──
+  if (_tgRecipient === 'districts') {
+    var dMode = getDistrictMode();
+
+    // פר מחוז — 3 הודעות נפרדות, כל אחת עם נתוני המחוז שלה
+    if (dMode === 'per_district') {
+      tgShowMsg('בונה ושולח הודעות לכל מחוז...', true);
+      var free    = text.trim();
+      var now     = new Date();
+      var dateStr = now.toLocaleDateString('he-IL',{day:'numeric',month:'long',year:'numeric'});
+      var timeStr = now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+
+      fetchTodayRows().then(function(rows){
+        var jobs = TG_DISTRICTS.map(function(dist){
+          var body = (free ? free + '\n\n' : '') +
+                     buildDistrictSummary(rows, dist, dateStr, timeStr);
+          return tgPost('distonly_' + dist, body);
+        });
+        return Promise.all(jobs);
+      }).then(function(){
+        tgShowMsg('נשלחו 3 הודעות - כל מפקד מחוז קיבל את נתוני המחוז שלו ✓', true);
+        document.getElementById('tgs_text').value = '';
+        hidePreview();
+      }).catch(function(){
+        tgShowMsg('שגיאה בשליחה - נסה שנית', false);
+      });
+      return;
+    }
+
+    // מחוז ספציפי — רק מפקד המחוז (לא השלוחות שלו)
+    if (dMode !== 'all_districts') {
+      recipient = 'distonly_' + dMode;
+    }
+    // all_districts → נשאר 'districts' (הודעה זהה לכולם)
+  }
+
+  // ── שלוחה ספציפית ──
+  if (_tgRecipient === 'branches' && branchSel !== 'all_branches') {
+    recipient = 'branch_' + branchSel;
+  }
+
+  tgPost(recipient, text).then(function(){
+    tgShowMsg('ההודעה נשלחה בהצלחה ✓', true);
     document.getElementById('tgs_text').value = '';
     hidePreview();
-    setTimeout(function(){ if(msgEl) msgEl.style.display='none'; }, 3000);
+  }).catch(function(){
+    tgShowMsg('שגיאה בשליחה - נסה שנית', false);
   });
 }
 
