@@ -1,0 +1,27 @@
+{
+  "name": "מערכת לידים - שוחרות חיל האוויר",
+  "short_name": "לידים שוחרות",
+  "description": "מערכת מרכזית לניהול, מעקב ותיעוד מועמדים למסלול השוחרות",
+  "start_url": "./leads.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050f1f",
+  "theme_color": "#0b1f3a",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    {
+      "src": "IAF_New_Logo_2018.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "IAF_New_Logo_2018.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
