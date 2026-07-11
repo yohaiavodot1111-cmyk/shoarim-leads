@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>מערכת לידים - שוחרות חיל האוויר</title>
 <link rel="icon" href="IAF_New_Logo_2018.png" type="image/png"/>
+
+<!-- ═══ PWA — התקנה כתוכנה ═══ -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0b1f3a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="לידים שוחרות"/>
+<link rel="apple-touch-icon" href="IAF_New_Logo_2018.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Rubik:wght@500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -504,6 +513,20 @@ button,input,select{font-family:'Heebo','Segoe UI',Arial,sans-serif;}
   .sup-modal{max-height:94vh;}
 }
 
+/* ═══════════ PWA — כפתור התקנה ═══════════ */
+.pwa-install{
+  display:none;                         /* מוצג רק כשההתקנה זמינה */
+  margin-top:10px;width:100%;height:42px;
+  background:linear-gradient(135deg,#eef4fb,#e2ecf7);
+  border:1.5px solid var(--royal);border-radius:9px;
+  font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;color:var(--royal);
+  cursor:pointer;align-items:center;justify-content:center;gap:8px;
+  transition:all .16s;
+}
+.pwa-install.show{display:flex;}
+.pwa-install:hover{background:var(--royal);color:#fff;box-shadow:0 6px 16px rgba(31,78,121,.26);}
+.pwa-install svg{width:15px;height:15px;}
+
 /* HEADER */
 .header{
   background:var(--navy);padding:0 28px;
@@ -863,6 +886,11 @@ canvas{display:block;width:100%!important;}
       <button class="lg-support" onclick="openSupport()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
         <span>תמיכה טכנית</span>
+      </button>
+
+      <button class="pwa-install" id="pwaInstallBtn" onclick="pwaInstall()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+        <span>התקן כתוכנה במחשב</span>
       </button>
 
       <div class="lg-foot">
@@ -3527,6 +3555,40 @@ function renderHistory(uuid, history) {
   return html + '</div>';
 }
 
+
+// ══════════ PWA — רישום Service Worker + התקנה ══════════
+var _pwaPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function(){ /* לא קריטי */ });
+  });
+}
+
+// הדפדפן מודיע שההתקנה אפשרית
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _pwaPrompt = e;
+  var btn = document.getElementById('pwaInstallBtn');
+  if (btn) btn.classList.add('show');
+});
+
+function pwaInstall() {
+  if (!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.then(function() {
+    _pwaPrompt = null;
+    var btn = document.getElementById('pwaInstallBtn');
+    if (btn) btn.classList.remove('show');
+  });
+}
+
+// אחרי התקנה — הסתר את הכפתור
+window.addEventListener('appinstalled', function() {
+  _pwaPrompt = null;
+  var btn = document.getElementById('pwaInstallBtn');
+  if (btn) btn.classList.remove('show');
+});
 
 // ── שעון מסך ההתחברות ──
 (function(){
