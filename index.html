@@ -383,6 +383,107 @@ button,input,select{font-family:'Heebo','Segoe UI',Arial,sans-serif;}
   .tg-brand h1,.tg-brand p,.tg-notes,.tg-panel,.tg-brand-rule,.tg-btn-send::after{animation:none!important;}
 }
 
+/* ═══════════ SUPPORT — תמיכה טכנית ═══════════ */
+.lg-support{
+  margin-top:14px;width:100%;height:42px;
+  background:transparent;border:1.5px solid #d5dce7;border-radius:9px;
+  font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--mid);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .16s;
+}
+.lg-support:hover{border-color:var(--royal);color:var(--navy);background:#f6f9fd;}
+.lg-support svg{width:15px;height:15px;}
+
+.sup-overlay{
+  position:fixed;inset:0;z-index:1200;
+  background:rgba(5,15,31,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.sup-overlay.open{opacity:1;pointer-events:auto;}
+.sup-modal{
+  background:#fff;width:100%;max-width:620px;max-height:88vh;
+  border-radius:14px;overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 30px 70px rgba(0,0,0,.5);
+  transform:translateY(16px) scale(.98);transition:transform .3s cubic-bezier(.22,.9,.3,1);
+}
+.sup-overlay.open .sup-modal{transform:none;}
+.sup-head{
+  background:linear-gradient(135deg,#071a3d 0%,#0d2257 100%);
+  padding:20px 24px;border-bottom:3px solid var(--gold);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;
+}
+.sup-head-t{font-family:'Rubik','Heebo',sans-serif;font-size:19px;font-weight:700;color:#fff;}
+.sup-head-s{font-size:11.5px;color:#a9c4e0;margin-top:3px;}
+.sup-x{
+  width:32px;height:32px;border-radius:7px;flex-shrink:0;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.20);
+  color:#d6deea;font-size:17px;cursor:pointer;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.sup-x:hover{background:rgba(255,255,255,.16);color:#fff;transform:rotate(90deg);}
+.sup-body{padding:20px 24px 24px;overflow-y:auto;flex:1;}
+
+.sup-tabs{display:flex;gap:6px;background:#f2f4f7;padding:4px;border-radius:9px;margin-bottom:18px;}
+.sup-tab{
+  flex:1;padding:9px;border:none;background:transparent;border-radius:6px;
+  font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--light);
+  cursor:pointer;transition:all .15s;
+}
+.sup-tab.active{background:#fff;color:var(--navy);box-shadow:var(--shadow-sm);}
+
+.faq-item{border:1px solid var(--border);border-radius:9px;margin-bottom:8px;overflow:hidden;background:#fff;}
+.faq-q{
+  width:100%;padding:13px 15px;background:#fff;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:10px;text-align:right;
+  font-family:'Heebo',sans-serif;font-size:13.5px;font-weight:600;color:var(--navy);
+  transition:background .15s;
+}
+.faq-q:hover{background:#f6f9fd;}
+.faq-item.open .faq-q{background:#eef4fb;border-bottom:1px solid var(--border);}
+.faq-arrow{color:var(--royal);font-size:12px;transition:transform .2s;flex-shrink:0;}
+.faq-item.open .faq-arrow{transform:rotate(90deg);}
+.faq-a{padding:13px 15px 15px 38px;font-size:13px;color:var(--mid);line-height:1.8;display:none;}
+.faq-item.open .faq-a{display:block;}
+.faq-a b{color:var(--navy);}
+
+.sup-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.sup-f{display:flex;flex-direction:column;}
+.sup-f.full{grid-column:1/-1;}
+.sup-f label{font-size:12px;font-weight:700;color:#344054;margin-bottom:5px;}
+.sup-f label .req{color:#b42318;}
+.sup-f input,.sup-f select,.sup-f textarea{
+  width:100%;height:44px;padding:9px 12px;border:1.5px solid #d5dce7;border-radius:8px;
+  font-family:'Heebo',sans-serif;font-size:13.5px;color:var(--text);background:#fff;
+  outline:none;direction:rtl;transition:border-color .18s,box-shadow .18s;
+}
+.sup-f textarea{height:110px;resize:vertical;padding:11px 12px;line-height:1.7;}
+.sup-f input:focus,.sup-f select:focus,.sup-f textarea:focus{
+  border-color:var(--royal);box-shadow:0 0 0 4px rgba(31,78,121,.10);
+}
+.sup-f.err input,.sup-f.err select,.sup-f.err textarea{border-color:#f04438;box-shadow:0 0 0 4px rgba(240,68,56,.08);}
+
+.sup-send{
+  position:relative;overflow:hidden;width:100%;height:48px;margin-top:16px;
+  background:linear-gradient(135deg,#0b1f3a 0%,#1f4e79 100%);color:#fff;
+  border:none;border-radius:9px;font-family:'Heebo',sans-serif;
+  font-size:14.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 8px 22px rgba(11,31,58,.28);
+  transition:filter .2s,transform .14s,box-shadow .2s;
+}
+.sup-send:hover{filter:brightness(1.12);transform:translateY(-2px);}
+.sup-send:disabled{opacity:.6;transform:none;filter:none;cursor:default;}
+.sup-send svg{width:16px;height:16px;}
+.sup-msg{margin-top:12px;padding:11px 14px;border-radius:8px;font-size:13px;
+  text-align:center;font-weight:600;display:none;}
+.sup-note{margin-top:12px;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.6;}
+
+@media (max-width:600px){
+  .sup-grid{grid-template-columns:1fr;}
+  .sup-modal{max-height:94vh;}
+}
+
 /* HEADER */
 .header{
   background:var(--navy);padding:0 28px;
@@ -739,6 +840,11 @@ canvas{display:block;width:100%!important;}
       <button class="login-btn" onclick="doLogin()">כניסה למערכת</button>
       <div class="login-err" id="loginErr">שם משתמש או סיסמה שגויים</div>
 
+      <button class="lg-support" onclick="openSupport()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+        <span>תמיכה טכנית</span>
+      </button>
+
       <div class="lg-foot">
         <svg class="lg-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>חיבור מאובטח · שימוש מבוקר ומתועד · v2.0</span>
@@ -746,6 +852,111 @@ canvas{display:block;width:100%!important;}
     </div>
   </div>
 
+</div>
+
+<!-- SUPPORT MODAL -->
+<div class="sup-overlay" id="supOverlay" onclick="if(event.target===this)closeSupport()">
+  <div class="sup-modal">
+    <div class="sup-head">
+      <div>
+        <div class="sup-head-t">תמיכה טכנית</div>
+        <div class="sup-head-s">מערכת לידים - שוחרות חיל האוויר</div>
+      </div>
+      <button class="sup-x" onclick="closeSupport()">&times;</button>
+    </div>
+
+    <div class="sup-body">
+      <div class="sup-tabs">
+        <button class="sup-tab active" id="supTabFaq"    onclick="setSupTab('faq')">שאלות נפוצות</button>
+        <button class="sup-tab"        id="supTabForm"   onclick="setSupTab('form')">השארת פנייה</button>
+      </div>
+
+      <!-- ═══ שאלות נפוצות ═══ -->
+      <div id="supFaq">
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>שכחתי את הסיסמה - מה עושים?</span></button>
+          <div class="faq-a">הסיסמאות מנוהלות מרכזית. יש לפנות למנהל המערכת דרך טופס <b>השארת פנייה</b> בלשונית הסמוכה, ותקבלו סיסמה חדשה.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>החשבון שלי ננעל - למה ומה עכשיו?</span></button>
+          <div class="faq-a">לאחר <b>5 ניסיונות כניסה כושלים</b> החשבון ננעל אוטומטית למשך <b>15 דקות</b>. זו הגנה מפני ניסיונות פריצה. המתינו 15 דקות ונסו שוב, או פנו לתמיכה אם הבעיה חוזרת.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>אני לא רואה את כל הלידים / חסרים לי לידים</span></button>
+          <div class="faq-a">המערכת מציגה לידים <b>לפי ההרשאה שלכם</b>: מפקד שלוחה רואה רק את השלוחה שלו, מפקד מחוז רק את המחוז שלו. בנוסף, בדקו שאין <b>מסננים פעילים</b> (כיתה, סטטוס, טווח תאריכים) בסרגל העליון - לחצו "נקה הכל" בסינון הסטטוסים.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>אני לא מקבל התראות בטלגרם על לידים חדשים</span></button>
+          <div class="faq-a">ההתראות נשלחות רק למי ש-<b>Chat ID</b> שלו רשום במערכת. ודאו שפתחתם שיחה עם הבוט (לחצתם Start), ואם עדיין לא מגיע - השאירו פנייה ונרשום אתכם.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>המערכת ניתקה אותי באמצע העבודה</span></button>
+          <div class="faq-a">מטעמי אבטחה המערכת מנתקת אוטומטית לאחר <b>5 דקות של חוסר פעילות</b>. לפני הניתוק תוצג התראה עם 30 שניות להגיב - לחצו "כן" כדי להישאר מחוברים.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>איך מוסיפים ליד באופן ידני?</span></button>
+          <div class="faq-a">לחצו על כפתור <b>"הוסף ליד"</b> בסרגל הכלים. שדות חובה: <b>שם מלא</b> ו<b>טלפון</b>. מפקדי שלוחה - השלוחה תיבחר אוטומטית.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>איך מייצאים את הנתונים לאקסל?</span></button>
+          <div class="faq-a">לחצו על כפתור <b>Excel</b> בסרגל הכלים. הקובץ יכלול את הלידים <b>לפי הסינון הפעיל</b> - אם רוצים הכל, נקו קודם את המסננים.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>שיניתי סטטוס והוא לא נשמר</span></button>
+          <div class="faq-a">חלק מהסטטוסים (כמו <b>פסילה</b> או <b>לא תקין</b>) מחייבים מילוי <b>סיבת דחייה</b> - בלעדיה השמירה תיחסם. בדקו גם שהחיבור לאינטרנט תקין ונסו שוב.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)"><span class="faq-arrow">&#9656;</span><span>מה זה התג "כפול" שמופיע ליד שם?</span></button>
+          <div class="faq-a">המערכת מזהה אוטומטית לידים עם <b>אותו טלפון</b> או <b>אותו שם+עיר</b>. לחצו על התג כדי לראות את כל הרשומות הכפולות ולהחליט איזו לשמור.</div>
+        </div>
+      </div>
+
+      <!-- ═══ טופס פנייה ═══ -->
+      <div id="supForm" style="display:none">
+        <div class="sup-grid">
+          <div class="sup-f" id="supf_name">
+            <label>שם הפונה <span class="req">*</span></label>
+            <input id="sup_name" type="text" placeholder="שם פרטי ומשפחה"/>
+          </div>
+          <div class="sup-f" id="supf_branch">
+            <label>שלוחה <span class="req">*</span></label>
+            <select id="sup_branch"><option value="">- בחר שלוחה -</option></select>
+          </div>
+          <div class="sup-f" id="supf_role">
+            <label>תפקיד <span class="req">*</span></label>
+            <select id="sup_role">
+              <option value="">- בחר תפקיד -</option>
+              <option>מפקד גף</option>
+              <option>מפקד מחוז</option>
+              <option>מפקד שלוחה</option>
+              <option>חייל מדריך</option>
+              <option>אחר</option>
+            </select>
+          </div>
+          <div class="sup-f" id="supf_phone">
+            <label>מספר טלפון <span class="req">*</span></label>
+            <input id="sup_phone" type="tel" placeholder="05X-XXXXXXX" dir="ltr" style="text-align:right"/>
+          </div>
+          <div class="sup-f full" id="supf_email">
+            <label>כתובת מייל</label>
+            <input id="sup_email" type="email" placeholder="name@example.com" dir="ltr" style="text-align:right"/>
+          </div>
+          <div class="sup-f full" id="supf_message">
+            <label>תוכן הפנייה <span class="req">*</span></label>
+            <textarea id="sup_message" placeholder="תארו את התקלה או הבקשה בפירוט..."></textarea>
+          </div>
+        </div>
+
+        <button class="sup-send" id="supSendBtn" onclick="submitSupport()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          <span>שליחת הפנייה</span>
+        </button>
+        <div class="sup-msg" id="supMsg"></div>
+        <div class="sup-note">הפנייה תועבר לצוות התמיכה. זמן מענה משוער: עד 24 שעות.</div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- APP -->
@@ -3287,6 +3498,93 @@ function renderHistory(uuid, history) {
   }
   return html + '</div>';
 }
+
+
+// ── SUPPORT — תמיכה טכנית ──
+function openSupport() {
+  var sel = document.getElementById('sup_branch');
+  if (sel && sel.options.length <= 1) {
+    sel.innerHTML = '<option value="">- בחר שלוחה -</option>' +
+      BRANCHES.map(function(b){ return '<option>' + b + '</option>'; }).join('') +
+      '<option>גף / מטה</option><option>אחר</option>';
+  }
+  setSupTab('faq');
+  document.getElementById('supOverlay').classList.add('open');
+}
+function closeSupport() {
+  document.getElementById('supOverlay').classList.remove('open');
+}
+function setSupTab(t) {
+  document.getElementById('supFaq').style.display  = t === 'faq'  ? '' : 'none';
+  document.getElementById('supForm').style.display = t === 'form' ? '' : 'none';
+  document.getElementById('supTabFaq').classList.toggle('active',  t === 'faq');
+  document.getElementById('supTabForm').classList.toggle('active', t === 'form');
+}
+function toggleFaq(btn) {
+  var item = btn.parentElement;
+  var wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(function(x){ x.classList.remove('open'); });
+  if (!wasOpen) item.classList.add('open');
+}
+function supErr(id, bad) {
+  var el = document.getElementById('supf_' + id);
+  if (el) el.classList.toggle('err', bad);
+  return !bad;
+}
+function submitSupport() {
+  var t = {
+    name:    document.getElementById('sup_name').value.trim(),
+    branch:  document.getElementById('sup_branch').value,
+    role:    document.getElementById('sup_role').value,
+    phone:   document.getElementById('sup_phone').value.trim(),
+    email:   document.getElementById('sup_email').value.trim(),
+    message: document.getElementById('sup_message').value.trim()
+  };
+
+  var ok = [
+    supErr('name',    t.name.length < 2),
+    supErr('branch',  !t.branch),
+    supErr('role',    !t.role),
+    supErr('phone',   !/^0\d{1,2}-?\d{7}$/.test(t.phone.replace(/\s/g,''))),
+    supErr('message', t.message.length < 5)
+  ].every(Boolean);
+
+  var msg = document.getElementById('supMsg');
+  if (!ok) {
+    msg.textContent = 'נא למלא את כל שדות החובה המסומנים';
+    msg.style.background = '#fee4e2'; msg.style.color = '#912018';
+    msg.style.display = '';
+    return;
+  }
+
+  var btn = document.getElementById('supSendBtn');
+  btn.disabled = true;
+  msg.textContent = 'שולח...';
+  msg.style.background = '#eef4fb'; msg.style.color = '#1f4e79';
+  msg.style.display = '';
+
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST', mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'supportTicket', ticket: t })
+  }).then(function() {
+    msg.textContent = 'הפנייה נשלחה בהצלחה. ניצור איתך קשר בהקדם.';
+    msg.style.background = '#e7f5ec'; msg.style.color = '#14532d';
+    ['name','phone','email','message'].forEach(function(f){ document.getElementById('sup_' + f).value = ''; });
+    document.getElementById('sup_branch').value = '';
+    document.getElementById('sup_role').value   = '';
+    btn.disabled = false;
+    setTimeout(function(){ closeSupport(); msg.style.display = 'none'; }, 2600);
+  }).catch(function() {
+    msg.textContent = 'שגיאת רשת - נסו שנית';
+    msg.style.background = '#fee4e2'; msg.style.color = '#912018';
+    btn.disabled = false;
+  });
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSupport();
+});
 
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeAddModal();}});
 
