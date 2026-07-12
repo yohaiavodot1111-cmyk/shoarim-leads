@@ -1648,7 +1648,7 @@ canvas{display:block;width:100%!important;}
         <div class="mfield"><label>הורה 2 שם</label><input id="add_p2name"/></div>
         <div class="mfield"><label>הורה 2 טלפון</label><input id="add_p2phone"/></div>
         <div class="mfield"><label>הורה 2 מייל</label><input id="add_p2email" type="email" dir="ltr"/></div>
-        <div class="mfield"><label>איך הגעת אלינו</label><select id="add_source"><option value="">-</option><optgroup label="רשתות חברתיות ודיגיטל"><option>אינסטגרם</option><option>טיקטוק</option><option>יוטיוב</option><option>פייסבוק</option><option>גוגל</option><option>וואטסאפ</option><option>קמפיין 1</option><option>קמפיין 2</option></optgroup><optgroup label="ערוצים נוספים"><option>שיווק נציגי חי"א</option><option>דיוור ישיר</option><option>עיתון</option><option>המלצת חבר</option><option>רדיו</option><option>שלטי פרסום</option><option>קישור בהודעה</option><option>לא יודע</option></optgroup></select></div>
+        <div class="mfield"><label>איך הגעת אלינו</label><select id="add_source"><option value="">-</option><option>שיווק נציגי חי"א</option><option>דיוור ישיר</option><option>עיתון</option><option>קמפיין דיגיטל</option><option>המלצת חבר</option><option>רדיו</option><option>שלטי פרסום</option><option>קישור בהודעה</option><option>לא יודע</option></select></div>
         <div class="mfield"><label>שלוחה</label><select id="add_branch" onchange="onBranchChange2(this)"></select></div>
         <div class="mfield"><label>מחוז</label><input id="add_district" readonly style="background:#f0f4fa;"/></div>
       </div>
@@ -2790,7 +2790,7 @@ function renderStats() {
     // שורה 3: פירוט מקורות
     '<div class="stat-card" style="margin-bottom:14px"><div class="stats-section-title">פירוט מקורות גיוס</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;margin-top:8px">' +
-      ['אינסטגרם','טיקטוק','יוטיוב','פייסבוק','גוגל','וואטסאפ','קמפיין 1','קמפיין 2','שיווק נציגי חי"א','דיוור ישיר','עיתון','המלצת חבר','רדיו','שלטי פרסום','קישור בהודעה','לא יודע'].map(function(src){
+      ['שיווק נציגי חי"א','דיוור ישיר','עיתון','קמפיין דיגיטל','המלצת חבר','רדיו','שלטי פרסום','קישור בהודעה','לא יודע'].map(function(src){
         var cnt=bySource[src]||0, p=pctOf(cnt,total), bar=Math.round(p);
         return '<div style="padding:7px 10px;background:#f8faff;border-right:2px solid var(--royal);font-size:12px">' +
           '<div style="display:flex;justify-content:space-between;margin-bottom:4px">' +
@@ -3223,7 +3223,7 @@ function buildEditForm(r) {
     ef('phone','טלפון',r.phone) + esel('grade','כיתה',r.grade,["ח'","ט'","עתודה טכנולוגית"]) +
     esel('gender','מין',r.gender,['זכר','נקבה']) + ef('school','מוסד לימודי',r.school) +
     ef('idNumber','ת.ז.',r.idNumber) + esel('motivation','מוטיבציה',r.motivation,['1','2','3','4','5','6','7','8','9','10']) +
-    esel('source','מקור גיוס',r.source,['אינסטגרם','טיקטוק','יוטיוב','פייסבוק','גוגל','וואטסאפ','קמפיין 1','קמפיין 2','שיווק נציגי חי"א','דיוור ישיר','עיתון','המלצת חבר','רדיו','שלטי פרסום','קישור בהודעה','לא יודע']) +
+    esel('source','מקור גיוס',r.source,['שיווק נציגי חי"א','דיוור ישיר','עיתון','קמפיין דיגיטל','המלצת חבר','רדיו','שלטי פרסום','קישור בהודעה','לא יודע']) +
     ef('parentName','הורה 1 שם',r.parentName) + ef('parentPhone','הורה 1 טלפון',r.parentPhone) + ef('parentEmail','הורה 1 מייל',r.parentEmail) +
     ef('parent2Name','הורה 2 שם',r.parent2Name) + ef('parent2Phone','הורה 2 טלפון',r.parent2Phone) + ef('parent2Email','הורה 2 מייל',r.parent2Email) +
     '<div class="mfield full-col"><label>שלוחה</label><select id="edit_branch" onchange="onBranchChange(this)"><option value="">-</option>' + bopts + '</select></div>' +
@@ -4092,48 +4092,40 @@ function renderCampaigns() {
 function drawCampaigns() {
   var wrap = document.getElementById('campWrap');
 
-  // מפת כניסות
   var visits = {};
   (_visitsCache || []).forEach(function(v){ visits[v.channel] = v; });
 
-  // ספירת לידים לפי מקור (allData — לא מסונן)
-  var leadsBy = {};
-  allData.forEach(function(r){
-    var s = (r.source || '').trim();
-    // "אינסטגרם (קיץ)" → "אינסטגרם"
-    var base = s.replace(/\s*\(.*\)\s*$/, '').trim();
-    if (base) leadsBy[base] = (leadsBy[base] || 0) + 1;
-  });
-
-  var totalVisits = 0, totalLeads = 0;
+  var totalVisits = 0;
   CAMP_CHANNELS.forEach(function(ch){
     totalVisits += (visits[ch] ? visits[ch].count : 0);
-    totalLeads  += (leadsBy[ch] || 0);
   });
-  var totalConv = totalVisits ? Math.round(totalLeads / totalVisits * 100) : 0;
+
+  // מצא את הערוץ המוביל (להשוואה יחסית)
+  var maxV = 0;
+  CAMP_CHANNELS.forEach(function(ch){
+    var v = visits[ch] ? visits[ch].count : 0;
+    if (v > maxV) maxV = v;
+  });
 
   var cards = CAMP_CHANNELS.map(function(ch){
     var vObj = visits[ch] || { count:0, updated:'' };
     var vn   = vObj.count;
-    var ln   = leadsBy[ch] || 0;
-    var conv = vn ? Math.round(ln / vn * 100) : 0;
     var col  = CAMP_COLORS[ch] || '#667085';
-    // צבע לפי איכות ההמרה
-    var convCol = conv >= 10 ? '#067647' : conv >= 4 ? '#b54708' : conv > 0 ? '#b42318' : 'var(--muted)';
+    var pct  = totalVisits ? Math.round(vn / totalVisits * 100) : 0;
+    var bar  = maxV ? Math.round(vn / maxV * 100) : 0;
 
     return '<div class="camp-card" style="border-top-color:' + col + '">' +
       '<div class="camp-ch"><span>' + ch + '</span>' +
         '<button class="camp-x" onclick="resetOneChannel(\'' + ch + '\')">איפוס</button></div>' +
       '<div class="camp-nums">' +
-        '<div class="camp-n"><div class="camp-n-v">' + vn + '</div><div class="camp-n-l">כניסות</div></div>' +
-        '<div class="camp-n"><div class="camp-n-v" style="color:' + col + '">' + ln + '</div><div class="camp-n-l">לידים</div></div>' +
+        '<div class="camp-n"><div class="camp-n-v" style="color:' + col + '">' + vn + '</div><div class="camp-n-l">כניסות</div></div>' +
       '</div>' +
       '<div class="camp-conv">' +
         '<div class="camp-conv-top">' +
-          '<span class="camp-conv-l">אחוז המרה</span>' +
-          '<span class="camp-conv-v" style="color:' + convCol + '">' + (vn ? conv + '%' : '—') + '</span>' +
+          '<span class="camp-conv-l">מסך הכניסות</span>' +
+          '<span class="camp-conv-v" style="color:' + col + '">' + (totalVisits ? pct + '%' : '—') + '</span>' +
         '</div>' +
-        '<div class="camp-bar"><div class="camp-bar-f" style="width:' + Math.min(conv,100) + '%;background:' + col + '"></div></div>' +
+        '<div class="camp-bar"><div class="camp-bar-f" style="width:' + bar + '%;background:' + col + '"></div></div>' +
       '</div>' +
       (vObj.updated ? '<div class="camp-upd">עודכן: ' + vObj.updated + '</div>' : '') +
     '</div>';
@@ -4142,8 +4134,8 @@ function drawCampaigns() {
   wrap.innerHTML =
     '<div class="camp-head">' +
       '<div>' +
-        '<div class="camp-title">ביצועי ערוצי גיוס</div>' +
-        '<div class="camp-sub">סה"כ ' + totalVisits + ' כניסות · ' + totalLeads + ' לידים · ' + totalConv + '% המרה כוללת</div>' +
+        '<div class="camp-title">כניסות לפי ערוץ</div>' +
+        '<div class="camp-sub">סה"כ ' + totalVisits + ' כניסות לדף הנחיתה</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px">' +
         '<button class="btn btn-primary" onclick="reloadVisits()">רענן</button>' +
@@ -4152,9 +4144,9 @@ function drawCampaigns() {
     '</div>' +
     '<div class="camp-grid">' + cards + '</div>' +
     '<div style="font-size:11.5px;color:var(--light);line-height:1.7;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px">' +
-      '<b>כיצד זה נספר?</b> כל כניסה לדף הנחיתה דרך קישור מתויג נספרת פעם אחת. ' +
-      'ליד שנכנס ישירות (בלי קישור קמפיין) נספר תחת "ישיר". ' +
-      'אחוז ההמרה = לידים ÷ כניסות.' +
+      '<b>כיצד זה נספר?</b> כל כניסה לדף הנחיתה דרך קישור מתויג נספרת פעם אחת לכל מבקר. ' +
+      'מי שנכנס ישירות (בלי קישור קמפיין) נספר תחת "ישיר". ' +
+      'האחוז מציג את חלקו של הערוץ מסך כל הכניסות.' +
     '</div>';
 }
 
