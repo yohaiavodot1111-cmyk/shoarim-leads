@@ -759,6 +759,42 @@ body.dark .prog-pct{color:var(--text);}
 }
 .cols-reset:hover{background:rgba(0,0,0,.05);}
 
+/* ═══════════ קמפיינים ═══════════ */
+.camp-wrap{padding:12px 0 60px;max-width:1440px;margin:0 auto;}
+.camp-head{display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.camp-title{font-family:'Rubik','Heebo',sans-serif;font-size:17px;font-weight:700;color:var(--text);}
+.camp-sub{font-size:12px;color:var(--light);margin-top:3px;}
+.camp-reset{
+  height:38px;padding:0 15px;border:1px solid var(--red);border-radius:7px;
+  background:transparent;color:var(--red);font-family:'Heebo',sans-serif;
+  font-size:13px;font-weight:700;cursor:pointer;transition:all .16s;
+}
+.camp-reset:hover{background:var(--red);color:#fff;}
+.camp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-bottom:16px;}
+.camp-card{
+  background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--royal);
+  border-radius:9px;padding:15px;box-shadow:var(--shadow-sm);position:relative;
+}
+.camp-card:hover{box-shadow:var(--shadow-md);}
+.camp-ch{font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.camp-x{background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;}
+.camp-x:hover{background:rgba(180,35,24,.10);color:var(--red);}
+.camp-nums{display:flex;gap:14px;margin-bottom:12px;}
+.camp-n{flex:1;}
+.camp-n-v{font-family:'Rubik','Heebo',sans-serif;font-size:22px;font-weight:800;
+  color:var(--text);line-height:1;}
+.camp-n-l{font-size:10.5px;color:var(--light);margin-top:4px;font-weight:500;}
+.camp-conv{padding-top:11px;border-top:1px solid var(--border);}
+.camp-conv-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.camp-conv-l{font-size:11px;color:var(--light);font-weight:600;}
+.camp-conv-v{font-family:'Rubik','Heebo',sans-serif;font-size:15px;font-weight:800;}
+.camp-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.camp-bar-f{height:100%;border-radius:3px;transition:width .5s;}
+.camp-upd{font-size:10px;color:var(--muted);margin-top:9px;}
+
 /* HEADER */
 .header{
   background:var(--navy);padding:0 28px;
@@ -1284,6 +1320,7 @@ canvas{display:block;width:100%!important;}
   <div class="tab"        id="tab-branch"   onclick="setTab('branch')"   style="display:none">לפי שלוחה</div>
   <div class="tab"        id="tab-district" onclick="setTab('district')" style="display:none">לפי מחוז</div>
   <div class="tab"        id="tab-stats"    onclick="setTab('stats')" >סטטיסטיקות</div>
+  <div class="tab"        id="tab-camp"     onclick="setTab('camp')" style="display:none">קמפיינים</div>
 </div>
 
 <div class="toolbar">
@@ -1360,6 +1397,7 @@ canvas{display:block;width:100%!important;}
 <div id="cardsWrap" class="cards-wrap" style="display:none"></div>
 <div id="groupedWrap" style="display:none"></div>
 <div id="statsWrap" class="stats-wrap" style="display:none"></div>
+<div id="campWrap" class="camp-wrap" style="display:none"></div>
 <div id="emptyWrap" class="empty" style="display:none">לא נמצאו תוצאות</div>
 
 </div><!-- /app -->
@@ -1749,6 +1787,7 @@ function doLogin() {
       if (currentUser.role === 'branch' || currentUser.role === 'admin' || currentUser.role === 'soldier')
         document.getElementById('addBtn').style.display = '';
       document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
+      document.getElementById('tab-camp').style.display  = (currentUser.role === 'admin' || currentUser.role === 'district') ? '' : 'none';
       if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
 
       var addBranch = document.getElementById('add_branch');
@@ -1902,6 +1941,7 @@ function doLogout() {
   document.getElementById('tab-branch').style.display  = 'none';
   document.getElementById('tab-district').style.display = 'none';
   document.getElementById('tab-stats').style.display   = '';    // תמיד מוצג כברירת מחדל
+  document.getElementById('tab-camp').style.display    = 'none';
   document.getElementById('tab-admin') && (document.getElementById('tab-admin').style.display = 'none');
   document.getElementById('addBtn').style.display = 'none';
 
@@ -1950,6 +1990,7 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (user.role === 'district') { document.getElementById('tab-branch').style.display=''; }
     if (user.role === 'branch' || user.role === 'admin' || user.role === 'soldier') document.getElementById('addBtn').style.display = '';
     document.getElementById('tab-stats').style.display = (user.role === 'soldier') ? 'none' : '';
+    document.getElementById('tab-camp').style.display  = (user.role === 'admin' || user.role === 'district') ? '' : 'none';
     if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
@@ -2174,7 +2215,7 @@ function applyFilters() {
 function setTab(t) {
   clearBulk();
   currentTab = t;
-  ['all','branch','district','stats'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
+  ['all','branch','district','stats','camp'].forEach(function(x){ var el=document.getElementById('tab-'+x); if(el) el.classList.toggle('active',x===t); });
   render();
 }
 function setView(v) {
@@ -2289,8 +2330,9 @@ function statusBadge(s) {
 
 // ── RENDER ──
 function render() {
-  var showTable=false, showCards=false, showGroup=false, showStats=false;
-  if (currentTab==='stats')                              { showStats=true; renderStats(); }
+  var showTable=false, showCards=false, showGroup=false, showStats=false, showCamp=false;
+  if (currentTab==='camp')                               { showCamp=true;  renderCampaigns(); }
+  else if (currentTab==='stats')                         { showStats=true; renderStats(); }
   else if (currentTab==='branch'||currentTab==='district'){ showGroup=true; renderGrouped(); }
   else if (currentView==='table')                        { showTable=true; renderTable(); }
   else                                                   { showCards=true; renderCards(); }
@@ -2299,7 +2341,8 @@ function render() {
   document.getElementById('cardsWrap').style.display   = showCards && filtered.length ? '' : 'none';
   document.getElementById('groupedWrap').style.display = showGroup ? '' : 'none';
   document.getElementById('statsWrap').style.display   = showStats ? '' : 'none';
-  document.getElementById('emptyWrap').style.display   = !showStats && !showGroup && !filtered.length ? '' : 'none';
+  document.getElementById('campWrap').style.display    = showCamp ? '' : 'none';
+  document.getElementById('emptyWrap').style.display   = !showStats && !showGroup && !showCamp && !filtered.length ? '' : 'none';
 }
 
 // ══════════════════════════════════════════════
@@ -4017,6 +4060,132 @@ function renderHistory(uuid, history) {
   return html + '</div>';
 }
 
+
+// ══════════════════════════════════════════════
+// ═══ קמפיינים — כניסות מול לידים ═══
+// ══════════════════════════════════════════════
+var CAMP_CHANNELS = ['אינסטגרם','טיקטוק','יוטיוב','פייסבוק','גוגל','וואטסאפ','קמפיין 1','קמפיין 2','ישיר'];
+var CAMP_COLORS = {
+  'אינסטגרם':'#e1306c','טיקטוק':'#00f2ea','יוטיוב':'#ff0000','פייסבוק':'#1877f2',
+  'גוגל':'#4285f4','וואטסאפ':'#25d366','קמפיין 1':'#f0b429','קמפיין 2':'#8b5cf6','ישיר':'#667085'
+};
+var _visitsCache = null;
+
+function renderCampaigns() {
+  var wrap = document.getElementById('campWrap');
+  if (!_visitsCache) {
+    wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div>טוען נתוני קמפיינים...</div></div>';
+    fetch(APPS_SCRIPT_URL + '?action=getVisits')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        _visitsCache = (d.success && d.visits) ? d.visits : [];
+        drawCampaigns();
+      })
+      .catch(function(){
+        wrap.innerHTML = '<div class="empty">שגיאה בטעינת נתוני הקמפיינים</div>';
+      });
+    return;
+  }
+  drawCampaigns();
+}
+
+function drawCampaigns() {
+  var wrap = document.getElementById('campWrap');
+
+  // מפת כניסות
+  var visits = {};
+  (_visitsCache || []).forEach(function(v){ visits[v.channel] = v; });
+
+  // ספירת לידים לפי מקור (allData — לא מסונן)
+  var leadsBy = {};
+  allData.forEach(function(r){
+    var s = (r.source || '').trim();
+    // "אינסטגרם (קיץ)" → "אינסטגרם"
+    var base = s.replace(/\s*\(.*\)\s*$/, '').trim();
+    if (base) leadsBy[base] = (leadsBy[base] || 0) + 1;
+  });
+
+  var totalVisits = 0, totalLeads = 0;
+  CAMP_CHANNELS.forEach(function(ch){
+    totalVisits += (visits[ch] ? visits[ch].count : 0);
+    totalLeads  += (leadsBy[ch] || 0);
+  });
+  var totalConv = totalVisits ? Math.round(totalLeads / totalVisits * 100) : 0;
+
+  var cards = CAMP_CHANNELS.map(function(ch){
+    var vObj = visits[ch] || { count:0, updated:'' };
+    var vn   = vObj.count;
+    var ln   = leadsBy[ch] || 0;
+    var conv = vn ? Math.round(ln / vn * 100) : 0;
+    var col  = CAMP_COLORS[ch] || '#667085';
+    // צבע לפי איכות ההמרה
+    var convCol = conv >= 10 ? '#067647' : conv >= 4 ? '#b54708' : conv > 0 ? '#b42318' : 'var(--muted)';
+
+    return '<div class="camp-card" style="border-top-color:' + col + '">' +
+      '<div class="camp-ch"><span>' + ch + '</span>' +
+        '<button class="camp-x" onclick="resetOneChannel(\'' + ch + '\')">איפוס</button></div>' +
+      '<div class="camp-nums">' +
+        '<div class="camp-n"><div class="camp-n-v">' + vn + '</div><div class="camp-n-l">כניסות</div></div>' +
+        '<div class="camp-n"><div class="camp-n-v" style="color:' + col + '">' + ln + '</div><div class="camp-n-l">לידים</div></div>' +
+      '</div>' +
+      '<div class="camp-conv">' +
+        '<div class="camp-conv-top">' +
+          '<span class="camp-conv-l">אחוז המרה</span>' +
+          '<span class="camp-conv-v" style="color:' + convCol + '">' + (vn ? conv + '%' : '—') + '</span>' +
+        '</div>' +
+        '<div class="camp-bar"><div class="camp-bar-f" style="width:' + Math.min(conv,100) + '%;background:' + col + '"></div></div>' +
+      '</div>' +
+      (vObj.updated ? '<div class="camp-upd">עודכן: ' + vObj.updated + '</div>' : '') +
+    '</div>';
+  }).join('');
+
+  wrap.innerHTML =
+    '<div class="camp-head">' +
+      '<div>' +
+        '<div class="camp-title">ביצועי ערוצי גיוס</div>' +
+        '<div class="camp-sub">סה"כ ' + totalVisits + ' כניסות · ' + totalLeads + ' לידים · ' + totalConv + '% המרה כוללת</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="btn btn-primary" onclick="reloadVisits()">רענן</button>' +
+        '<button class="camp-reset" onclick="resetAllChannels()">איפוס כל המונים</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="camp-grid">' + cards + '</div>' +
+    '<div style="font-size:11.5px;color:var(--light);line-height:1.7;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px">' +
+      '<b>כיצד זה נספר?</b> כל כניסה לדף הנחיתה דרך קישור מתויג נספרת פעם אחת. ' +
+      'ליד שנכנס ישירות (בלי קישור קמפיין) נספר תחת "ישיר". ' +
+      'אחוז ההמרה = לידים ÷ כניסות.' +
+    '</div>';
+}
+
+function reloadVisits() {
+  _visitsCache = null;
+  renderCampaigns();
+}
+
+function resetOneChannel(ch) {
+  if (!confirm('לאפס את מונה הכניסות של "' + ch + '"?')) return;
+  doResetVisits(ch);
+}
+function resetAllChannels() {
+  if (!confirm('לאפס את מוני הכניסות של כל הערוצים?\n\nפעולה זו תיעד מי ביצע אותה ומתי.')) return;
+  doResetVisits('all');
+}
+
+function doResetVisits(channel) {
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action:  'resetVisits',
+      channel: channel,
+      role:    currentUser.role,
+      editor:  currentUser.displayName || currentUser.username
+    })
+  }).then(function(){
+    setTimeout(function(){ reloadVisits(); }, 1200);
+  });
+}
 
 // ══════════════════════════════════════════════
 // ═══ DARK MODE ═══
