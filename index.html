@@ -935,6 +935,313 @@ body.dark .sys-b-gray{background:#22303f;color:#a9b8ca;border-color:#37485c;}
   padding:10px 12px;font-size:12.5px;line-height:1.7;color:var(--mid);
   white-space:pre-wrap;margin-top:8px;}
 
+/* ═══════════ תיקוני מצב לילה ═══════════ */
+/* טקסטים מוטבעים שנקבעו inline עם צבע כהה */
+body.dark .stat-value,
+body.dark .stat-card .stat-value,
+body.dark .group-name,
+body.dark .modal-name,
+body.dark .card-name,
+body.dark .prog-cur-t b{color:var(--text)!important;}
+body.dark .stat-sub,body.dark .stat-label{color:var(--light);}
+/* גרפים — רקע הקנבס */
+body.dark canvas{filter:invert(0);}
+body.dark .stat-card{background:var(--surface);}
+/* תאי טבלה עם צבע inline */
+body.dark td[style*="color:var(--navy)"],
+body.dark td[style*="color: var(--navy)"]{color:var(--text)!important;}
+/* פס התקדמות */
+body.dark .prog-wrap{background:var(--surface);border-color:var(--border);}
+body.dark .prog-seg{background:#2c3d55;}
+/* מודאל */
+body.dark .mfield .val{color:var(--mid);}
+body.dark .mfield label{color:var(--light);}
+body.dark .modal-body{background:var(--surface);}
+body.dark .save-msg.ok{background:#12331f;color:#6ee79a;border-color:#255c39;}
+body.dark .save-msg.err{background:#3b1717;color:#f2a0a0;border-color:#6b2626;}
+/* דשבורד */
+body.dark .sys-table th{background:#1b2739;}
+body.dark .sys-kpi{background:var(--surface);}
+body.dark .tk-msg{background:#16222f;border-color:#31435c;color:var(--mid);}
+body.dark .sys-in,body.dark .sys-search{background:#16222f;border-color:#31435c;color:var(--text);}
+/* התראת חוסר פעילות */
+body.dark #inactivityOverlay > div{background:var(--surface);border-color:var(--border);}
+body.dark #inactivityOverlay > div > div:last-child{color:var(--mid);}
+/* כפתורי דפדוף */
+body.dark #topPager button{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;}
+/* חלונית סטטוסים */
+body.dark #statusDropdown span{color:var(--light);}
+/* טופס תמיכה */
+body.dark .sup-body{background:var(--surface);}
+body.dark .cols-modal,body.dark .cols-body{background:var(--surface);}
+body.dark .col-item{background:var(--surface);border-color:var(--border);}
+body.dark .col-item:hover{background:#1c2a3d;}
+body.dark .col-item.locked{background:#1a2432;}
+body.dark .cols-hint{background:#16222f;border-color:var(--border);color:var(--light);}
+body.dark .cols-foot{background:var(--surface);border-top-color:var(--border);}
+/* קמפיינים */
+body.dark .camp-card{background:var(--surface);}
+body.dark .camp-bar{background:#2c3d55;}
+
+/* ═══════════ מסך מלא לטבלה ═══════════ */
+body.fs-table .header,
+body.fs-table .tabs,
+body.fs-table .status-bar{display:none!important;}
+body.fs-table .toolbar{
+  position:sticky;top:0;z-index:90;margin-top:0;border-radius:0;
+  border-right:none;border-left:none;
+}
+body.fs-table .table-wrap{
+  max-width:100%;margin:0;padding:0 0 20px;
+}
+body.fs-table table{border-radius:0;min-width:100%;}
+body.fs-table .bulk-bar{margin:6px 0 0;border-radius:0;}
+.fs-btn{
+  height:38px;padding:0 11px;border:1px solid #cfd7e3;border-radius:6px;
+  background:#fff;color:var(--royal);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;flex-shrink:0;
+}
+.fs-btn:hover{background:#f2f6fb;border-color:var(--royal);}
+body.dark .fs-btn{background:#16273f;border-color:#31435c;color:#8fc0ea;}
+body.dark .fs-btn:hover{background:#1e3350;}
+.fs-btn svg{width:15px;height:15px;}
+.fs-exit{display:none;}
+body.fs-table .fs-enter{display:none;}
+body.fs-table .fs-exit{display:flex;}
+
+/* ═══════════ חיפוש חכם (Ctrl+K) ═══════════ */
+.qs-overlay{
+  position:fixed;inset:0;z-index:1300;
+  background:rgba(8,18,42,.60);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:flex-start;justify-content:center;padding:12vh 20px 20px;
+  opacity:0;pointer-events:none;transition:opacity .18s;
+}
+.qs-overlay.open{opacity:1;pointer-events:auto;}
+.qs-box{
+  width:100%;max-width:600px;background:var(--surface);
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.45);
+  transform:translateY(-10px);transition:transform .22s cubic-bezier(.22,.9,.3,1);
+}
+.qs-overlay.open .qs-box{transform:none;}
+.qs-top{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border);}
+.qs-top svg{width:19px;height:19px;color:var(--light);flex-shrink:0;}
+.qs-in{
+  flex:1;border:none;background:transparent;outline:none;
+  font-family:'Heebo',sans-serif;font-size:16px;color:var(--text);
+}
+.qs-in::placeholder{color:var(--muted);}
+.qs-kbd{
+  font-size:10.5px;color:var(--muted);border:1px solid var(--border);
+  border-radius:5px;padding:2px 6px;font-weight:600;flex-shrink:0;
+}
+.qs-res{max-height:52vh;overflow-y:auto;}
+.qs-sec{
+  padding:7px 18px;font-size:10.5px;font-weight:700;color:var(--muted);
+  letter-spacing:.08em;background:var(--bg);border-bottom:1px solid var(--border);
+}
+.qs-item{
+  padding:11px 18px;cursor:pointer;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;transition:background .12s;
+}
+.qs-item:hover,.qs-item.sel{background:rgba(31,78,121,.09);}
+.qs-item:last-child{border-bottom:none;}
+.qs-ico{
+  width:30px;height:30px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(31,78,121,.10);color:var(--royal);font-size:13px;font-weight:800;
+}
+.qs-main{flex:1;min-width:0;}
+.qs-t{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qs-s{font-size:11.5px;color:var(--light);margin-top:2px;}
+.qs-empty{padding:32px 18px;text-align:center;color:var(--light);font-size:13.5px;}
+.qs-foot{
+  padding:8px 18px;border-top:1px solid var(--border);background:var(--bg);
+  font-size:11px;color:var(--muted);display:flex;gap:14px;
+}
+
+/* ═══════════ קישורי שיתוף ═══════════ */
+.lk-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;box-shadow:var(--shadow-sm);
+}
+.lk-row{
+  display:flex;align-items:center;gap:13px;padding:14px 16px;
+  border-bottom:1px solid var(--border);
+}
+.lk-row:last-child{border-bottom:none;}
+.lk-row:hover{background:rgba(31,78,121,.04);}
+.lk-ic{
+  width:38px;height:38px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:16px;font-weight:800;
+}
+.lk-main{flex:1;min-width:0;}
+.lk-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.lk-url{
+  font-size:12px;color:var(--light);direction:ltr;text-align:right;
+  font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:5px 9px;
+}
+.lk-copy{
+  height:36px;padding:0 14px;border:1px solid var(--royal);border-radius:7px;
+  background:transparent;color:var(--royal);cursor:pointer;flex-shrink:0;
+  font-family:'Heebo',sans-serif;font-size:12.5px;font-weight:700;
+  display:flex;align-items:center;gap:6px;transition:all .15s;
+}
+.lk-copy:hover{background:var(--royal);color:#fff;}
+.lk-copy.done{background:#067647;border-color:#067647;color:#fff;}
+.lk-copy svg{width:14px;height:14px;}
+
+/* ═══════════ תיקוני DARK MODE ═══════════ */
+/* טקסט שחור נעלם — כפיית צבע על אלמנטים עם צבע קשיח */
+body.dark .stat-value,
+body.dark .stat-label,
+body.dark .stat-sub,
+body.dark .group-name,
+body.dark .card-name,
+body.dark .card-val,
+body.dark .modal-name,
+body.dark .prog-pct,
+body.dark .sys-kpi-v{color:var(--text)!important;}
+body.dark .stat-card{background:var(--surface)!important;border-color:var(--border)!important;}
+body.dark .stat-label,body.dark .stat-sub,body.dark .card-label{color:var(--light)!important;}
+
+/* קנבס גרפים — רקע כהה */
+body.dark canvas{background:transparent;}
+
+/* אזורים עם רקע לבן קשיח בסטטיסטיקות */
+body.dark .stats-wrap [style*="background:#fff"],
+body.dark .stats-wrap [style*="background:#f8faff"],
+body.dark .stats-wrap [style*="background: #fff"]{
+  background:var(--surface)!important;
+}
+body.dark .stats-wrap [style*="color:var(--navy)"]{color:var(--text)!important;}
+body.dark .stats-wrap [style*="color:var(--mid)"]{color:var(--mid)!important;}
+
+/* פס דפדוף */
+body.dark #tableBody td[style*="background:#f8faff"]{background:var(--surface)!important;}
+
+/* סרגל עריכה מרובה */
+body.dark .bulk-bar{background:#16273f!important;border-color:var(--royal)!important;}
+body.dark .bulk-count,body.dark .bulk-count b{color:var(--text)!important;}
+body.dark .bulk-sel{background:#16222f!important;border-color:#31435c!important;color:var(--text)!important;}
+
+/* dropdown סטטוסים */
+body.dark #statusDropdown [style*="background:#f8faff"]{background:#1b2739!important;}
+body.dark #statusDropdown span{color:var(--text);}
+
+/* מודאל כפילויות */
+body.dark #modalBody [style*="background:#f8faff"]{background:#16222f!important;}
+body.dark #modalBody [style*="background:#fef9c3"]{background:#3a2c10!important;color:#f0c674!important;border-color:#6b5220!important;}
+body.dark #modalBody [style*="color:var(--navy)"]{color:var(--text)!important;}
+
+/* הערות והיסטוריה */
+body.dark [id^="noteCard_"]{background:#16222f!important;border-color:var(--border)!important;}
+body.dark [id^="noteText_"]{color:var(--text)!important;}
+body.dark [id^="noteEditText_"]{background:#16222f!important;border-color:#31435c!important;color:var(--text)!important;}
+body.dark [id^="newNoteText_"]{background:#16222f!important;border-color:#31435c!important;color:var(--text)!important;}
+body.dark [id^="histContainer_"] thead tr{background:#1b2739!important;}
+body.dark [id^="histContainer_"] th{color:#a9b8ca!important;border-bottom-color:var(--border)!important;}
+body.dark [id^="histContainer_"] td{border-bottom-color:#243247!important;}
+
+/* קמפיינים */
+body.dark .camp-title,body.dark .camp-ch,body.dark .camp-n-v{color:var(--text)!important;}
+
+/* פס התקדמות */
+body.dark .prog-wrap{background:var(--surface)!important;border-color:var(--border)!important;}
+
+/* פניות תמיכה בדשבורד */
+body.dark .tk-msg{background:#16222f!important;border-color:var(--border)!important;color:var(--mid)!important;}
+body.dark .sys-card-t,body.dark .sys-kpi-v{color:var(--text)!important;}
+body.dark .sys-table th{background:#1b2739!important;color:#a9b8ca!important;}
+body.dark .sys-table td{color:var(--mid)!important;}
+body.dark .sys-in,body.dark .sys-search{background:#16222f!important;border-color:#31435c!important;color:var(--text)!important;}
+body.dark code{background:#16222f!important;color:#8fc0ea!important;}
+
+/* ═══════════ מסך מלא לטבלה ═══════════ */
+body.tbl-full .header,
+body.tbl-full .tabs,
+body.tbl-full .status-bar{display:none!important;}
+body.tbl-full .toolbar{
+  position:sticky;top:0;z-index:90;margin-top:0;border-radius:0;
+  border-right:none;border-left:none;border-top:none;
+}
+body.tbl-full .table-wrap{
+  padding-top:8px;max-width:100%;margin:0;
+}
+body.tbl-full .table-wrap table{min-width:100%;border-radius:0;}
+body.tbl-full{overflow-y:auto;}
+.full-exit{
+  display:none;position:fixed;bottom:20px;left:20px;z-index:120;
+  height:42px;padding:0 18px;border-radius:8px;border:none;
+  background:var(--navy);color:#fff;font-family:'Heebo',sans-serif;
+  font-size:13.5px;font-weight:700;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+  align-items:center;gap:8px;
+}
+body.tbl-full .full-exit{display:flex;}
+.full-exit:hover{filter:brightness(1.2);}
+.full-exit svg{width:15px;height:15px;}
+
+/* ═══════════ חיפוש חכם (Ctrl+K) ═══════════ */
+.qs-overlay{
+  position:fixed;inset:0;z-index:1300;
+  background:rgba(8,18,42,.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  display:flex;align-items:flex-start;justify-content:center;padding:14vh 20px 20px;
+  opacity:0;pointer-events:none;transition:opacity .18s;
+}
+.qs-overlay.open{opacity:1;pointer-events:auto;}
+.qs-box{
+  background:var(--surface);width:100%;max-width:620px;border-radius:14px;
+  overflow:hidden;border:1px solid var(--border);
+  box-shadow:0 30px 70px rgba(0,0,0,.5);
+  transform:translateY(-10px) scale(.985);transition:transform .22s cubic-bezier(.22,.9,.3,1);
+}
+.qs-overlay.open .qs-box{transform:none;}
+.qs-top{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border);}
+.qs-top svg{width:19px;height:19px;color:var(--light);flex-shrink:0;}
+.qs-in{
+  flex:1;border:none;outline:none;background:transparent;
+  font-family:'Heebo',sans-serif;font-size:16px;color:var(--text);direction:rtl;
+}
+.qs-in::placeholder{color:var(--muted);}
+.qs-kbd{
+  font-size:10.5px;font-weight:700;color:var(--light);
+  background:var(--bg);border:1px solid var(--border);
+  padding:3px 7px;border-radius:5px;flex-shrink:0;
+}
+.qs-list{max-height:52vh;overflow-y:auto;}
+.qs-empty{padding:30px 20px;text-align:center;color:var(--light);font-size:13.5px;}
+.qs-sec{
+  padding:8px 18px 5px;font-size:10.5px;font-weight:800;letter-spacing:.08em;
+  color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border);
+}
+.qs-item{
+  padding:11px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--border);transition:background .1s;
+}
+.qs-item:hover,.qs-item.sel{background:rgba(31,78,121,.08);}
+.qs-item.sel{box-shadow:inset 3px 0 0 var(--royal);}
+.qs-ico{
+  width:32px;height:32px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(31,78,121,.10);color:var(--royal);
+}
+.qs-ico svg{width:16px;height:16px;}
+.qs-main{flex:1;min-width:0;}
+.qs-t{font-size:13.5px;font-weight:700;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qs-s{font-size:11.5px;color:var(--light);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qs-foot{
+  padding:9px 18px;border-top:1px solid var(--border);background:var(--bg);
+  display:flex;gap:14px;font-size:11px;color:var(--muted);
+}
+.qs-foot b{color:var(--light);font-weight:700;}
+
 /* HEADER */
 .header{
   background:var(--navy);padding:0 28px;
@@ -1486,6 +1793,7 @@ canvas{display:block;width:100%!important;}
     <button class="sys-tab" id="systab-telegram" onclick="setSysTab('telegram')">טלגרם</button>
     <button class="sys-tab" id="systab-cities"   onclick="setSysTab('cities')">ערים ושלוחות</button>
     <button class="sys-tab" id="systab-tickets"  onclick="setSysTab('tickets')">פניות תמיכה <span class="cnt" id="sysTicketCnt" style="display:none">0</span></button>
+    <button class="sys-tab" id="systab-links"    onclick="setSysTab('links')">קישורי שיתוף</button>
   </div>
 
   <div class="sys-body">
@@ -1494,6 +1802,7 @@ canvas{display:block;width:100%!important;}
     <div class="sys-pane"      id="syspane-telegram"></div>
     <div class="sys-pane"      id="syspane-cities"></div>
     <div class="sys-pane"      id="syspane-tickets"></div>
+    <div class="sys-pane"      id="syspane-links"></div>
   </div>
 </div>
 
@@ -1584,6 +1893,17 @@ canvas{display:block;width:100%!important;}
     <button class="view-btn active" id="tableBtn" onclick="setView('table')">טבלה</button>
     <button class="view-btn" id="cardBtn" onclick="setView('cards')">כרטיסיות</button>
   </div>
+  <button class="btn btn-primary" onclick="toggleFullTable()" title="מסך מלא (F)">⛶ מסך מלא</button>
+  <button class="fs-btn" onclick="toggleFullscreen()" title="מסך מלא (F)">
+    <span class="fs-enter" style="display:flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      <span>מסך מלא</span>
+    </span>
+    <span class="fs-exit" style="align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+      <span>יציאה</span>
+    </span>
+  </button>
 </div>
 
 <div class="status-bar">
@@ -1613,6 +1933,28 @@ canvas{display:block;width:100%!important;}
 <div id="statsWrap" class="stats-wrap" style="display:none"></div>
 <div id="campWrap" class="camp-wrap" style="display:none"></div>
 <div id="emptyWrap" class="empty" style="display:none">לא נמצאו תוצאות</div>
+
+<button class="full-exit" onclick="toggleFullTable()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  <span>יציאה ממסך מלא</span>
+</button>
+
+<!-- QUICK SEARCH (Ctrl+K) -->
+<div class="qs-overlay" id="qsOverlay" onclick="if(event.target===this)closeQuickSearch()">
+  <div class="qs-box">
+    <div class="qs-top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input class="qs-in" id="qsInput" placeholder="חיפוש ליד, פקודה או ניווט..." oninput="runQuickSearch()" autocomplete="off"/>
+      <span class="qs-kbd">ESC</span>
+    </div>
+    <div class="qs-list" id="qsList"></div>
+    <div class="qs-foot">
+      <span><b>↑↓</b> ניווט</span>
+      <span><b>Enter</b> בחירה</span>
+      <span><b>Esc</b> סגירה</span>
+    </div>
+  </div>
+</div>
 
 </div><!-- /app -->
 
@@ -1799,6 +2141,21 @@ canvas{display:block;width:100%!important;}
         <span id="inactivityCountdown" style="color:#e53e3e;font-weight:700;font-size:14px"> 30 </span>
         שניות
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK SEARCH -->
+<div class="qs-overlay" id="qsOverlay" onclick="if(event.target===this)closeQS()">
+  <div class="qs-box">
+    <div class="qs-top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input class="qs-in" id="qsInput" placeholder="חיפוש ליד, פעולה או מסך..." oninput="runQS()" autocomplete="off"/>
+      <span class="qs-kbd">ESC</span>
+    </div>
+    <div class="qs-res" id="qsRes"></div>
+    <div class="qs-foot">
+      <span>↑↓ ניווט</span><span>Enter בחירה</span><span>Ctrl+K פתיחה</span>
     </div>
   </div>
 </div>
@@ -2145,6 +2502,8 @@ function doLogout() {
   selectedStatuses = [];
   _bulkSel = [];
   _visibleCols = DEFAULT_COLS.slice();
+  document.body.classList.remove('tbl-full');
+  closeQuickSearch();
   activeIdx = -1;
   editMode = false;
 
@@ -4328,7 +4687,7 @@ function hideSysadmin() {
 
 function setSysTab(t) {
   _sysTab = t;
-  ['overview','users','telegram','cities','tickets'].forEach(function(x){
+  ['overview','users','telegram','cities','tickets','links'].forEach(function(x){
     var tab  = document.getElementById('systab-' + x);
     var pane = document.getElementById('syspane-' + x);
     if (tab)  tab.classList.toggle('active', x === t);
@@ -4364,6 +4723,7 @@ function renderSysPane() {
   if (_sysTab === 'telegram') renderSysTelegram();
   if (_sysTab === 'cities')   renderSysCities();
   if (_sysTab === 'tickets')  renderSysTickets();
+  if (_sysTab === 'links')    renderSysLinks();
 }
 
 // ── סקירה ──
@@ -4557,62 +4917,95 @@ function saveSysTg(name, role) {
   sysPost({ action:'adminSaveTelegram', name:name, chatId:v, tgRole:role });
 }
 
-// ── ערים ──
+// ── ערים (קריאה בלבד — הגיליון בנוי על נוסחה!) ──
 function renderSysCities() {
   var q = (document.getElementById('cityQ') ? document.getElementById('cityQ').value : '').trim();
+
+  // ערים ללא שלוחה
+  var unmapped = _sysData.cities.filter(function(c){ return !c.branch; });
+
+  // ספירה לפי שלוחה
+  var byBranch = {};
+  _sysData.cities.forEach(function(c){
+    if (c.branch) byBranch[c.branch] = (byBranch[c.branch] || 0) + 1;
+  });
+  var branchRows = Object.keys(byBranch).sort().map(function(b){
+    var known = BRANCHES.indexOf(b) > -1;
+    return '<tr>' +
+      '<td style="font-weight:600;color:var(--text)">' + esc(b) + '</td>' +
+      '<td>' + byBranch[b] + '</td>' +
+      '<td>' + (known
+        ? '<span class="sys-badge sys-b-ok">מזוהה</span>'
+        : '<span class="sys-badge sys-b-red">לא מוכר במערכת!</span>') + '</td>' +
+    '</tr>';
+  }).join('');
+
   var list = _sysData.cities;
   if (q) list = list.filter(function(c){ return c.city.indexOf(q) > -1 || (c.branch||'').indexOf(q) > -1; });
-
-  var brOpts = function(sel){
-    return '<option value="">- ללא -</option>' + BRANCHES.map(function(b){
-      return '<option'+(sel===b?' selected':'')+'>'+b+'</option>';
-    }).join('');
-  };
 
   var rows = list.slice(0, 300).map(function(c){
     return '<tr>' +
       '<td style="font-weight:600;color:var(--text)">' + esc(c.city) + '</td>' +
-      '<td><select class="sys-in" id="ct_' + esc(c.city) + '">' + brOpts(c.branch) + '</select></td>' +
-      '<td style="white-space:nowrap">' +
-        '<button class="sys-btn sm" onclick="saveSysCity(\'' + esc(c.city) + '\')">שמור</button> ' +
-        '<button class="sys-btn sm danger" onclick="delSysCity(\'' + esc(c.city) + '\')">מחק</button>' +
-      '</td></tr>';
+      '<td>' + (c.branch
+        ? esc(c.branch)
+        : '<span class="sys-badge sys-b-red">לא משויכת</span>') + '</td>' +
+    '</tr>';
   }).join('');
 
   document.getElementById('syspane-cities').innerHTML =
+
+    // ── אזהרה: קריאה בלבד ──
+    '<div class="sys-card" style="border-right:3px solid var(--gold)">' +
+      '<div class="sys-card-b" style="padding:13px 16px;font-size:12.5px;color:var(--mid);line-height:1.75">' +
+        '<b>לשונית זו היא לקריאה בלבד.</b><br/>' +
+        'גיליון <b>"מיפוי ערים"</b> נוצר אוטומטית מנוסחה שנשענת על הגיליון <b>"אינדקס ערים"</b>. ' +
+        'עריכה ישירה בו תשבור את הנוסחה ותגרום לשגיאת <code>#REF!</code>.<br/>' +
+        'כדי לשנות שיוך של עיר - <b>ערכו את הגיליון "אינדקס ערים"</b>, והמיפוי יתעדכן מעצמו.' +
+      '</div>' +
+    '</div>' +
+
+    // ── ערים לא משויכות ──
+    (unmapped.length
+      ? '<div class="sys-card" style="border-right:3px solid var(--red)">' +
+          '<div class="sys-card-h"><div>' +
+            '<div class="sys-card-t" style="color:var(--red)">' + unmapped.length + ' ערים ללא שלוחה</div>' +
+            '<div class="sys-card-s">לידים מהערים האלה לא ישויכו לאף מפקד</div>' +
+          '</div></div>' +
+          '<div class="sys-card-b" style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:7px">' +
+            unmapped.map(function(c){
+              return '<span class="sys-badge sys-b-red">' + esc(c.city) + '</span>';
+            }).join('') +
+          '</div>' +
+        '</div>'
+      : '<div class="sys-card" style="border-right:3px solid #067647">' +
+          '<div class="sys-card-b" style="padding:14px 16px;font-size:13px;color:#067647;font-weight:600">' +
+            '✓ כל הערים משויכות לשלוחה' +
+          '</div></div>') +
+
+    // ── סיכום לפי שלוחה ──
+    '<div class="sys-card">' +
+      '<div class="sys-card-h"><div>' +
+        '<div class="sys-card-t">ערים לפי שלוחה</div>' +
+        '<div class="sys-card-s">בדיקה ששמות השלוחות תואמים לרשימה במערכת</div>' +
+      '</div></div>' +
+      '<div class="sys-card-b" style="overflow-x:auto"><table class="sys-table"><thead><tr>' +
+        '<th style="width:220px">שלוחה</th><th style="width:110px">מספר ערים</th><th>מצב</th>' +
+      '</tr></thead><tbody>' + branchRows + '</tbody></table></div>' +
+    '</div>' +
+
+    // ── רשימת הערים ──
     '<div class="sys-card">' +
       '<div class="sys-card-h">' +
-        '<div><div class="sys-card-t">מיפוי ערים לשלוחות</div>' +
-        '<div class="sys-card-s">' + _sysData.cities.length + ' ערים · קובע לאיזו שלוחה ישויך ליד לפי עיר המגורים</div></div>' +
-        '<input class="sys-search" id="cityQ" placeholder="חיפוש עיר..." value="' + esc(q) + '" oninput="renderSysCities()"/>' +
-      '</div>' +
-      '<div class="sys-card-b" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">' +
-        '<input class="sys-in" id="newCity" placeholder="שם עיר חדשה" style="max-width:200px"/>' +
-        '<select class="sys-in" id="newCityBranch" style="max-width:180px">' + brOpts('') + '</select>' +
-        '<button class="sys-btn" onclick="addSysCity()">+ הוסף עיר</button>' +
-        '<span id="cityMsg" style="align-self:center;font-size:12.5px;font-weight:600"></span>' +
+        '<div><div class="sys-card-t">רשימת הערים</div>' +
+        '<div class="sys-card-s">' + _sysData.cities.length + ' ערים במיפוי</div></div>' +
+        '<input class="sys-search" id="cityQ" placeholder="חיפוש עיר או שלוחה..." value="' + esc(q) + '" oninput="renderSysCities()"/>' +
       '</div>' +
       '<div class="sys-card-b" style="overflow-x:auto">' +
-        '<table class="sys-table"><thead><tr><th style="width:220px">עיר</th><th>שלוחה</th><th style="width:150px">פעולות</th></tr></thead>' +
+        '<table class="sys-table"><thead><tr><th style="width:260px">עיר</th><th>שלוחה</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table>' +
-        (list.length > 300 ? '<div style="padding:10px;text-align:center;font-size:12px;color:var(--light)">מוצגות 300 הראשונות - השתמש בחיפוש</div>' : '') +
+        (list.length > 300 ? '<div style="padding:10px;text-align:center;font-size:12px;color:var(--light)">מוצגות 300 מתוך ' + list.length + ' - השתמשו בחיפוש</div>' : '') +
       '</div>' +
     '</div>';
-}
-
-function saveSysCity(city) {
-  var v = document.getElementById('ct_' + city).value;
-  sysPost({ action:'adminSaveCity', city:city, branch:v });
-}
-function addSysCity() {
-  var c = document.getElementById('newCity').value.trim();
-  var b = document.getElementById('newCityBranch').value;
-  if (!c) { document.getElementById('cityMsg').textContent = 'נא להזין שם עיר'; return; }
-  sysPost({ action:'adminSaveCity', city:c, branch:b }, 'cityMsg', 'נוספה ✓');
-}
-function delSysCity(city) {
-  if (!confirm('למחוק את המיפוי של "' + city + '"?')) return;
-  sysPost({ action:'adminDeleteCity', city:city });
 }
 
 // ── פניות תמיכה ──
@@ -4662,6 +5055,95 @@ function renderSysTickets() {
 function setTicket(id, status) {
   sysPost({ action:'adminTicketStatus', ticketId:id, status:status,
             handler: status === 'טופל' ? (currentUser.displayName||currentUser.username) : '' });
+}
+
+// ── קישורי שיתוף ──
+var LANDING_URL = 'https://shoher.click/';
+
+var SHARE_LINKS = [
+  { name:'אינסטגרם', utm:'instagram', color:'#e1306c', ic:'IG' },
+  { name:'טיקטוק',   utm:'tiktok',    color:'#111111', ic:'TT' },
+  { name:'יוטיוב',   utm:'youtube',   color:'#ff0000', ic:'YT' },
+  { name:'פייסבוק',  utm:'facebook',  color:'#1877f2', ic:'FB' },
+  { name:'גוגל',     utm:'google',    color:'#4285f4', ic:'G' },
+  { name:'וואטסאפ',  utm:'whatsapp',  color:'#25d366', ic:'WA' },
+  { name:'קמפיין 1', utm:'campaign1', color:'#f0b429', ic:'C1' },
+  { name:'קמפיין 2', utm:'campaign2', color:'#8b5cf6', ic:'C2' }
+];
+
+function linkFor(utm) { return LANDING_URL + '?utm_source=' + utm; }
+
+function renderSysLinks() {
+  var rows = SHARE_LINKS.map(function(l, i){
+    var url = linkFor(l.utm);
+    return '<div class="lk-row">' +
+      '<div class="lk-ic" style="background:' + l.color + '">' + l.ic + '</div>' +
+      '<div class="lk-main">' +
+        '<div class="lk-name">' + l.name + '</div>' +
+        '<div class="lk-url">' + esc(url) + '</div>' +
+      '</div>' +
+      '<button class="lk-copy" id="lkc_' + i + '" onclick="copyLink(' + i + ')">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+        '<span>העתק</span></button>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('syspane-links').innerHTML =
+    '<div class="sys-card">' +
+      '<div class="sys-card-h">' +
+        '<div><div class="sys-card-t">קישורי שיתוף לפי ערוץ</div>' +
+        '<div class="sys-card-s">כל קישור מתייג את מקור הכניסה - כך נספרות הכניסות בטאב "קמפיינים"</div></div>' +
+        '<button class="sys-btn ghost" onclick="copyAllLinks()">העתק את כולם</button>' +
+      '</div>' +
+      '<div class="sys-card-b" style="padding:12px 16px;background:rgba(240,180,41,.07);border-bottom:1px solid var(--border);font-size:12px;color:var(--mid);line-height:1.7">' +
+        '<b>חשוב:</b> השתמשו תמיד בקישור המתויג של הערוץ שבו אתם מפרסמים. ' +
+        'קישור רגיל (בלי תגית) ייספר תחת "ישיר" ולא תדעו מאיפה הגיע.' +
+      '</div>' +
+    '</div>' +
+    '<div class="lk-card" style="margin-top:14px">' + rows + '</div>' +
+    '<div class="sys-card" style="margin-top:14px">' +
+      '<div class="sys-card-h"><div><div class="sys-card-t">קישור ללא תיוג</div>' +
+      '<div class="sys-card-s">לשימוש כללי - ייספר תחת "ישיר"</div></div></div>' +
+      '<div class="sys-card-b"><div class="lk-row">' +
+        '<div class="lk-ic" style="background:#667085">—</div>' +
+        '<div class="lk-main"><div class="lk-name">דף הנחיתה</div>' +
+        '<div class="lk-url">' + esc(LANDING_URL) + '</div></div>' +
+        '<button class="lk-copy" id="lkc_plain" onclick="copyPlain()">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+          '<span>העתק</span></button>' +
+      '</div></div>' +
+    '</div>';
+}
+
+function copyToClipboard(txt, btnId) {
+  var done = function(){
+    var b = document.getElementById(btnId);
+    if (!b) return;
+    var span = b.querySelector('span');
+    var orig = span.textContent;
+    b.classList.add('done');
+    span.textContent = 'הועתק ✓';
+    setTimeout(function(){ b.classList.remove('done'); span.textContent = orig; }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(function(){ fallbackCopy(txt); done(); });
+  } else {
+    fallbackCopy(txt); done();
+  }
+}
+function fallbackCopy(txt) {
+  var ta = document.createElement('textarea');
+  ta.value = txt;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch(e){}
+  document.body.removeChild(ta);
+}
+function copyLink(i)  { copyToClipboard(linkFor(SHARE_LINKS[i].utm), 'lkc_' + i); }
+function copyPlain()  { copyToClipboard(LANDING_URL, 'lkc_plain'); }
+function copyAllLinks() {
+  var all = SHARE_LINKS.map(function(l){ return l.name + ': ' + linkFor(l.utm); }).join('\n');
+  copyToClipboard(all, 'lkc_0');
 }
 
 // ── שליחה משותפת ──
@@ -4926,6 +5408,310 @@ function doResetVisits(channel) {
     setTimeout(function(){ reloadVisits(); }, 1200);
   });
 }
+
+// ══════════════════════════════════════════════
+// ═══ מסך מלא לטבלה ═══
+// ══════════════════════════════════════════════
+function toggleFullscreen() {
+  var on = document.body.classList.toggle('fs-table');
+  try { localStorage.setItem('fsTable', on ? '1' : '0'); } catch(e){}
+  window.scrollTo(0, 0);
+}
+(function(){
+  try { if (localStorage.getItem('fsTable') === '1') document.body.classList.add('fs-table'); } catch(e){}
+})();
+
+// ══════════════════════════════════════════════
+// ═══ חיפוש חכם (Ctrl+K) ═══
+// ══════════════════════════════════════════════
+var _qsSel = 0, _qsItems = [];
+
+var QS_ACTIONS = [
+  { t:'כל הלידים',        s:'מעבר לטבלה הראשית', ic:'☰', run:function(){ setTab('all'); } },
+  { t:'סטטיסטיקות',      s:'גרפים ותובנות',      ic:'📊', run:function(){ setTab('stats'); } },
+  { t:'לפי שלוחה',       s:'תצוגה מקובצת',       ic:'🏫', run:function(){ setTab('branch'); },   need:function(){ return currentUser.role==='admin'||currentUser.role==='district'; } },
+  { t:'לפי מחוז',        s:'תצוגה מקובצת',       ic:'🗺', run:function(){ setTab('district'); },  need:function(){ return currentUser.role==='admin'; } },
+  { t:'קמפיינים',        s:'כניסות לפי ערוץ',    ic:'📈', run:function(){ setTab('camp'); },      need:function(){ return currentUser.role==='admin'||currentUser.role==='district'; } },
+  { t:'הוסף ליד',        s:'הוספה ידנית',        ic:'+',  run:function(){ openAddModal(); },      need:function(){ return currentUser.role!=='district'; } },
+  { t:'ייצוא ל-Excel',   s:'הורדת הנתונים',      ic:'⤓',  run:function(){ exportExcel(); } },
+  { t:'התאמת עמודות',    s:'בחירת עמודות וסדר',  ic:'⚙',  run:function(){ openCols(); } },
+  { t:'מצב כהה / בהיר',  s:'החלפת ערכת נושא',    ic:'◐',  run:function(){ toggleTheme(); } },
+  { t:'מסך מלא',         s:'הרחבת הטבלה',        ic:'⛶',  run:function(){ toggleFullscreen(); } },
+  { t:'רענון נתונים',    s:'טעינה מחדש',         ic:'↻',  run:function(){ loadData(); } }
+];
+
+function openQS() {
+  if (!currentUser || currentUser.role === 'sysadmin' || currentUser.role === 'telegram') return;
+  document.getElementById('qsOverlay').classList.add('open');
+  var i = document.getElementById('qsInput');
+  i.value = ''; i.focus();
+  runQS();
+}
+function closeQS() {
+  document.getElementById('qsOverlay').classList.remove('open');
+}
+
+function runQS() {
+  var q = document.getElementById('qsInput').value.trim().toLowerCase();
+  _qsItems = [];
+  var html = '';
+
+  // ── פעולות ומסכים ──
+  var acts = QS_ACTIONS.filter(function(a){
+    if (a.need && !a.need()) return false;
+    if (!q) return true;
+    return a.t.toLowerCase().indexOf(q) > -1 || a.s.toLowerCase().indexOf(q) > -1;
+  });
+
+  if (acts.length) {
+    html += '<div class="qs-sec">פעולות ומסכים</div>';
+    acts.forEach(function(a){
+      var idx = _qsItems.length;
+      _qsItems.push(a.run);
+      html += '<div class="qs-item" data-i="' + idx + '" onclick="pickQS(' + idx + ')">' +
+        '<div class="qs-ico">' + a.ic + '</div>' +
+        '<div class="qs-main"><div class="qs-t">' + a.t + '</div><div class="qs-s">' + a.s + '</div></div>' +
+      '</div>';
+    });
+  }
+
+  // ── לידים ──
+  if (q.length >= 2) {
+    var hits = allData.filter(function(r){
+      var hay = ((r.name||'') + ' ' + (r.phone||'') + ' ' + (r.city||'') + ' ' + (r.parentName||'')).toLowerCase();
+      return hay.indexOf(q) > -1;
+    }).slice(0, 8);
+
+    if (hits.length) {
+      html += '<div class="qs-sec">לידים (' + hits.length + ')</div>';
+      hits.forEach(function(r){
+        var idx = _qsItems.length;
+        _qsItems.push(function(){
+          // מצא את הליד ברשימה המסוננת, ואם אין - נקה סינון
+          var fi = filtered.indexOf(r);
+          if (fi === -1) {
+            document.getElementById('searchInput').value = r.name || r.phone;
+            applyFilters();
+            fi = filtered.indexOf(r);
+          }
+          if (fi > -1) { setTab('all'); setView('table'); openModal(fi); }
+        });
+        var initials = (r.name || '?').trim().charAt(0);
+        html += '<div class="qs-item" data-i="' + idx + '" onclick="pickQS(' + idx + ')">' +
+          '<div class="qs-ico">' + initials + '</div>' +
+          '<div class="qs-main">' +
+            '<div class="qs-t">' + (r.name || '(ללא שם)') + '</div>' +
+            '<div class="qs-s">' + (r.phone||'-') + ' · ' + (r.city||'-') + ' · ' + (r.status||'חדש') + '</div>' +
+          '</div>' +
+        '</div>';
+      });
+    }
+  }
+
+  if (!html) html = '<div class="qs-empty">לא נמצאו תוצאות</div>';
+  document.getElementById('qsRes').innerHTML = html;
+  _qsSel = 0;
+  highlightQS();
+}
+
+function highlightQS() {
+  var items = document.querySelectorAll('.qs-item');
+  items.forEach(function(el, i){ el.classList.toggle('sel', i === _qsSel); });
+  var sel = items[_qsSel];
+  if (sel) sel.scrollIntoView({ block:'nearest' });
+}
+
+function pickQS(i) {
+  var fn = _qsItems[i];
+  closeQS();
+  if (fn) setTimeout(fn, 60);
+}
+
+document.addEventListener('keydown', function(e) {
+  // פתיחה: Ctrl+K
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    openQS();
+    return;
+  }
+
+  var open = document.getElementById('qsOverlay').classList.contains('open');
+  if (!open) return;
+
+  if (e.key === 'Escape')      { e.preventDefault(); closeQS(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); _qsSel = Math.min(_qsSel+1, _qsItems.length-1); highlightQS(); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); _qsSel = Math.max(_qsSel-1, 0); highlightQS(); }
+  else if (e.key === 'Enter')     { e.preventDefault(); pickQS(_qsSel); }
+});
+
+// ══════════════════════════════════════════════
+// ═══ מסך מלא לטבלה ═══
+// ══════════════════════════════════════════════
+function toggleFullTable() {
+  var on = document.body.classList.toggle('tbl-full');
+  if (on) {
+    // מסך מלא רלוונטי רק לטבלה
+    if (currentTab !== 'all')  setTab('all');
+    if (currentView !== 'table') setView('table');
+    window.scrollTo(0, 0);
+  }
+}
+
+// ══════════════════════════════════════════════
+// ═══ חיפוש חכם (Ctrl+K) ═══
+// ══════════════════════════════════════════════
+var _qsResults = [];
+var _qsSel = 0;
+
+var QS_ICONS = {
+  lead:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  nav:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
+  action: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
+};
+
+// פקודות ניווט זמינות
+function qsCommands() {
+  var c = [
+    { type:'nav', t:'כל הלידים',    s:'עבור לטבלת כל הלידים', run:function(){ setTab('all'); } },
+    { type:'nav', t:'סטטיסטיקות',   s:'גרפים ותובנות',        run:function(){ setTab('stats'); } },
+    { type:'action', t:'רענן נתונים', s:'טעינה מחדש מהשרת',    run:function(){ loadData(); } },
+    { type:'action', t:'ייצוא לאקסל', s:'הורדת הלידים המסוננים', run:function(){ exportExcel(); } },
+    { type:'action', t:'התאמת עמודות', s:'בחר אילו עמודות להציג', run:function(){ openCols(); } },
+    { type:'action', t:'מסך מלא',     s:'הצג את הטבלה במסך מלא', run:function(){ toggleFullTable(); } },
+    { type:'action', t:'החלף מצב תצוגה', s:'בהיר / כהה',        run:function(){ toggleTheme(); } }
+  ];
+  if (currentUser && (currentUser.role==='admin' || currentUser.role==='district')) {
+    c.push({ type:'nav', t:'לפי שלוחה', s:'קיבוץ לפי שלוחות', run:function(){ setTab('branch'); } });
+    c.push({ type:'nav', t:'קמפיינים',  s:'כניסות לפי ערוץ',   run:function(){ setTab('camp'); } });
+  }
+  if (currentUser && currentUser.role==='admin') {
+    c.push({ type:'nav', t:'לפי מחוז', s:'קיבוץ לפי מחוזות', run:function(){ setTab('district'); } });
+  }
+  if (currentUser && (currentUser.role==='branch' || currentUser.role==='admin' || currentUser.role==='soldier')) {
+    c.push({ type:'action', t:'הוסף ליד', s:'הזנת ליד ידנית', run:function(){ openAddModal(); } });
+  }
+  return c;
+}
+
+function openQuickSearch() {
+  if (!currentUser) return;
+  document.getElementById('qsOverlay').classList.add('open');
+  var inp = document.getElementById('qsInput');
+  inp.value = '';
+  inp.focus();
+  runQuickSearch();
+}
+function closeQuickSearch() {
+  document.getElementById('qsOverlay').classList.remove('open');
+}
+
+function runQuickSearch() {
+  var q = document.getElementById('qsInput').value.trim().toLowerCase();
+  _qsResults = [];
+  _qsSel = 0;
+
+  // פקודות
+  qsCommands().forEach(function(c){
+    if (!q || c.t.toLowerCase().indexOf(q) > -1 || c.s.toLowerCase().indexOf(q) > -1) {
+      _qsResults.push(c);
+    }
+  });
+
+  // לידים — רק אם יש טקסט
+  if (q.length >= 2) {
+    var hits = 0;
+    for (var i = 0; i < allData.length && hits < 8; i++) {
+      var r = allData[i];
+      var hay = ((r.name||'') + (r.phone||'') + (r.city||'') + (r.branch||'')).toLowerCase();
+      if (hay.indexOf(q) > -1) {
+        (function(rec){
+          _qsResults.push({
+            type:'lead',
+            t: rec.name || '-',
+            s: (rec.phone||'') + ' · ' + (rec.city||'') + ' · ' + (rec.status||'חדש'),
+            run: function(){
+              // מצא את הליד ברשימה המסוננת ופתח אותו
+              setTab('all');
+              document.getElementById('searchInput').value = rec.phone || rec.name || '';
+              applyFilters();
+              var idx = filtered.findIndex(function(x){ return x.uuid === rec.uuid; });
+              if (idx > -1) setTimeout(function(){ openModal(idx); }, 120);
+            }
+          });
+        })(r);
+        hits++;
+      }
+    }
+  }
+
+  renderQuickSearch();
+}
+
+function renderQuickSearch() {
+  var list = document.getElementById('qsList');
+  if (!_qsResults.length) {
+    list.innerHTML = '<div class="qs-empty">לא נמצאו תוצאות</div>';
+    return;
+  }
+
+  var html = '';
+  var lastType = null;
+  _qsResults.forEach(function(r, i){
+    if (r.type !== lastType) {
+      html += '<div class="qs-sec">' +
+        (r.type === 'lead' ? 'לידים' : r.type === 'nav' ? 'ניווט' : 'פעולות') + '</div>';
+      lastType = r.type;
+    }
+    html += '<div class="qs-item' + (i === _qsSel ? ' sel' : '') + '" onclick="qsRun(' + i + ')">' +
+      '<div class="qs-ico">' + QS_ICONS[r.type] + '</div>' +
+      '<div class="qs-main">' +
+        '<div class="qs-t">' + esc(r.t) + '</div>' +
+        '<div class="qs-s">' + esc(r.s) + '</div>' +
+      '</div>' +
+    '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function qsRun(i) {
+  var r = _qsResults[i];
+  if (!r) return;
+  closeQuickSearch();
+  setTimeout(function(){ r.run(); }, 80);
+}
+
+function qsMove(d) {
+  if (!_qsResults.length) return;
+  _qsSel = (_qsSel + d + _qsResults.length) % _qsResults.length;
+  renderQuickSearch();
+  var sel = document.querySelector('.qs-item.sel');
+  if (sel) sel.scrollIntoView({ block:'nearest' });
+}
+
+// ── קיצורי מקלדת ──
+document.addEventListener('keydown', function(e) {
+  var open = document.getElementById('qsOverlay').classList.contains('open');
+
+  // Ctrl+K — פתיחת חיפוש
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    open ? closeQuickSearch() : openQuickSearch();
+    return;
+  }
+
+  if (open) {
+    if (e.key === 'Escape')    { e.preventDefault(); closeQuickSearch(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); qsMove(1); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); qsMove(-1); }
+    if (e.key === 'Enter')     { e.preventDefault(); qsRun(_qsSel); }
+    return;
+  }
+
+  // Esc — יציאה ממסך מלא
+  if (e.key === 'Escape' && document.body.classList.contains('tbl-full')) {
+    toggleFullTable();
+  }
+});
 
 // ══════════════════════════════════════════════
 // ═══ DARK MODE ═══
