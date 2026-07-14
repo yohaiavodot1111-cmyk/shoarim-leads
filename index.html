@@ -1893,7 +1893,6 @@ canvas{display:block;width:100%!important;}
     <button class="view-btn active" id="tableBtn" onclick="setView('table')">טבלה</button>
     <button class="view-btn" id="cardBtn" onclick="setView('cards')">כרטיסיות</button>
   </div>
-  <button class="btn btn-primary" onclick="toggleFullTable()" title="מסך מלא (F)">⛶ מסך מלא</button>
   <button class="fs-btn" onclick="toggleFullscreen()" title="מסך מלא (F)">
     <span class="fs-enter" style="display:flex;align-items:center;gap:6px">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
@@ -1934,27 +1933,6 @@ canvas{display:block;width:100%!important;}
 <div id="campWrap" class="camp-wrap" style="display:none"></div>
 <div id="emptyWrap" class="empty" style="display:none">לא נמצאו תוצאות</div>
 
-<button class="full-exit" onclick="toggleFullTable()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-  <span>יציאה ממסך מלא</span>
-</button>
-
-<!-- QUICK SEARCH (Ctrl+K) -->
-<div class="qs-overlay" id="qsOverlay" onclick="if(event.target===this)closeQuickSearch()">
-  <div class="qs-box">
-    <div class="qs-top">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input class="qs-in" id="qsInput" placeholder="חיפוש ליד, פקודה או ניווט..." oninput="runQuickSearch()" autocomplete="off"/>
-      <span class="qs-kbd">ESC</span>
-    </div>
-    <div class="qs-list" id="qsList"></div>
-    <div class="qs-foot">
-      <span><b>↑↓</b> ניווט</span>
-      <span><b>Enter</b> בחירה</span>
-      <span><b>Esc</b> סגירה</span>
-    </div>
-  </div>
-</div>
 
 </div><!-- /app -->
 
@@ -2506,8 +2484,6 @@ function doLogout() {
   selectedStatuses = [];
   _bulkSel = [];
   _visibleCols = DEFAULT_COLS.slice();
-  document.body.classList.remove('tbl-full');
-  closeQuickSearch();
   activeIdx = -1;
   editMode = false;
 
@@ -5548,175 +5524,6 @@ document.addEventListener('keydown', function(e) {
   else if (e.key === 'ArrowDown') { e.preventDefault(); _qsSel = Math.min(_qsSel+1, _qsItems.length-1); highlightQS(); }
   else if (e.key === 'ArrowUp')   { e.preventDefault(); _qsSel = Math.max(_qsSel-1, 0); highlightQS(); }
   else if (e.key === 'Enter')     { e.preventDefault(); pickQS(_qsSel); }
-});
-
-// ══════════════════════════════════════════════
-// ═══ מסך מלא לטבלה ═══
-// ══════════════════════════════════════════════
-function toggleFullTable() {
-  var on = document.body.classList.toggle('tbl-full');
-  if (on) {
-    // מסך מלא רלוונטי רק לטבלה
-    if (currentTab !== 'all')  setTab('all');
-    if (currentView !== 'table') setView('table');
-    window.scrollTo(0, 0);
-  }
-}
-
-// ══════════════════════════════════════════════
-// ═══ חיפוש חכם (Ctrl+K) ═══
-// ══════════════════════════════════════════════
-var _qsResults = [];
-var _qsSel = 0;
-
-var QS_ICONS = {
-  lead:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-  nav:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
-  action: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
-};
-
-// פקודות ניווט זמינות
-function qsCommands() {
-  var c = [
-    { type:'nav', t:'כל הלידים',    s:'עבור לטבלת כל הלידים', run:function(){ setTab('all'); } },
-    { type:'nav', t:'סטטיסטיקות',   s:'גרפים ותובנות',        run:function(){ setTab('stats'); } },
-    { type:'action', t:'רענן נתונים', s:'טעינה מחדש מהשרת',    run:function(){ loadData(); } },
-    { type:'action', t:'ייצוא לאקסל', s:'הורדת הלידים המסוננים', run:function(){ exportExcel(); } },
-    { type:'action', t:'התאמת עמודות', s:'בחר אילו עמודות להציג', run:function(){ openCols(); } },
-    { type:'action', t:'מסך מלא',     s:'הצג את הטבלה במסך מלא', run:function(){ toggleFullTable(); } },
-    { type:'action', t:'החלף מצב תצוגה', s:'בהיר / כהה',        run:function(){ toggleTheme(); } }
-  ];
-  if (currentUser && (currentUser.role==='admin' || currentUser.role==='district')) {
-    c.push({ type:'nav', t:'לפי שלוחה', s:'קיבוץ לפי שלוחות', run:function(){ setTab('branch'); } });
-    c.push({ type:'nav', t:'קמפיינים',  s:'כניסות לפי ערוץ',   run:function(){ setTab('camp'); } });
-  }
-  if (currentUser && currentUser.role==='admin') {
-    c.push({ type:'nav', t:'לפי מחוז', s:'קיבוץ לפי מחוזות', run:function(){ setTab('district'); } });
-  }
-  if (currentUser && (currentUser.role==='branch' || currentUser.role==='admin' || currentUser.role==='soldier')) {
-    c.push({ type:'action', t:'הוסף ליד', s:'הזנת ליד ידנית', run:function(){ openAddModal(); } });
-  }
-  return c;
-}
-
-function openQuickSearch() {
-  if (!currentUser) return;
-  document.getElementById('qsOverlay').classList.add('open');
-  var inp = document.getElementById('qsInput');
-  inp.value = '';
-  inp.focus();
-  runQuickSearch();
-}
-function closeQuickSearch() {
-  document.getElementById('qsOverlay').classList.remove('open');
-}
-
-function runQuickSearch() {
-  var q = document.getElementById('qsInput').value.trim().toLowerCase();
-  _qsResults = [];
-  _qsSel = 0;
-
-  // פקודות
-  qsCommands().forEach(function(c){
-    if (!q || c.t.toLowerCase().indexOf(q) > -1 || c.s.toLowerCase().indexOf(q) > -1) {
-      _qsResults.push(c);
-    }
-  });
-
-  // לידים — רק אם יש טקסט
-  if (q.length >= 2) {
-    var hits = 0;
-    for (var i = 0; i < allData.length && hits < 8; i++) {
-      var r = allData[i];
-      var hay = ((r.name||'') + (r.phone||'') + (r.city||'') + (r.branch||'')).toLowerCase();
-      if (hay.indexOf(q) > -1) {
-        (function(rec){
-          _qsResults.push({
-            type:'lead',
-            t: rec.name || '-',
-            s: (rec.phone||'') + ' · ' + (rec.city||'') + ' · ' + (rec.status||'חדש'),
-            run: function(){
-              // מצא את הליד ברשימה המסוננת ופתח אותו
-              setTab('all');
-              document.getElementById('searchInput').value = rec.phone || rec.name || '';
-              applyFilters();
-              var idx = filtered.findIndex(function(x){ return x.uuid === rec.uuid; });
-              if (idx > -1) setTimeout(function(){ openModal(idx); }, 120);
-            }
-          });
-        })(r);
-        hits++;
-      }
-    }
-  }
-
-  renderQuickSearch();
-}
-
-function renderQuickSearch() {
-  var list = document.getElementById('qsList');
-  if (!_qsResults.length) {
-    list.innerHTML = '<div class="qs-empty">לא נמצאו תוצאות</div>';
-    return;
-  }
-
-  var html = '';
-  var lastType = null;
-  _qsResults.forEach(function(r, i){
-    if (r.type !== lastType) {
-      html += '<div class="qs-sec">' +
-        (r.type === 'lead' ? 'לידים' : r.type === 'nav' ? 'ניווט' : 'פעולות') + '</div>';
-      lastType = r.type;
-    }
-    html += '<div class="qs-item' + (i === _qsSel ? ' sel' : '') + '" onclick="qsRun(' + i + ')">' +
-      '<div class="qs-ico">' + QS_ICONS[r.type] + '</div>' +
-      '<div class="qs-main">' +
-        '<div class="qs-t">' + esc(r.t) + '</div>' +
-        '<div class="qs-s">' + esc(r.s) + '</div>' +
-      '</div>' +
-    '</div>';
-  });
-  list.innerHTML = html;
-}
-
-function qsRun(i) {
-  var r = _qsResults[i];
-  if (!r) return;
-  closeQuickSearch();
-  setTimeout(function(){ r.run(); }, 80);
-}
-
-function qsMove(d) {
-  if (!_qsResults.length) return;
-  _qsSel = (_qsSel + d + _qsResults.length) % _qsResults.length;
-  renderQuickSearch();
-  var sel = document.querySelector('.qs-item.sel');
-  if (sel) sel.scrollIntoView({ block:'nearest' });
-}
-
-// ── קיצורי מקלדת ──
-document.addEventListener('keydown', function(e) {
-  var open = document.getElementById('qsOverlay').classList.contains('open');
-
-  // Ctrl+K — פתיחת חיפוש
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault();
-    open ? closeQuickSearch() : openQuickSearch();
-    return;
-  }
-
-  if (open) {
-    if (e.key === 'Escape')    { e.preventDefault(); closeQuickSearch(); }
-    if (e.key === 'ArrowDown') { e.preventDefault(); qsMove(1); }
-    if (e.key === 'ArrowUp')   { e.preventDefault(); qsMove(-1); }
-    if (e.key === 'Enter')     { e.preventDefault(); qsRun(_qsSel); }
-    return;
-  }
-
-  // Esc — יציאה ממסך מלא
-  if (e.key === 'Escape' && document.body.classList.contains('tbl-full')) {
-    toggleFullTable();
-  }
 });
 
 // ══════════════════════════════════════════════
