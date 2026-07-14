@@ -2337,6 +2337,7 @@ function doLogin() {
       }
 
       currentUser = Object.assign({}, user, { username: u });
+      loadTheme();
       lastLoginTime = localStorage.getItem('lastLogin_' + u)
         ? new Date(localStorage.getItem('lastLogin_' + u))
         : null;
@@ -2496,6 +2497,9 @@ function doLogout() {
   _prefetchStarted = false;
   _prefetchedRows = null;
   currentUser = null;
+  // חזור להעדפת המערכת — כדי שהמפקד הבא לא יירש את התצוגה של הקודם
+  var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(!!sysDark, false);
   allData = [];
   filtered = [];
   lastLoginTime = null;
@@ -2557,6 +2561,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!user || !user.username) return;
 
     currentUser = user;
+    loadTheme();
     var lt = sessionStorage.getItem('lastLoginTime');
     lastLoginTime = lt ? new Date(lt) : null;
 
@@ -5243,6 +5248,7 @@ function submitNewPassword() {
 // ── כניסה למערכת (משותף ל-login רגיל ולאחר שינוי סיסמה) ──
 function enterSystem(user, u) {
   currentUser = Object.assign({}, user, { username: u });
+  loadTheme();
   lastLoginTime = localStorage.getItem('lastLogin_' + u)
     ? new Date(localStorage.getItem('lastLogin_' + u))
     : null;
@@ -5716,18 +5722,41 @@ document.addEventListener('keydown', function(e) {
 // ══════════════════════════════════════════════
 // ═══ DARK MODE ═══
 // ══════════════════════════════════════════════
-function applyTheme(dark) {
-  document.body.classList.toggle('dark', !!dark);
-  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch(e){}
+// ההעדפה נשמרת פר-משתמש — כך שמפקדים שחולקים מחשב לא ידרסו זה את זה
+function themeKey() {
+  return 'theme_' + (currentUser ? currentUser.username : '_guest');
 }
+
+// dark = true/false | save = האם לשמור (false בזמן טעינה בלבד)
+function applyTheme(dark, save) {
+  document.body.classList.toggle('dark', !!dark);
+  if (save !== false) {
+    try { localStorage.setItem(themeKey(), dark ? 'dark' : 'light'); } catch(e){}
+  }
+}
+
 function toggleTheme() {
   applyTheme(!document.body.classList.contains('dark'));
 }
-(function(){
+
+// טוען את ההעדפה של המשתמש המחובר. נקרא אחרי login ואחרי שחזור session.
+function loadTheme() {
   var saved = null;
-  try { saved = localStorage.getItem('theme'); } catch(e){}
-  if (saved === 'dark') applyTheme(true);
-  else if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme(true);
+  try { saved = localStorage.getItem(themeKey()); } catch(e){}
+
+  if (saved === 'dark')       applyTheme(true,  false);
+  else if (saved === 'light') applyTheme(false, false);
+  else {
+    // אין העדפה שמורה — לך לפי הגדרת המערכת
+    var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(!!sysDark, false);
+  }
+}
+
+// מסך ההתחברות — לפי העדפת המערכת בלבד (עדיין אין משתמש)
+(function(){
+  var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(!!sysDark, false);
 })();
 
 // ══════════════════════════════════════════════
