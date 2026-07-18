@@ -2645,9 +2645,17 @@ function startPrefetch() {
 
 function loadData() {
   var myToken = ++_loadToken;
-  allData = []; filtered = [];
-  ['tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){ document.getElementById(id).style.display='none'; });
-  document.getElementById('statusText').textContent = 'מתחבר...';
+
+  // ── רענון שקט: אם כבר יש נתונים על המסך, הם נשארים מוצגים
+  //    והמשיכה רצה ברקע. התצוגה מתחלפת רק כשהנתונים הטריים מגיעים.
+  //    כך שמירה/רענון לא תוקעים את העבודה. ──
+  var silent = allData.length > 0 && !!currentUser;
+
+  if (!silent) {
+    allData = []; filtered = [];
+    ['tableWrap','cardsWrap','groupedWrap','statsWrap','emptyWrap'].forEach(function(id){ document.getElementById(id).style.display='none'; });
+  }
+  document.getElementById('statusText').textContent = silent ? 'מסנכרן...' : 'מתחבר...';
   var btn = document.querySelector('[onclick="loadData()"]');
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
@@ -2668,9 +2676,11 @@ function loadData() {
     return;
   }
 
-  // טעינה רגילה עם spinner
-  document.getElementById('loadingWrap').style.display = '';
-  document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
+  // טעינה רגילה עם spinner (רק כשאין נתונים על המסך)
+  if (!silent) {
+    document.getElementById('loadingWrap').style.display = '';
+    document.getElementById('loadingWrap').innerHTML = '<div class="spinner"></div><div>טוען נתונים...</div>';
+  }
 
   var sinceStr = SINCE_DATE.toISOString().split('T')[0];
   fetch(APPS_SCRIPT_URL + '?since=' + sinceStr)
@@ -2681,7 +2691,12 @@ function loadData() {
       _processRows(d.rows || [], myToken, btn);
     })
     .catch(function(e){
-      document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאה: ' + e.message + '</div>';
+      if (silent) {
+        // הנתונים הקיימים נשארים על המסך — רק חיווי עדין בשורת המצב
+        document.getElementById('statusText').textContent = 'שגיאת סנכרון - מוצגים נתונים אחרונים';
+      } else {
+        document.getElementById('loadingWrap').innerHTML = '<div style="color:var(--red);padding:20px">שגיאה: ' + e.message + '</div>';
+      }
       if (btn) { btn.disabled=false; btn.textContent='רענן'; }
     })
     .then(function(){ if (btn) { btn.disabled=false; btn.textContent='רענן'; } });
@@ -4695,9 +4710,13 @@ function setSysTab(t) {
   renderSysPane();
 }
 
-function loadSysData() {
+function loadSysData(silent) {
   var pane = document.getElementById('syspane-' + _sysTab);
-  pane.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div>טוען נתוני מערכת...</div></div>';
+
+  // ── רענון שקט: הפאנל הקיים נשאר מוצג, הנתונים מתעדכנים כשהם מגיעים ──
+  if (!silent || !_sysData) {
+    pane.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div>טוען נתוני מערכת...</div></div>';
+  }
 
   fetch(APPS_SCRIPT_URL + '?action=adminData&role=' + encodeURIComponent(currentUser.role))
     .then(function(r){ return r.json(); })
@@ -4711,6 +4730,7 @@ function loadSysData() {
       renderSysPane();
     })
     .catch(function(e){
+      if (silent && _sysData) return;   // הפאנל הקיים נשאר — לא מוחקים בגלל כשל רענון
       pane.innerHTML = '<div class="empty">שגיאה בטעינת נתוני המערכת: ' + e.message + '</div>';
     });
 }
@@ -5321,7 +5341,9 @@ function sysPost(payload, msgId, okTxt) {
       var m2 = document.getElementById(msgId);
       if (m2) { m2.textContent = okTxt || 'נשמר ✓'; m2.style.color = 'var(--green)'; }
     }
-    setTimeout(function(){ loadSysData(); }, 1000);
+    // רענון שקט — הפאנל נשאר מוצג, הנתונים מתעדכנים ברקע
+    // (השהיה קלה כדי לתת ל-Google Sheets לסיים את הכתיבה)
+    setTimeout(function(){ loadSysData(true); }, 1200);
   }).catch(function(){
     if (msgId) {
       var m3 = document.getElementById(msgId);
