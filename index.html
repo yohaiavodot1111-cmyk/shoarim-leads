@@ -5012,7 +5012,7 @@ function delSysUser(un) {
 
 // ── טלגרם ──
 function renderSysTelegram() {
-  var byRole = { branch:[], district:[], admin:[], other:[] };
+  var byRole = { branch:[], district:[], admin:[], atuda_district:[], atuda_admin:[], other:[] };
   _sysData.telegram.forEach(function(t){
     (byRole[t.role] ? byRole[t.role] : byRole.other).push(t);
   });
@@ -5056,6 +5056,8 @@ function renderSysTelegram() {
     section('מפקדי שלוחות', byRole.branch,   'התראה על כל ליד חדש בשלוחה') +
     section('מפקדי מחוזות', byRole.district, 'סיכום יומי + התראות מחוז') +
     section('מפקד גף',      byRole.admin,    'סיכום יומי כללי') +
+    section('עתודה טכנולוגית - מחוזות', byRole.atuda_district, 'התראות וסיכומים על לידי עתודה טכנולוגית במחוז בלבד') +
+    section('מפקד עתודה טכנולוגית',     byRole.atuda_admin,    'התראות וסיכומים על כלל לידי העתודה הטכנולוגית') +
     section('יעדים נוספים', byRole.other,    'כולל pniya - יעד פניות התמיכה');
 }
 
