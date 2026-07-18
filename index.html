@@ -2357,6 +2357,7 @@ function doLogin() {
         document.getElementById('addBtn').style.display = '';
       document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
       document.getElementById('tab-camp').style.display  = (currentUser.role === 'admin' || currentUser.role === 'district') ? '' : 'none';
+      applyAtudaRoleUI();
       if (u === 'yohai') document.getElementById('tab-admin').style.display = '';
 
       var addBranch = document.getElementById('add_branch');
@@ -2518,6 +2519,18 @@ function doLogout() {
   document.getElementById('tab-admin') && (document.getElementById('tab-admin').style.display = 'none');
   document.getElementById('addBtn').style.display = 'none';
 
+  // אפס התאמות עתודה טכנולוגית — כדי שהמשתמש הבא לא יירש אותן
+  var _gf = document.getElementById('gradeFilter');
+  if (_gf) { _gf.style.display = ''; _gf.value = ''; }
+  var _g8 = document.getElementById('grade8Count');
+  var _g9 = document.getElementById('grade9Count');
+  if (_g8) _g8.parentElement.style.display = '';
+  if (_g9) _g9.parentElement.style.display = '';
+  var _ag = document.getElementById('add_grade');
+  if (_ag) { _ag.disabled = false; _ag.value = ''; }
+  var _ad = document.getElementById('add_district');
+  if (_ad) _ad.disabled = false;
+
   // שחרר נעילת גוף אם היה מודאל פתוח
   document.body.style.position = '';
   document.body.style.top = '';
@@ -2570,6 +2583,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (user.role === 'branch' || user.role === 'admin' || user.role === 'soldier') document.getElementById('addBtn').style.display = '';
     document.getElementById('tab-stats').style.display = (user.role === 'soldier') ? 'none' : '';
     document.getElementById('tab-camp').style.display  = (user.role === 'admin' || user.role === 'district') ? '' : 'none';
+    applyAtudaRoleUI();
     if (user.username === 'yohai') document.getElementById('tab-admin').style.display = '';
 
     var addBranch = document.getElementById('add_branch');
@@ -2606,6 +2620,8 @@ function startPolling() {
         // סינון לפי הרשאה — חובה
         if (currentUser.role === 'branch' || currentUser.role === 'soldier') rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
         if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
+        if (currentUser.role === 'atuda_district') rows = rows.filter(function(r){ return isAtudaLead(r) && r.district === currentUser.district; });
+        if (currentUser.role === 'atuda_admin')    rows = rows.filter(isAtudaLead);
         // בדוק אם יש שינוי
         if (rows.length === allData.length) return;
         // יש נתונים חדשים — עדכן
@@ -2641,6 +2657,48 @@ function startPrefetch() {
         _prefetchedRows = d.rows; // שמור את כל הנתונים הגולמיים
       }
     }).catch(function(){});
+}
+
+// ══════════════════════════════════════════════
+// ═══ עתודה טכנולוגית — תפקידים והרשאות ═══
+// ══════════════════════════════════════════════
+// שני מסלולי עתודה קיימים בגף (בתוך השלוחות ובמכללות) — ההפרדה פנימית בלבד.
+// משתמשי העתודה רואים אך ורק לידים של עתודה טכנולוגית:
+// · atuda_district — מקביל למפקד שלוחה, אך ברמת מחוז (דרום/מרכז/צפון)
+// · atuda_admin    — מקביל למפקד גף, רואה את כל מחוזות העתודה
+function isAtudaRole(role) { return role === 'atuda_district' || role === 'atuda_admin'; }
+function isAtudaLead(r) { return String((r && r.grade) || '').indexOf('עתודה') > -1; }
+
+function applyAtudaRoleUI() {
+  if (!currentUser || !isAtudaRole(currentUser.role)) return;
+
+  document.getElementById('headerSub').textContent =
+    currentUser.role === 'atuda_admin'
+      ? 'מפקד עתודה טכנולוגית'
+      : 'עתודה טכנולוגית - מחוז ' + (currentUser.district || '');
+
+  // הרשאות כשל מפקד שלוחה (הוספה ועריכה) — אך ללא שלוחות, רק מחוזות
+  document.getElementById('addBtn').style.display      = '';
+  document.getElementById('tab-branch').style.display  = 'none';
+  document.getElementById('tab-district').style.display = currentUser.role === 'atuda_admin' ? '' : 'none';
+  document.getElementById('tab-stats').style.display   = '';
+  document.getElementById('tab-camp').style.display    = 'none';
+
+  // מסנן הכיתות מיותר — כל הנתונים ממילא עתודה בלבד
+  var gf = document.getElementById('gradeFilter');
+  if (gf) { gf.value = ''; gf.style.display = 'none'; }
+
+  // מוני ח'/ט' בכותרת לא רלוונטיים לעתודה
+  var g8 = document.getElementById('grade8Count');
+  var g9 = document.getElementById('grade9Count');
+  if (g8) g8.parentElement.style.display = 'none';
+  if (g9) g9.parentElement.style.display = 'none';
+
+  // טופס הוספת ליד: כיתה נעולה על עתודה, ומחוז נעול למשתמש מחוזי
+  var ag = document.getElementById('add_grade');
+  if (ag) { ag.value = 'עתודה טכנולוגית'; ag.disabled = true; }
+  var ad = document.getElementById('add_district');
+  if (ad && currentUser.role === 'atuda_district') { ad.value = currentUser.district || ''; ad.disabled = true; }
 }
 
 function loadData() {
@@ -2709,6 +2767,8 @@ function _processRows(rows, myToken, btn) {
   // סינון לפי הרשאה
   if (currentUser.role === 'branch' || currentUser.role === 'soldier') rows = rows.filter(function(r){ return r.branch === currentUser.branch; });
   if (currentUser.role === 'district') rows = rows.filter(function(r){ return r.district === currentUser.district; });
+  if (currentUser.role === 'atuda_district') rows = rows.filter(function(r){ return isAtudaLead(r) && r.district === currentUser.district; });
+  if (currentUser.role === 'atuda_admin')    rows = rows.filter(isAtudaLead);
 
   rows.sort(function(a,b){
     var da=parseDate(a.timestamp), db=parseDate(b.timestamp);
@@ -4682,6 +4742,8 @@ var SYS_ROLES = [
   {v:'district', t:'מפקד מחוז'},
   {v:'branch',   t:'מפקד שלוחה'},
   {v:'soldier',  t:'חייל מדריך'},
+  {v:'atuda_district', t:'עתודה טכנולוגית - מחוז'},
+  {v:'atuda_admin',    t:'מפקד עתודה טכנולוגית'},
   {v:'telegram', t:'שולח טלגרם'},
   {v:'sysadmin', t:'מנהל מערכת'}
 ];
@@ -5452,6 +5514,7 @@ function enterSystem(user, u) {
     document.getElementById('addBtn').style.display = '';
   document.getElementById('tab-stats').style.display = (currentUser.role === 'soldier') ? 'none' : '';
   document.getElementById('tab-camp').style.display  = (currentUser.role === 'admin' || currentUser.role === 'district') ? '' : 'none';
+  applyAtudaRoleUI();
 
   var addBranch = document.getElementById('add_branch');
   addBranch.innerHTML = '<option value="">- בחר שלוחה -</option>' +
@@ -5609,7 +5672,7 @@ var QS_ACTIONS = [
   { t:'כל הלידים',        s:'מעבר לטבלה הראשית', ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>', run:function(){ setTab('all'); } },
   { t:'סטטיסטיקות',      s:'גרפים ותובנות',      ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-5"/></svg>', run:function(){ setTab('stats'); } },
   { t:'לפי שלוחה',       s:'תצוגה מקובצת',       ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>', run:function(){ setTab('branch'); },   need:function(){ return currentUser.role==='admin'||currentUser.role==='district'; } },
-  { t:'לפי מחוז',        s:'תצוגה מקובצת',       ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg>', run:function(){ setTab('district'); },  need:function(){ return currentUser.role==='admin'; } },
+  { t:'לפי מחוז',        s:'תצוגה מקובצת',       ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg>', run:function(){ setTab('district'); },  need:function(){ return currentUser.role==='admin' || currentUser.role==='atuda_admin'; } },
   { t:'קמפיינים',        s:'כניסות לפי ערוץ',    ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>', run:function(){ setTab('camp'); },      need:function(){ return currentUser.role==='admin'||currentUser.role==='district'; } },
   { t:'הוסף ליד',        s:'הוספה ידנית',        ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',  run:function(){ openAddModal(); },      need:function(){ return currentUser.role!=='district'; } },
   { t:'ייצוא ל-Excel',   s:'הורדת הנתונים',      ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',  run:function(){ exportExcel(); } },
