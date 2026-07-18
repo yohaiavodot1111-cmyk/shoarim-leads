@@ -4942,18 +4942,30 @@ function renderSysTelegram() {
         '<td style="font-weight:600;color:var(--text)">' + esc(t.name) + '</td>' +
         '<td><input class="sys-in ltr" id="tg_' + esc(t.name) + '" value="' + esc(t.chatId) + '" placeholder="Chat ID"/></td>' +
         '<td>' + (t.chatId ? '<span class="sys-badge sys-b-ok">מוגדר</span>' : '<span class="sys-badge sys-b-warn">חסר</span>') + '</td>' +
-        '<td><button class="sys-btn sm" onclick="saveSysTg(\'' + esc(t.name) + '\',\'' + esc(t.role) + '\')">שמור</button></td>' +
+        '<td style="white-space:nowrap"><button class="sys-btn sm" onclick="saveSysTg(\'' + esc(t.name) + '\',\'' + esc(t.role) + '\')">שמור</button> ' +
+        '<button class="sys-btn sm ghost" onclick="testSysTg(\'' + esc(t.name) + '\',\'' + esc(t.role) + '\')">שלח בדיקה</button> ' +
+        '<span id="tgtest_' + esc(t.name) + '" style="font-size:11.5px;font-weight:600"></span></td>' +
       '</tr>';
     }).join('');
     return '<div class="sys-card">' +
       '<div class="sys-card-h"><div><div class="sys-card-t">' + title + '</div>' +
       '<div class="sys-card-s">' + hint + '</div></div></div>' +
       '<div class="sys-card-b" style="overflow-x:auto"><table class="sys-table"><thead><tr>' +
-      '<th style="width:180px">שם</th><th>Chat ID</th><th style="width:90px">מצב</th><th style="width:80px"></th>' +
+      '<th style="width:180px">שם</th><th>Chat ID</th><th style="width:90px">מצב</th><th style="width:220px"></th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
 
   document.getElementById('syspane-telegram').innerHTML =
+    '<div class="sys-card">' +
+      '<div class="sys-card-h">' +
+        '<div><div class="sys-card-t">בדיקת תקינות יעדים</div>' +
+        '<div class="sys-card-s">כל מפקד יקבל הודעת בדיקה עם השלוחה/המחוז שאליו הוא משויך - כך מוודאים שיוך נכון</div></div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span id="tgTestAllMsg" style="font-size:12px;font-weight:600"></span>' +
+          '<button class="sys-btn" onclick="testAllSysTg()">שלח בדיקה לכולם</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
     '<div class="sys-card"><div class="sys-card-b" style="padding:13px 16px;font-size:12.5px;color:var(--mid);line-height:1.7">' +
       '<b>איך משיגים Chat ID?</b> המשתמש שולח הודעה לבוט, ואז פותחים בדפדפן:<br/>' +
       '<code style="font-size:11.5px;background:var(--bg);padding:2px 6px;border-radius:4px;direction:ltr;display:inline-block;margin-top:4px">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code>' +
@@ -4968,6 +4980,47 @@ function renderSysTelegram() {
 function saveSysTg(name, role) {
   var v = document.getElementById('tg_' + name).value.trim();
   sysPost({ action:'adminSaveTelegram', name:name, chatId:v, tgRole:role });
+}
+
+// ── שליחת הודעת בדיקה ──
+// נשלחת ל-Chat ID שמוקלד כרגע בשדה (כך אפשר לבדוק גם לפני שמירה)
+function testSysTg(name, role) {
+  var inp    = document.getElementById('tg_' + name);
+  var chatId = inp ? inp.value.trim() : '';
+  var m      = document.getElementById('tgtest_' + name);
+  if (!chatId) {
+    if (m) { m.textContent = 'אין Chat ID'; m.style.color = 'var(--red)'; }
+    return;
+  }
+  if (m) { m.textContent = 'שולח...'; m.style.color = 'var(--royal)'; }
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'adminTestTelegram', name:name, chatId:chatId, tgRole:role,
+                           role:currentUser.role, editor:currentUser.displayName||currentUser.username })
+  }).then(function(){
+    if (m) { m.textContent = 'נשלח ✓'; m.style.color = 'var(--green)'; }
+    setTimeout(function(){ if (m) m.textContent = ''; }, 4000);
+  }).catch(function(){
+    if (m) { m.textContent = 'שגיאה'; m.style.color = 'var(--red)'; }
+  });
+}
+
+function testAllSysTg() {
+  if (!confirm('לשלוח הודעת בדיקה לכל היעדים המוגדרים?\n\nכל מפקד יקבל הודעה עם שם השלוחה/המחוז שאליו הוא משויך.')) return;
+  var m = document.getElementById('tgTestAllMsg');
+  if (m) { m.textContent = 'שולח לכולם...'; m.style.color = 'var(--royal)'; }
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'adminTestTelegram', all:true,
+                           role:currentUser.role, editor:currentUser.displayName||currentUser.username })
+  }).then(function(){
+    if (m) { m.textContent = 'נשלח לכל היעדים המוגדרים ✓'; m.style.color = 'var(--green)'; }
+    setTimeout(function(){ if (m) m.textContent = ''; }, 6000);
+  }).catch(function(){
+    if (m) { m.textContent = 'שגיאה בשליחה'; m.style.color = 'var(--red)'; }
+  });
 }
 
 // ── ערים (קריאה בלבד — הגיליון בנוי על נוסחה!) ──
