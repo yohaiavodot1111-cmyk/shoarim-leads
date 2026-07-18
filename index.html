@@ -1794,6 +1794,7 @@ canvas{display:block;width:100%!important;}
     <button class="sys-tab" id="systab-cities"   onclick="setSysTab('cities')">ערים ושלוחות</button>
     <button class="sys-tab" id="systab-tickets"  onclick="setSysTab('tickets')">פניות תמיכה <span class="cnt" id="sysTicketCnt" style="display:none">0</span></button>
     <button class="sys-tab" id="systab-links"    onclick="setSysTab('links')">קישורי שיתוף</button>
+    <button class="sys-tab" id="systab-send"     onclick="openTgFromSys()">שליחה יזומה 📨</button>
   </div>
 
   <div class="sys-body">
@@ -2093,6 +2094,7 @@ canvas{display:block;width:100%!important;}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <span>שליחה מבוקרת ומתועדת · v2.0</span>
         </div>
+        <button class="tg-logout" id="tgBackToSys" style="display:none" onclick="backToSysFromTg()">חזרה לניהול</button>
         <button class="tg-logout" onclick="doLogout()">יציאה</button>
       </div>
 
@@ -4134,6 +4136,22 @@ function hideTelegramSender() {
   if (screen) screen.style.display = 'none';
 }
 
+// ── פתיחת מרכז השליחה מתוך דשבורד sysadmin ──
+// אותן יכולות שליחה בדיוק כמו משתמש tel (role: telegram),
+// עם כפתור חזרה לניהול במקום יציאה מהמערכת.
+function openTgFromSys() {
+  showTelegramSender();
+  var back = document.getElementById('tgBackToSys');
+  if (back) back.style.display = '';
+}
+
+function backToSysFromTg() {
+  hideTelegramSender();
+  var back = document.getElementById('tgBackToSys');
+  if (back) back.style.display = 'none';
+  resetInactivity();
+}
+
 function selectTgRecipient(type) {
   _tgRecipient = type;
   ['all','branches','admin','districts'].forEach(function(t) {
@@ -4750,18 +4768,66 @@ function sysCheck(ok, txt){
 }
 
 // ── משתמשים ──
+var _sysPwdShow = false;
+
+// מציג את הסיסמה הנוכחית ככל שהמערכת מסוגלת לדעת אותה:
+// · לא הוחלפה → הסיסמה הראשונית 2580 (ידועה)
+// · שמורה בטקסט גלוי (טרם הוצפנה) → הערך עצמו מהגיליון
+// · אישית ומוצפנת (SHA-256) → לא ניתנת לשחזור — מוצג חיווי בלבד
+function sysPwdDisplay(u) {
+  if (!u.hasPassword) return '<span class="sys-badge sys-b-red">אין</span>';
+  var val = null, note = '';
+  if (!u.isHashed && u.passwordPlain) { val = u.passwordPlain; note = 'גלויה'; }
+  else if (u.changed !== 'כן')        { val = '2580';          note = 'ראשונית'; }
+  if (val !== null) {
+    var shown = _sysPwdShow ? esc(val) : '••••';
+    return '<span style="font-family:monospace;font-weight:700;letter-spacing:.5px;direction:ltr;display:inline-block">' + shown + '</span>' +
+           ' <span style="font-size:10.5px;color:var(--light)">(' + note + ')</span>';
+  }
+  return '<span style="font-size:11.5px;color:var(--light)">אישית · מוצפנת 🔒</span>';
+}
+
+function toggleSysPwdShow() {
+  _sysPwdShow = !_sysPwdShow;
+  renderSysUsers();
+}
+
+function sysToggleAllUsers(master) {
+  document.querySelectorAll('.sys-uchk').forEach(function(c){ c.checked = master.checked; });
+}
+
+function sysSelectedUsers() {
+  var out = [];
+  document.querySelectorAll('.sys-uchk:checked').forEach(function(c){ out.push(c.getAttribute('data-un')); });
+  return out;
+}
+
+function resetSysPwdBulk(all) {
+  var list = all
+    ? _sysData.users.map(function(u){ return u.username; })
+    : sysSelectedUsers();
+  if (!list.length) { alert('לא נבחרו משתמשים לאיפוס'); return; }
+  if (!confirm('לאפס את הסיסמה ל-2580 עבור ' + list.length + ' משתמשים?\n\n' +
+      list.join(', ') + '\n\n' +
+      'כל משתמש יידרש להגדיר סיסמה חדשה בכניסה הבאה,\nותישלח הודעת טלגרם לכל שלוחה/מחוז שאופסו.')) return;
+  sysPost({ action:'adminResetPasswords', usernames:list });
+  alert('בקשת האיפוס נשלחה. הרשימה תתרענן בעוד רגע.');
+}
+
 function renderSysUsers() {
   var rows = _sysData.users.map(function(u){
     var pwdBadge = !u.hasPassword ? '<span class="sys-badge sys-b-red">ללא סיסמה</span>'
       : u.changed === 'כן' ? '<span class="sys-badge sys-b-ok">אישית</span>'
       : '<span class="sys-badge sys-b-warn">ראשונית</span>';
     return '<tr>' +
+      '<td style="text-align:center"><input type="checkbox" class="sys-uchk" data-un="' + esc(u.username) + '" style="width:15px;height:15px;cursor:pointer"/></td>' +
       '<td style="font-weight:600;color:var(--text)">' + esc(u.username) + '</td>' +
       '<td>' + esc(u.displayName) + '</td>' +
       '<td><span class="sys-badge sys-b-gray">' + roleLabel(u.role) + '</span></td>' +
       '<td>' + esc(u.branch || '-') + '</td>' +
       '<td>' + esc(u.district || '-') + '</td>' +
       '<td>' + pwdBadge + '</td>' +
+      '<td style="white-space:nowrap">' + sysPwdDisplay(u) + '</td>' +
       '<td style="white-space:nowrap">' +
         '<button class="sys-btn sm ghost" onclick="editSysUser(\'' + esc(u.username) + '\')">ערוך</button> ' +
         '<button class="sys-btn sm ghost" onclick="resetSysPwd(\'' + esc(u.username) + '\')">איפוס סיסמה</button> ' +
@@ -4773,12 +4839,18 @@ function renderSysUsers() {
     '<div class="sys-card">' +
       '<div class="sys-card-h">' +
         '<div><div class="sys-card-t">משתמשי המערכת</div>' +
-        '<div class="sys-card-s">' + _sysData.users.length + ' משתמשים · סיסמה ראשונית למשתמש חדש: <b>2580</b></div></div>' +
-        '<button class="sys-btn" onclick="newSysUser()">+ משתמש חדש</button>' +
+        '<div class="sys-card-s">' + _sysData.users.length + ' משתמשים · סיסמה ראשונית למשתמש חדש: <b>2580</b> · סיסמאות אישיות מוצפנות ואינן ניתנות לצפייה</div></div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+          '<button class="sys-btn ghost" onclick="toggleSysPwdShow()">' + (_sysPwdShow ? '🙈 הסתר סיסמאות' : '👁️ הצג סיסמאות') + '</button>' +
+          '<button class="sys-btn ghost" onclick="resetSysPwdBulk(false)">איפוס לנבחרים</button>' +
+          '<button class="sys-btn danger" onclick="resetSysPwdBulk(true)">איפוס לכולם</button>' +
+          '<button class="sys-btn" onclick="newSysUser()">+ משתמש חדש</button>' +
+        '</div>' +
       '</div>' +
       '<div class="sys-card-b" style="overflow-x:auto">' +
         '<table class="sys-table"><thead><tr>' +
-          '<th>שם משתמש</th><th>שם תצוגה</th><th>תפקיד</th><th>שלוחה</th><th>מחוז</th><th>סיסמה</th><th>פעולות</th>' +
+          '<th style="width:34px"><input type="checkbox" onclick="sysToggleAllUsers(this)" style="width:15px;height:15px;cursor:pointer" title="בחר הכל"/></th>' +
+          '<th>שם משתמש</th><th>שם תצוגה</th><th>תפקיד</th><th>שלוחה</th><th>מחוז</th><th>סטטוס</th><th>סיסמה נוכחית</th><th>פעולות</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table>' +
       '</div>' +
     '</div>' +
@@ -4841,7 +4913,7 @@ function saveSysUser(isNew) {
 }
 
 function resetSysPwd(un) {
-  if (!confirm('לאפס את הסיסמה של "' + un + '" ל-2580?\n\nהמשתמש יידרש להגדיר סיסמה חדשה בכניסה הבאה.')) return;
+  if (!confirm('לאפס את הסיסמה של "' + un + '" ל-2580?\n\nהמשתמש יידרש להגדיר סיסמה חדשה בכניסה הבאה,\nותישלח הודעת טלגרם לשלוחה/מחוז על האיפוס.')) return;
   sysPost({ action:'adminSaveUser', user:{ username:un, resetPassword:true,
     role: (_sysData.users.filter(function(x){return x.username===un;})[0]||{}).role,
     branch: (_sysData.users.filter(function(x){return x.username===un;})[0]||{}).branch,
@@ -4921,18 +4993,6 @@ function renderSysCities() {
     '</tr>';
   }).join('');
 
-  var list = _sysData.cities;
-  if (q) list = list.filter(function(c){ return c.city.indexOf(q) > -1 || (c.branch||'').indexOf(q) > -1; });
-
-  var rows = list.slice(0, 300).map(function(c){
-    return '<tr>' +
-      '<td style="font-weight:600;color:var(--text)">' + esc(c.city) + '</td>' +
-      '<td>' + (c.branch
-        ? esc(c.branch)
-        : '<span class="sys-badge sys-b-red">לא משויכת</span>') + '</td>' +
-    '</tr>';
-  }).join('');
-
   document.getElementById('syspane-cities').innerHTML =
 
     // ── אזהרה: קריאה בלבד ──
@@ -4978,15 +5038,77 @@ function renderSysCities() {
     '<div class="sys-card">' +
       '<div class="sys-card-h">' +
         '<div><div class="sys-card-t">רשימת הערים</div>' +
-        '<div class="sys-card-s">' + _sysData.cities.length + ' ערים במיפוי</div></div>' +
-        '<input class="sys-search" id="cityQ" placeholder="חיפוש עיר או שלוחה..." value="' + esc(q) + '" oninput="renderSysCities()"/>' +
+        '<div class="sys-card-s" id="cityCount">' + _sysData.cities.length + ' ערים במיפוי</div></div>' +
+        '<input class="sys-search" id="cityQ" placeholder="חיפוש עיר או שלוחה..." value="' + esc(q) + '" oninput="sysCityFilter()"/>' +
       '</div>' +
+      '<div id="cityMatchBox"></div>' +
       '<div class="sys-card-b" style="overflow-x:auto">' +
         '<table class="sys-table"><thead><tr><th style="width:260px">עיר</th><th>שלוחה</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody></table>' +
-        (list.length > 300 ? '<div style="padding:10px;text-align:center;font-size:12px;color:var(--light)">מוצגות 300 מתוך ' + list.length + ' - השתמשו בחיפוש</div>' : '') +
+        '<tbody id="cityListBody"></tbody></table>' +
+        '<div id="cityListMore"></div>' +
       '</div>' +
     '</div>';
+
+  sysCityFilter();   // מילוי ראשוני של הרשימה
+}
+
+// ── סינון חי של רשימת הערים — בלי לבנות מחדש את שדה החיפוש ──
+// כך הפוקוס נשאר בשדה וניתן להקליד את כל השם ברצף.
+function sysCityFilter() {
+  if (!_sysData) return;
+  var inp = document.getElementById('cityQ');
+  var q   = (inp ? inp.value : '').trim();
+
+  var list = _sysData.cities;
+  if (q) list = list.filter(function(c){ return c.city.indexOf(q) > -1 || (c.branch||'').indexOf(q) > -1; });
+
+  // ── תיבת שיוך: "נתניה ← כפר סבא" ──
+  var matchBox = document.getElementById('cityMatchBox');
+  if (matchBox) {
+    if (q) {
+      var exact = _sysData.cities.filter(function(c){ return c.city === q; })[0] ||
+                  (list.length === 1 ? list[0] : null);
+      if (exact) {
+        matchBox.innerHTML =
+          '<div style="margin:0 16px 4px;padding:11px 14px;background:#eef7f0;border:1px solid #b7dfc2;border-radius:8px;' +
+          'font-size:14px;font-weight:700;color:#14532d;display:flex;align-items:center;gap:10px">' +
+            '<span>📍</span><span>' + esc(exact.city) + ' &#8592; ' +
+            (exact.branch ? 'שלוחת ' + esc(exact.branch)
+                          : '<span style="color:var(--red)">לא משויכת לאף שלוחה</span>') + '</span>' +
+          '</div>';
+      } else if (!list.length) {
+        matchBox.innerHTML =
+          '<div style="margin:0 16px 4px;padding:11px 14px;background:#fef3f2;border:1px solid #f4c7c3;border-radius:8px;' +
+          'font-size:13px;font-weight:600;color:#912018">לא נמצאה עיר או שלוחה בשם "' + esc(q) + '"</div>';
+      } else {
+        matchBox.innerHTML = '';
+      }
+    } else {
+      matchBox.innerHTML = '';
+    }
+  }
+
+  var rows = list.slice(0, 300).map(function(c){
+    return '<tr>' +
+      '<td style="font-weight:600;color:var(--text)">' + esc(c.city) + '</td>' +
+      '<td>' + (c.branch
+        ? esc(c.branch)
+        : '<span class="sys-badge sys-b-red">לא משויכת</span>') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var body = document.getElementById('cityListBody');
+  if (body) body.innerHTML = rows;
+
+  var more = document.getElementById('cityListMore');
+  if (more) more.innerHTML = list.length > 300
+    ? '<div style="padding:10px;text-align:center;font-size:12px;color:var(--light)">מוצגות 300 מתוך ' + list.length + ' - השתמשו בחיפוש</div>'
+    : '';
+
+  var cnt = document.getElementById('cityCount');
+  if (cnt) cnt.textContent = q
+    ? list.length + ' תוצאות מתוך ' + _sysData.cities.length + ' ערים'
+    : _sysData.cities.length + ' ערים במיפוי';
 }
 
 // ── פניות תמיכה ──
