@@ -637,6 +637,15 @@ body.dark .lg-foot,body.dark .tg-foot{border-top-color:#243247;}
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
   transition:all .16s;
 }
+.hdr-support{
+  background:transparent;border:1px solid #415877;color:#d6deea;
+  width:34px;height:32px;border-radius:6px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all .16s;
+}
+.hdr-support:hover{background:#102a4c;border-color:#63748d;color:#fff;}
+.hdr-support svg{width:16px;height:16px;}
+body.dark .hdr-support{border-color:#3a4a60;color:#b3c0d1;}
 .theme-toggle:hover{background:#102a4c;border-color:#63748d;color:#fff;}
 .theme-toggle svg{width:16px;height:16px;}
 .theme-toggle .ic-moon{display:block;}
@@ -1610,7 +1619,7 @@ canvas{display:block;width:100%!important;}
 
       <div class="lg-foot">
         <svg class="lg-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>חיבור מאובטח · שימוש מבוקר ומתועד · v2.0</span>
+        <span>חיבור מאובטח · שימוש מבוקר ומתועד · v3.0</span>
       </div>
 
       <div class="lg-clock">
@@ -1817,7 +1826,7 @@ canvas{display:block;width:100%!important;}
     <div>
       <div class="header-title">מערכת לידים - שוחרות</div>
       <div class="header-sub" id="headerSub"></div>
-      <div style="font-size:10px;color:#607a99;margin-top:1px">v2.0</div>
+      <div style="font-size:10px;color:#607a99;margin-top:1px">v3.0</div>
     </div>
   </div>
   <div class="header-right">
@@ -1830,6 +1839,9 @@ canvas{display:block;width:100%!important;}
     <div class="header-user">
       <span id="newLeadsBadge" class="new-leads-badge" style="display:none" title="לחץ לסגירה"></span>
       <span class="user-badge" id="userBadge"></span>
+      <button class="hdr-support" onclick="openSupport()" title="תמיכה טכנית">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+      </button>
       <button class="theme-toggle" onclick="toggleTheme()" title="מצב כהה / בהיר">
         <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -2016,8 +2028,8 @@ canvas{display:block;width:100%!important;}
         </div>
         <div id="tgs_district_select_wrap" style="display:none">
           <select class="tg-sel" id="tgs_district_select" onchange="onDistrictModeChange()">
-            <option value="all_districts">כל מפקדי המחוזות - הודעה זהה</option>
-            <option value="per_district">פר מחוז - כל מפקד מקבל את נתוני המחוז שלו</option>
+            <option value="per_district">כל מפקד מקבל את נתוני המחוז שלו (מומלץ)</option>
+            <option value="all_districts">הודעה זהה לכל מפקדי המחוזות</option>
             <option value="דרום">מפקד מחוז דרום בלבד</option>
             <option value="מרכז">מפקד מחוז מרכז בלבד</option>
             <option value="צפון">מפקד מחוז צפון בלבד</option>
@@ -2088,7 +2100,7 @@ canvas{display:block;width:100%!important;}
       <div class="tg-foot">
         <div class="tg-foot-txt">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span>שליחה מבוקרת ומתועדת · v2.0</span>
+          <span>שליחה מבוקרת ומתועדת · v3.0</span>
         </div>
         <button class="tg-logout" id="tgBackToSys" style="display:none" onclick="backToSysFromTg()">חזרה לניהול</button>
         <button class="tg-logout" onclick="doLogout()">יציאה</button>
@@ -4320,7 +4332,7 @@ var TG_DISTRICTS = ['דרום','מרכז','צפון'];
 
 function getDistrictMode() {
   var el = document.getElementById('tgs_district_select');
-  return el ? el.value : 'all_districts';
+  return el ? el.value : 'per_district';
 }
 
 function onDistrictModeChange() {
@@ -5356,8 +5368,23 @@ function renderSysTickets() {
 }
 
 function setTicket(id, status) {
-  sysPost({ action:'adminTicketStatus', ticketId:id, status:status,
-            handler: status === 'טופל' ? (currentUser.displayName||currentUser.username) : '' });
+  // ── עדכון מיידי: משנים את הסטטוס מקומית ומרנדרים מחדש ללא המתנה לשרת ──
+  var handler = status === 'טופל' ? (currentUser.displayName||currentUser.username) : '';
+  var t = (_sysData.tickets||[]).find(function(x){ return String(x.id) === String(id); });
+  if (t) { t.status = status; t.handler = handler; }
+  renderSysTickets();
+  var cnt = document.getElementById('sysTicketCnt');
+  if (cnt) {
+    var open = (_sysData.tickets||[]).filter(function(x){ return x.status==='פתוח'; }).length;
+    cnt.textContent = open; cnt.style.display = open ? '' : 'none';
+  }
+  // שליחה לשרת ברקע
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action:'adminTicketStatus', ticketId:id, status:status, handler:handler,
+                           role:currentUser.role, editor:currentUser.displayName||currentUser.username })
+  }).catch(function(){});
 }
 
 // ── קישורי שיתוף ──
