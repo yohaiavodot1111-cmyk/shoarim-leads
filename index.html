@@ -1982,10 +1982,6 @@ canvas{display:block;width:100%!important;}
   <div class="tg-formside">
     <div class="tg-panel">
 
-      <div class="tg-eyebrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-        <span>שידור מבצעי</span>
-      </div>
       <div class="tg-h">שליחת הודעת טלגרם</div>
       <div class="tg-hsub">בחרו נמענים, בנו את ההודעה ושלחו</div>
 
@@ -3981,17 +3977,24 @@ var EDIT_FIELDS = ['name','city','grade','phone','gender','school','parentName',
 function saveEdit() {
   var r=filtered[activeIdx]; if(!r) return;
   var saveBtn=document.getElementById('saveBtn');
-  saveBtn.disabled=true; saveBtn.textContent='שומר...';
   var lead={originalPhone:r.originalPhone||r.phone, uuid:r.uuid||r.originalPhone||r.phone};
   EDIT_FIELDS.forEach(function(f){ var el=document.getElementById('edit_'+f); lead[f]=el?el.value.trim():(r[f]||''); });
   lead.status = lead.status||'חדש';
   if (STATUS_NOTES_REQUIRED.indexOf(lead.status)>-1 && !lead.rejectNote.trim()) {
     var sm=document.getElementById('saveMsg'); sm.textContent='סטטוס זה מחייב סיבת דחייה'; sm.className='save-msg err'; sm.style.display='';
-    saveBtn.disabled=false; saveBtn.textContent='שמור'; return;
+    return;
   }
+
+  // ── שמירה אופטימית: הממשק מתעדכן מיידית, והשמירה לשרת רצה ברקע ──
+  // מכיוון שהבקשה נשלחת ב-no-cors ממילא אי אפשר לקרוא ממנה הצלחה/כשל,
+  // אז אין טעם להקפיא את הממשק בהמתנה לה — התוצאה זהה, רק בלי התקיעה.
+  saveBtn.disabled=true; saveBtn.textContent='נשמר';
+
   fetch(APPS_SCRIPT_URL, {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveEdit',lead:lead,editor:currentUser.displayName||currentUser.username})})
-  .then(function(){
-    // עדכן מיידית בכל מקום בנתונים המקומיים
+    .catch(function(){ /* השמירה תיבדק ממילא בסנכרון הרקע */ });
+
+  // עדכן מיידית בכל מקום בנתונים המקומיים
+  {
     EDIT_FIELDS.forEach(function(f){r[f]=lead[f];}); r.hasEdit=true;
     var orig=allData.find(function(x){return x.uuid===r.uuid;});
     if(orig){EDIT_FIELDS.forEach(function(f){orig[f]=lead[f];});orig.hasEdit=true;}
@@ -4038,9 +4041,10 @@ function saveEdit() {
       delete _historyCache[r.uuid];
       loadHistory(r.uuid);
     }, 3000);
-  })
-  .catch(function(e){ var sm=document.getElementById('saveMsg'); sm.textContent='שגיאה: '+e.message; sm.className='save-msg err'; sm.style.display=''; saveBtn.disabled=false; saveBtn.textContent='שמור'; })
-  .then(function(){ saveBtn.disabled=false; saveBtn.textContent='שמור'; });
+  }
+
+  // שחרר את הכפתור לעריכה הבאה
+  setTimeout(function(){ saveBtn.disabled=false; saveBtn.textContent='שמור'; }, 800);
 }
 
 function deleteLead() {
@@ -4082,9 +4086,11 @@ function submitAddLead() {
     parent2Phone:document.getElementById('add_p2phone').value.trim(),parent2Email:document.getElementById('add_p2email').value.trim(),
     source:document.getElementById('add_source').value,branch:document.getElementById('add_branch').value,
     district:document.getElementById('add_district').value,timestamp:new Date().toLocaleString('he-IL'),status:'חדש'};
-  var msg=document.getElementById('addMsg'); msg.textContent='שומר...'; msg.className='save-msg ok'; msg.style.display='';
+  var msg=document.getElementById('addMsg'); msg.textContent='נשמר'; msg.className='save-msg ok'; msg.style.display='';
   fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addManual',lead:lead})})
-  .then(function(){ msg.textContent='הליד נוסף'; setTimeout(function(){closeAddModal();loadData();},1200); });
+  .catch(function(){});
+  // סגור מיידית; טעינת הרקע השקטה תמשוך את הליד החדש עם ה-UUID מהשרת
+  setTimeout(function(){ closeAddModal(); loadData(); }, 400);
 }
 
 function exportExcel() {
@@ -4653,20 +4659,18 @@ function saveNewNote(uuid) {
   var nc = document.getElementById('notesContainer_' + uuid);
   if (nc) nc.outerHTML = renderNotesList(uuid, _notesCache[uuid]);
 
-  // שמור בשרת
+  // שמור בשרת (הרקע) — יחד עם תיעוד ההיסטוריה, במקביל ולא בשרשור
   fetch(APPS_SCRIPT_URL, {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({action:'addNote', uuid:uuid, text:text, editor:editor})
-  }).then(function(){
-    // תעד בהיסטוריה
-    fetch(APPS_SCRIPT_URL, {
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'saveEdit', lead:{uuid:uuid}, editor:editor, historyOnly:true, historyChanges:[{field:'הערה חדשה', from:'(ריק)', to:text.substring(0,60)+(text.length>60?'...':'')}]})
-    });
-    setTimeout(function(){ delete _notesCache[uuid]; loadNotes(uuid); }, 2000);
-  });
+  }).catch(function(){});
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'saveEdit', lead:{uuid:uuid}, editor:editor, historyOnly:true, historyChanges:[{field:'הערה חדשה', from:'(ריק)', to:text.substring(0,60)+(text.length>60?'...':'')}]})
+  }).catch(function(){});
+  setTimeout(function(){ delete _notesCache[uuid]; loadNotes(uuid); }, 2000);
   // עדכן cache היסטוריה מיידית
   var now2 = new Date();
   var hEntry = { editor:editor, date:now2.toLocaleDateString('he-IL'),
@@ -4715,15 +4719,12 @@ function saveNoteEdit(uuid, nid) {
     method:'POST', mode:'no-cors',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({action:'editNote', uuid:uuid, noteId:nid, text:text})
-  }).then(function(){
-    // תעד עריכת הערה בהיסטוריה
-    var editor = currentUser.displayName || currentUser.username;
-    fetch(APPS_SCRIPT_URL, {
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'saveEdit', lead:{uuid:uuid}, editor:editor, historyOnly:true, historyChanges:[{field:'עריכת הערה', from:'(קודם)', to:text.substring(0,60)+(text.length>60?'...':'')}]})
-    });
-  });
+  }).catch(function(){});
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'saveEdit', lead:{uuid:uuid}, editor:editor2, historyOnly:true, historyChanges:[{field:'עריכת הערה', from:'(קודם)', to:text.substring(0,60)+(text.length>60?'...':'')}]})
+  }).catch(function(){});
 }
 
 // ── HISTORY ──
