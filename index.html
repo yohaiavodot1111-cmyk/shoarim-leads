@@ -2216,6 +2216,66 @@ canvas{display:block;width:100%!important;}
 <script>
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby7189tlPKWZKXNEAipGZd7Hy2oe6L9k1LRJGRHU7z1d9RDaXS0GHt6rnp7-8wWINVc/exec';
 
+// ══════════════════════════════════════════════════════════════
+// ═══ אבטחה: צירוף טוקן ההזדהות לכל קריאה לשרת ═══
+// ══════════════════════════════════════════════════════════════
+// עוטף את fetch פעם אחת, ומצרף את הטוקן שהונפק בהתחברות לכל פנייה
+// לכתובת ה-Apps Script בלבד. נעשה במקום אחד מרוכז כדי שאף קריאה
+// קיימת או עתידית לא תישאר ללא זיהוי — ובלי לשנות אף אתר קריאה.
+// לוגיקת הקריאות עצמן לא השתנתה כלל.
+(function(){
+  var _rawFetch = window.fetch.bind(window);
+
+  function _token() {
+    try { return (currentUser && currentUser.token) ? currentUser.token : ''; }
+    catch(e) { return ''; }
+  }
+
+  window.fetch = function(input, init) {
+    try {
+      var url = (typeof input === 'string') ? input : (input && input.url) || '';
+      var tok = _token();
+
+      // רק פניות לשרת המערכת, ורק כשקיים טוקן פעיל
+      if (tok && url.indexOf(APPS_SCRIPT_URL) === 0) {
+
+        // GET — הטוקן נוסף כפרמטר בכתובת
+        if (!init || !init.method || String(init.method).toUpperCase() === 'GET') {
+          if (url.indexOf('token=') === -1) {
+            url += (url.indexOf('?') > -1 ? '&' : '?') + 'token=' + encodeURIComponent(tok);
+            input = (typeof input === 'string') ? url : new Request(url, input);
+          }
+        }
+        // POST — הטוקן נוסף לגוף ה-JSON
+        else if (init && init.body && typeof init.body === 'string') {
+          try {
+            var payload = JSON.parse(init.body);
+            if (payload && typeof payload === 'object' && !payload.token) {
+              payload.token = tok;
+              init = Object.assign({}, init, { body: JSON.stringify(payload) });
+            }
+          } catch(e) { /* גוף שאינו JSON — מועבר כמות שהוא */ }
+        }
+      }
+    } catch(e) { /* בכל תקלה — הקריאה המקורית ממשיכה כרגיל */ }
+
+    return _rawFetch(input, init);
+  };
+})();
+
+// ── טיפול בפקיעת תוקף הסשן ──
+// כשהשרת מחזיר unauthorized, הסשן הסתיים ויש להזדהות מחדש.
+function handleAuthExpired() {
+  if (!currentUser) return;
+  // doLogout מבצע את כל הניקוי הקיים (polling, sessionStorage, מטמונים, תצוגה)
+  try { doLogout(); } catch(e) { location.reload(); return; }
+  var el = document.getElementById('loginErr');
+  if (el) {
+    el.textContent = 'תוקף ההתחברות פג. יש להתחבר מחדש.';
+    el.style.display = 'block';
+  }
+}
+
 var BRANCH_DISTRICT = {
   'אשקלון':'דרום','נהריה':'צפון','אילת':'דרום','קריית גת':'דרום',
   'דימונה':'דרום','אשדוד':'דרום','בית שמש':'מרכז','גבעת רם':'מרכז',
@@ -2745,6 +2805,7 @@ function loadData() {
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (myToken !== _loadToken || !currentUser) return;
+      if (d.error === 'unauthorized') { handleAuthExpired(); return; }
       if (!d.success) throw new Error(d.error||'שגיאה');
       _processRows(d.rows || [], myToken, btn);
     })
@@ -4783,6 +4844,7 @@ function loadSysData(silent) {
   fetch(APPS_SCRIPT_URL + '?action=adminData&role=' + encodeURIComponent(currentUser.role))
     .then(function(r){ return r.json(); })
     .then(function(d){
+      if (d.error === 'unauthorized') { handleAuthExpired(); return; }
       if (!d.success) throw new Error(d.error || 'שגיאה');
       _sysData = d;
       var open = (d.tickets||[]).filter(function(t){ return t.status === 'פתוח'; }).length;
